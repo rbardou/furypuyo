@@ -2,7 +2,10 @@ open Block
 
 type state = int
 
-type t = Rand.t -> state -> Rand.t * state * Block.t
+type t = {
+  generator: t -> Rand.t -> Rand.t * t * Block.t;
+  state: int;
+}
 
 let combinations l =
   List.flatten (List.map (fun x -> List.map (fun y -> x, y) l) l)
@@ -37,6 +40,12 @@ let all_blocks colors =
 let random colors =
   let blocks = Array.of_list (all_blocks colors) in
   let count = Array.length blocks in
-  fun rand state ->
+  let gen state rand =
     let rand, n = Rand.int rand count in
     rand, state, blocks.(n)
+  in {
+    generator = gen;
+    state = 0;
+  }
+
+let next gen rand = gen.generator gen rand

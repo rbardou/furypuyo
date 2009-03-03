@@ -1,5 +1,7 @@
 type state = int
 
-type t = Rand.t -> state -> Rand.t * state * Block.t
+type t
 
 val random: Puyo.color list -> t
+
+val next: t -> Rand.t -> Rand.t * t * Block.t
