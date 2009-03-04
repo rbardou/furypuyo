@@ -59,7 +59,8 @@ module Text: sig
         [load file size]: load a TTF font from file [file]
         with font size [size]. *)
 
-  val write: t -> ?align: align -> int -> int -> string -> unit
+  val write: t -> ?align: align -> ?color: Sdlvideo.color -> int -> int ->
+    string -> unit
     (** Write some text.
 
         [write font x y text]: write [text] at position [(x, y)] using font

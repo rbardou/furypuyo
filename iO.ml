@@ -70,9 +70,9 @@ module Text = struct
 
   let load file size = open_font file size
 
-  let write font ?(align = TopLeft) x y txt =
+  let write font ?(align = TopLeft) ?(color = white) x y txt =
     let (w, h) = Sdlttf.size_text font txt in
-    let txt = Sdlttf.render_text_solid font txt ~fg: white in
+    let txt = Sdlttf.render_text_solid font txt ~fg: color in
     let hotx, hoty = hotxy w h align in
     blit_surface
       ~src: txt

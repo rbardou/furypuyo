@@ -20,11 +20,15 @@ type delete_state = {
   ds_counts: int list;
 }
 
+type gameover_state = {
+  gos_start: int;
+}
+
 type state =
   | Normal of normal_state
   | Heaping of heaping_state
   | Delete of delete_state
-  | GameOver
+  | GameOver of gameover_state
 
 type game = {
   now: int;
@@ -35,12 +39,25 @@ type game = {
   rand: Rand.t;
   generator: Generator.t;
   state: state;
+  inc_delay: int;
+  inc_effect: Puyo.effect;
+  score: int;
+  chain: int;
 }
+
+let chain_factor game = 2 * game.chain * game.chain -4
+
+let score_to_add game counts =
+  let scores = List.map begin fun p ->
+    10 * p, p + chain_factor game
+  end counts in
+  List.fold_left (fun (a, b) (c, d) -> a + c, b + d) (0, 0) scores
 
 let start () =
   let generator = Generator.nice [ Red; Green; Blue; Yellow ] in
   let rand = Rand.self_init () in
   let rand, generator, incoming = Generator.next generator rand in
+  let inc_delay = 100 in
   {
     now = 0;
     field = Matrix.make width height Cell.empty;
@@ -49,7 +66,11 @@ let start () =
     incy = 0;
     rand = rand;
     generator = generator;
-    state = Normal { ns_next_gravity = 100 };
+    state = Normal { ns_next_gravity = inc_delay };
+    inc_delay = inc_delay;
+    inc_effect = moving_effect 0 0 1 inc_delay;
+    score = 0;
+    chain = 0;
   }
 
 let matrix_big_groups f =
@@ -106,7 +127,11 @@ let delete_big_groups game =
   if bg = [] then
     game
   else
-    { game with state = Delete { ds_cells = bg; ds_delay = 50; ds_counts = counts } }
+    { game with
+        state = Delete { ds_cells = bg;
+                         ds_delay = 50;
+                         ds_counts = counts };
+        chain = game.chain + 1 }
 
 let heap_gravity game =
   let delay = match game.state with
@@ -140,7 +165,8 @@ let heap_gravity game =
         state = Heaping { hs_next_gravity = delay;
                           hs_last_delay = delay } }
   else
-    let game = { game with state = Normal { ns_next_gravity = 100 } } in
+    let game =
+      { game with state = Normal { ns_next_gravity = game.inc_delay } } in
     delete_big_groups game
 
 let really_delete game ds =
@@ -151,7 +177,12 @@ let really_delete game ds =
       game.field
       cells
   in
-  let game = { game with field = f } in
+  let sa, sb = score_to_add game ds.ds_counts in
+  let game =
+    { game with
+        field = f;
+        score = game.score + sa * sb }
+  in
   heap_gravity game
 
 let insert_incoming game =
@@ -163,20 +194,34 @@ let insert_incoming game =
         generator = generator;
         incb = incb;
         incx = 2;
-        incy = 0 }
+        incy = 0;
+        inc_effect = moving_effect game.now 0 1 game.inc_delay;
+        chain = 0 }
   in
   heap_gravity game
 
-let move insert x y game =
+let move fall x y game =
   if Block.collision game.incb (game.incx+x) (game.incy+y) game.field then
-    if insert then
+    if fall then
       insert_incoming game
     else
       game
   else
-    { game with
-        incx = game.incx+x;
-        incy = game.incy+y }
+    let game =
+      { game with
+          inc_effect =
+          if fall then moving_effect game.now x y game.inc_delay
+          else game.inc_effect;
+          incx = game.incx+x;
+          incy = game.incy+y }
+    in
+    if fall then
+      match game.state with
+        | Normal _ ->
+            { game with
+                state = Normal { ns_next_gravity = game.inc_delay } }
+        | _ -> game
+    else game
 
 let transform f game =
   let newb = f game.incb in
@@ -217,7 +262,7 @@ let act game action =
         end
     | Heaping _
     | Delete _
-    | GameOver ->
+    | GameOver _ ->
         begin match action with
           | Quit ->
               IO.quit ();
@@ -226,14 +271,12 @@ let act game action =
               game
         end
 
-let sf = IO.Text.load "data/pouyou.ttf" 20
-
 let check_game_over game =
   match game.state with
     | Normal _ ->
         if not (Cell.is_empty (Matrix.get game.field 2 2))
           || not (Cell.is_empty (Matrix.get game.field 3 2)) then
-            { game with state = GameOver }
+            { game with state = GameOver { gos_start = game.now } }
         else
           game
     | _ -> game
@@ -246,7 +289,7 @@ let think game =
         if ns.ns_next_gravity <= 0 then
           move true 0 1
             { game with
-                state = Normal { ns_next_gravity = 100 } }
+                state = Normal { ns_next_gravity = game.inc_delay } }
         else
           { game with
               state = Normal { ns_next_gravity = ns.ns_next_gravity - 1 } }
@@ -262,5 +305,5 @@ let think game =
           really_delete game ds
         else
           { game with state = Delete { ds with ds_delay = ds.ds_delay - 1 } }
-    | GameOver ->
+    | GameOver _ ->
         game
