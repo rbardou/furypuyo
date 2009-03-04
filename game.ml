@@ -11,6 +11,7 @@ type game = {
   incy: int;
   rand: Rand.t;
   generator: Generator.t;
+  next_down: int;
 }
 
 let start () =
@@ -24,6 +25,7 @@ let start () =
     incy = 1;
     rand = rand;
     generator = generator;
+    next_down = 100;
   }
 
 let act game = function
@@ -38,3 +40,11 @@ let act game = function
       { game with incb = Block.rotate_left game.incb }
   | Down ->
       { game with incb = Block.rotate_right game.incb }
+
+let think game =
+  if game.next_down <= 0 then
+    { game with
+        incy = game.incy + 1;
+        next_down = 100 }
+  else
+    { game with next_down = game.next_down - 1 }

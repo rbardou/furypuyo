@@ -2,6 +2,7 @@ module Reader = IO.MakeReader(Action)
 
 let rec loop game =
   let game = List.fold_left Game.act game (Reader.read ()) in
+  let game = Game.think game in
   Draw.draw game;
   IO.frame_delay 10;
   loop game

@@ -1,7 +1,10 @@
 (** Blocks *)
 
 type t =
-  | List of (int * int * Puyo.t) list
+  | List1 of (int * int * Puyo.t) list
+      (** Center of rotation at [(0, 0)]. *)
+  | List2 of (int * int * Puyo.t) list
+      (** Center of rotation at [(0.5, 0.5)]. *)
   | Quad of Puyo.color * Puyo.color list
       (** Current color and next colors. *)
 

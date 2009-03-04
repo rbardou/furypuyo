@@ -172,9 +172,10 @@ module MakeReader(A: ACTION) = struct
             read_events acc
     in
     let actions = read_events [] in
-    KeySet.fold (action continuous) !pressed_keys actions
+    let actions = KeySet.fold (action continuous) !pressed_keys actions in
+    List.rev actions
 
   let key_continuous k a = continuous := KeyMap.add k a !continuous
-  let key_up k a = continuous := KeyMap.add k a !continuous
-  let key_down k a = continuous := KeyMap.add k a !continuous
+  let key_up k a = up := KeyMap.add k a !up
+  let key_down k a = down := KeyMap.add k a !down
 end

@@ -25,11 +25,15 @@ let draw_puyo puyo x y =
 let draw game =
   Sprite.draw background 0 0;
   begin match game.incb with
-    | List puyos ->
+    | List1 puyos
+    | List2 puyos ->
         List.iter
           (fun (x, y, p) -> draw_puyo p (game.incx+x) (game.incy+y))
           puyos
     | Quad (color, _) ->
-        draw_puyo (Puyo.make color) game.incx game.incy
+        draw_puyo (Puyo.make color) game.incx game.incy;
+        draw_puyo (Puyo.make color) (game.incx+1) game.incy;
+        draw_puyo (Puyo.make color) game.incx (game.incy+1);
+        draw_puyo (Puyo.make color) (game.incx+1) (game.incy+1)
   end;
   update ()
