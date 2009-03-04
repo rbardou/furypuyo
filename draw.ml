@@ -6,9 +6,9 @@ open Cell
 
 let cellw = 20
 let cellh = 20
-let scoreh = 30
+let fieldy = 30
 
-let () = IO.init (cellw*Game.width) (cellh*(Game.height-2) + scoreh)
+let () = IO.init (cellw*Game.width) (cellh*(Game.height-2) + fieldy)
 
 let load_puyo = Sprite.load
 let sprite_puyo_red = load_puyo "data/red.png"
@@ -34,7 +34,7 @@ let draw_puyo game puyo x y =
           let d = max 0 (y - h + game.now - gos.gos_start) in
           let dy = d * (d - 1) in
           let dy = dy / 10 in
-          Sprite.draw (sprite_of_puyo puyo) (x*20) ((y-2)*20+dy+scoreh)
+          Sprite.draw (sprite_of_puyo puyo) (x*20) ((y-2)*20+dy+fieldy)
         end
     | _ ->
         let dx, dy = match puyo.effect with
@@ -45,7 +45,7 @@ let draw_puyo game puyo x y =
               int_of_float dx, int_of_float dy
           | _ -> 0, 0
         in
-        Sprite.draw (sprite_of_puyo puyo) (x*20+dx) ((y-2)*20+dy+scoreh)
+        Sprite.draw (sprite_of_puyo puyo) (x*20+dx) ((y-2)*20+dy+fieldy)
 
 let draw game =
   let draw_puyo = draw_puyo game in
@@ -82,12 +82,15 @@ let draw game =
     done;
   done;
   Sprite.draw foreground 0 0;
-  let score = match game.state with
+  let score1 = string_of_int game.score in
+  let score2 = match game.state with
     | Delete ds ->
         let a, b = score_to_add game ds.ds_counts in
-        Printf.sprintf "%d + %dx%d" game.score a b
+        Printf.sprintf "+ %d x %d" a b
     | _ ->
-        Printf.sprintf "%d" game.score
+        " "
   in
-  Text.write font ~align: Left 10 ~color: Sdlvideo.red (scoreh / 2) score;
+  Text.write font ~align: Left 10 ~color: Sdlvideo.red (fieldy / 3 - 2) score1;
+  Text.write font ~align: Left 10 ~color: Sdlvideo.red
+    (2 * fieldy / 3 + 2) score2;
   update ()
