@@ -4,7 +4,7 @@ open IO
 open Puyo
 open Cell
 
-let () = IO.init (20*Game.width) (20*Game.height)
+let () = IO.init (20*Game.width) (20*Game.height-40)
 
 let load_puyo = Sprite.load
 let sprite_puyo_red = load_puyo "data/red.png"
@@ -21,7 +21,7 @@ let sprite_of_puyo p =
     | Yellow -> sprite_puyo_yellow
 
 let draw_puyo puyo x y =
-  Sprite.draw (sprite_of_puyo puyo) (x*20) (y*20)
+  Sprite.draw (sprite_of_puyo puyo) (x*20) ((y-2)*20)
 
 let draw game =
   Sprite.draw background 0 0;
@@ -37,6 +37,16 @@ let draw game =
         draw_puyo (Puyo.make color) game.incx (game.incy+1);
         draw_puyo (Puyo.make color) (game.incx+1) (game.incy+1)
   end;
+  let hidden = match game.state with
+    | Delete ds ->
+        if ds.ds_delay / 2 mod 2 = 0 then ds.ds_cells else []
+    | _ -> []
+  in
+  let draw_puyo puyo x y =
+    if not (List.mem (x, y) hidden) then
+      draw_puyo puyo x y
+    else ()
+  in
   for x = 0 to Matrix.width game.field - 1 do
     for y = 0 to Matrix.height game.field - 1 do
       match (Matrix.get game.field x y).puyo with

@@ -1,5 +1,6 @@
 open Puyo
 open Action
+open Cell
 
 let width = 6
 let height = 14
@@ -9,12 +10,20 @@ type normal_state = {
 }
 
 type heaping_state = {
+  hs_last_delay: int;
   hs_next_gravity: int;
+}
+
+type delete_state = {
+  ds_cells: (int * int) list;
+  ds_delay: int;
 }
 
 type state =
   | Normal of normal_state
   | Heaping of heaping_state
+  | Delete of delete_state
+  | GameOver
 
 type game = {
   field: Cell.t Matrix.t;
@@ -40,6 +49,59 @@ let start () =
     state = Normal { ns_next_gravity = 100 };
   }
 
+let matrix_big_groups f =
+  let w = Matrix.width f and h = Matrix.height f in
+  let m = Array.init w (fun _ -> Array.make h 0) in
+  let rec mark n c x y =
+    let mark = mark n c in
+    if Matrix.inside f x y && m.(x).(y) = 0 then begin
+      m.(x).(y) <- n + 1;
+      if c (Matrix.get f x y) then begin
+        m.(x).(y) <- n + 2;
+        1 + mark (x+1) y + mark (x-1) y + mark x (y+1) + mark x (y-1)
+      end else 0
+    end else 0
+  in
+  let unmark () =
+    for x = 0 to w - 1 do
+      for y = 0 to h - 1 do
+        let v = m.(x).(y) in
+        if v mod 2 = 1 then
+          m.(x).(y) <- 0
+      done
+    done
+  in
+  let is_color_of x y p =
+    match (Matrix.get f x y).puyo, p.puyo with
+      | Some puyo, Some p -> puyo.color = p.color
+      | None, _ | _, None -> false
+  in
+  let big_groups = ref [] in
+  for x = 0 to w - 1 do
+    for y = 0 to h - 1 do
+      let n = 2*(x+y*h) in
+      let count = mark n (is_color_of x y) x y in
+      unmark ();
+      if count >= 4 then
+        big_groups := (n+2) :: !big_groups;
+    done
+  done;
+  let result = ref [] in
+  for x = 0 to w - 1 do
+    for y = 0 to h - 1 do
+      if List.mem m.(x).(y) !big_groups then
+        result := (x, y) :: !result;
+    done
+  done;
+  !result
+
+let delete_big_groups game =
+  let bg = matrix_big_groups game.field in
+  if bg = [] then
+    game
+  else
+    { game with state = Delete { ds_cells = bg; ds_delay = 50 } }
+
 let heap_gravity game =
   let rec cell modified x y f =
     if y < 0 then modified, f else
@@ -60,13 +122,28 @@ let heap_gravity game =
       col modified (x-1) f
   in
   let modified, f = col false (Matrix.width game.field - 1) game.field in
+  let delay = match game.state with
+    | Heaping hs -> max 1 (hs.hs_last_delay - 2)
+    | _ -> 10
+  in
   if modified then
     { game with
         field = f;
-        state = Heaping { hs_next_gravity = 10 } }
+        state = Heaping { hs_next_gravity = delay;
+                          hs_last_delay = delay } }
   else
-    { game with
-        state = Normal { ns_next_gravity = 100 } }
+    let game = { game with state = Normal { ns_next_gravity = 100 } } in
+    delete_big_groups game
+
+let really_delete game cells =
+  let f =
+    List.fold_left
+      (fun f (x, y) -> Matrix.set f x y Cell.empty)
+      game.field
+      cells
+  in
+  let game = { game with field = f } in
+  heap_gravity game
 
 let insert_incoming game =
   let rand, generator, incb = Generator.next game.generator game.rand in
@@ -96,7 +173,10 @@ let transform f game =
     if Block.collision newb (game.incx-1) game.incy game.field then
       if Block.collision newb (game.incx+1) game.incy game.field then
         if Block.collision newb game.incx (game.incy-1) game.field then
-          game
+          if Block.collision newb game.incx (game.incy+1) game.field then
+            game
+          else
+            { game with incy = game.incy+1; incb = newb }
         else
           { game with incy = game.incy-1; incb = newb }
       else
@@ -124,10 +204,31 @@ let act game action =
           | RRight ->
               transform Block.rotate_right game
         end
-    | Heaping _ ->
-        game
+    | Heaping _
+    | Delete _
+    | GameOver ->
+        begin match action with
+          | Quit ->
+              IO.quit ();
+              exit 0
+          | _ ->
+              game
+        end
+
+let sf = IO.Text.load "data/pouyou.ttf" 20
+
+let check_game_over game =
+  match game.state with
+    | Normal _ ->
+        if not (Cell.is_empty (Matrix.get game.field 2 2))
+          || not (Cell.is_empty (Matrix.get game.field 3 2)) then
+            { game with state = GameOver }
+        else
+          game
+    | _ -> game
 
 let think game =
+  let game = check_game_over game in
   match game.state with
     | Normal ns ->
         if ns.ns_next_gravity <= 0 then
@@ -142,4 +243,12 @@ let think game =
           heap_gravity game
         else
           { game with
-              state = Heaping { hs_next_gravity = hs.hs_next_gravity - 1 } }
+              state =
+              Heaping { hs with hs_next_gravity = hs.hs_next_gravity - 1 } }
+    | Delete ds ->
+        if ds.ds_delay <= 0 then
+          really_delete game ds.ds_cells
+        else
+          { game with state = Delete { ds with ds_delay = ds.ds_delay - 1 } }
+    | GameOver ->
+        game

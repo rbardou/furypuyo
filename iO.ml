@@ -9,6 +9,9 @@ let height = ref 0
 
 let last_tick = ref 0
 
+let () =
+  Sdlttf.init ()
+
 let init w h =
   Sdl.init [`TIMER; `VIDEO];
   enable_events
@@ -17,7 +20,6 @@ let init w h =
        KEYUP_EVENT;
        MOUSEBUTTONDOWN_EVENT;
      ]);
-  Sdlttf.init ();
   width := w;
   height := h;
   let the_screen = set_video_mode ~w ~h ~bpp: 32 [`HWSURFACE; `DOUBLEBUF] in
