@@ -27,15 +27,17 @@ let all_blocks colors =
   in
   let fours =
     List.map
-      (fun (a, b) -> List [ 0, 0, Puyo.make a;
-                            0, 1, Puyo.make a;
-                            1, 0, Puyo.make b;
-                            1, 1, Puyo.make b ])
+      (fun (a, b) ->
+         if a <> b then
+           List [ 0, 0, Puyo.make a;
+                  0, 1, Puyo.make a;
+                  1, 0, Puyo.make b;
+                  1, 1, Puyo.make b ]
+         else
+           Quad (a, (List.filter ((<>) a) colors)))
       combs
   in
-  let quads =
-    List.map (fun a -> Quad (a, (List.filter ((<>) a) colors))) colors in
-  twos @ threes @ fours @ quads
+  twos @ threes @ fours
 
 let random colors =
   let blocks = Array.of_list (all_blocks colors) in
