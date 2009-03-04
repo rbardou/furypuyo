@@ -93,7 +93,16 @@ let move insert x y game =
 let transform f game =
   let newb = f game.incb in
   if Block.collision newb game.incx game.incy game.field then
-    game
+    if Block.collision newb (game.incx-1) game.incy game.field then
+      if Block.collision newb (game.incx+1) game.incy game.field then
+        if Block.collision newb game.incx (game.incy-1) game.field then
+          game
+        else
+          { game with incy = game.incy-1; incb = newb }
+      else
+        { game with incx = game.incx+1; incb = newb }
+    else
+      { game with incx = game.incx-1; incb = newb }
   else
     { game with incb = newb }
 

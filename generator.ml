@@ -34,14 +34,14 @@ let all_blocks colors =
   in
   let threes1 =
     List.map
-      (fun (a, b) -> List2 [ 0, 0, Puyo.make a;
+      (fun (a, b) -> List1 [ 0, 0, Puyo.make a;
                              0, 1, Puyo.make a;
                              1, 0, Puyo.make b ])
       combs
   in
   let threes2 =
     List.map
-      (fun (a, b) -> List2 [ 0, 0, Puyo.make a;
+      (fun (a, b) -> List1 [ 0, 0, Puyo.make a;
                              0, 1, Puyo.make a;
                              1, 1, Puyo.make b ])
       combs
@@ -58,7 +58,7 @@ let all_blocks colors =
            Quad (a, next_colors next_color4 a))
       combs
   in
-  twos @ threes1 @ threes2 @ fours @ fours @ fours @ fours
+  twos @ threes1 @ threes2 @ fours
 
 let random colors =
   let blocks = Array.of_list (all_blocks colors) in
