@@ -36,7 +36,7 @@ type game = {
 }
 
 let start () =
-  let generator = Generator.random [ Red; Green; Blue; Yellow ] in
+  let generator = Generator.nice [ Red; Green; Blue; Yellow ] in
   let rand = Rand.self_init () in
   let rand, generator, incoming = Generator.next generator rand in
   {
