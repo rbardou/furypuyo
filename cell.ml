@@ -10,3 +10,5 @@ let empty = {
 let make p = {
   puyo = Some p;
 }
+
+let is_empty c = c.puyo = None

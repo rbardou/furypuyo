@@ -114,4 +114,13 @@ module MakeReader(A: ACTION): sig
 
         The action will be returned by [read] if the key has been released
         since the last call to [read]. *)
+
+  val key_auto: int -> int -> Sdlkey.t -> A.t -> unit
+    (** Register a repeatable key action.
+
+        [key_auto ini rep k a]: the action [a] will be returned when [k] is
+        pressed (i.e. goes from up to down). If the key stays pressed for
+        [ini] initial milliseconds, the action is repeated. Then the action
+        will be repeated every [rep] milliseconds as long as [k] stays
+        pressed. *)
 end

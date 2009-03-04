@@ -143,39 +143,63 @@ module MakeReader(A: ACTION) = struct
     let compare = compare
   end
   module KeyMap = Map.Make(Key)
-  module KeySet = Set.Make(Key)
+
+  type one_more = Zero | One of int | More of int
 
   let continuous = ref KeyMap.empty
   let up = ref KeyMap.empty
   let down = ref KeyMap.empty
+  let auto = ref KeyMap.empty
 
-  let pressed_keys = ref KeySet.empty
+  let pressed_keys = ref KeyMap.empty
 
   let action mapref key acc =
     try KeyMap.find key !mapref :: acc
     with Not_found -> acc
 
+  let action_auto now key since acc =
+    try
+      let a, ini, rep = KeyMap.find key !auto in
+      let next = match since with
+        | Zero -> now
+        | One since -> since + ini
+        | More since -> since + rep
+      in
+      if next <= now then begin
+        pressed_keys :=
+          KeyMap.add key
+            (if since = Zero then One next else More next)
+            !pressed_keys;
+        a :: acc
+      end else acc
+    with Not_found -> acc
+
   let read () =
+    let now = Sdltimer.get_ticks () in
     let rec read_events acc =
       match poll () with
         | None -> acc
         | Some event ->
             let acc = begin match event with
               | KEYDOWN ke ->
-                  pressed_keys := KeySet.add ke.keysym !pressed_keys;
+                  pressed_keys := KeyMap.add ke.keysym Zero !pressed_keys;
                   action down ke.keysym acc
               | KEYUP ke ->
-                  pressed_keys := KeySet.remove ke.keysym !pressed_keys;
+                  pressed_keys := KeyMap.remove ke.keysym !pressed_keys;
                   action up ke.keysym acc
               | _ -> acc
             end in
             read_events acc
     in
     let actions = read_events [] in
-    let actions = KeySet.fold (action continuous) !pressed_keys actions in
+    let actions =
+      KeyMap.fold (fun k _ -> action continuous k) !pressed_keys actions in
+    let actions =
+      KeyMap.fold (action_auto now) !pressed_keys actions in
     List.rev actions
 
   let key_continuous k a = continuous := KeyMap.add k a !continuous
   let key_up k a = up := KeyMap.add k a !up
   let key_down k a = down := KeyMap.add k a !down
+  let key_auto ini rep k a = auto := KeyMap.add k (a, ini, rep) !auto
 end
