@@ -39,3 +39,18 @@ let collision block x y matrix =
           false l
     | Quad _ ->
         ko 0 0 || ko 1 0 || ko 0 1 || ko 1 1
+
+let insert x y matrix (x', y', p) =
+  Matrix.set matrix (x+x') (y+y') (Cell.make p)
+
+let insert_list matrix x y l =
+  List.fold_left (insert x y) matrix l
+
+let insert block x y matrix =
+  match block with
+    | List1 l
+    | List2 l ->
+        insert_list matrix x y l
+    | Quad (c, _) ->
+        let p = Puyo.make c in
+        insert_list matrix x y [ 0, 0, p; 0, 1, p; 1, 0, p; 1, 1, p ]

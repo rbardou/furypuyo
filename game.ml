@@ -28,9 +28,22 @@ let start () =
     next_down = 100;
   }
 
-let move x y game =
+let insert_incoming game =
+  let rand, generator, incb = Generator.next game.generator game.rand in
+  { game with
+      field = Block.insert game.incb game.incx game.incy game.field;
+      rand = rand;
+      generator = generator;
+      incb = incb;
+      incx = 2;
+      incy = 0 }
+
+let move insert x y game =
   if Block.collision game.incb (game.incx+x) (game.incy+y) game.field then
-    game
+    if insert then
+      insert_incoming game
+    else
+      game
   else
     { game with incx = game.incx+x; incy = game.incy+y }
 
@@ -46,11 +59,11 @@ let act game = function
       IO.quit ();
       exit 0
   | MLeft ->
-      move (-1) 0 game
+      move false (-1) 0 game
   | MRight ->
-      move 1 0 game
+      move false 1 0 game
   | MDown ->
-      move 0 1 game
+      move true 0 1 game
   | RLeft ->
       transform Block.rotate_left game
   | RRight ->
@@ -58,6 +71,6 @@ let act game = function
 
 let think game =
   if game.next_down <= 0 then
-    { (move 0 1 game) with next_down = 100 }
+    { (move true 0 1 game) with next_down = 100 }
   else
     { game with next_down = game.next_down - 1 }

@@ -2,6 +2,7 @@ open Block
 open Game
 open IO
 open Puyo
+open Cell
 
 let () = IO.init (20*Game.width) (20*Game.height)
 
@@ -36,4 +37,11 @@ let draw game =
         draw_puyo (Puyo.make color) game.incx (game.incy+1);
         draw_puyo (Puyo.make color) (game.incx+1) (game.incy+1)
   end;
+  for x = 0 to Matrix.width game.field - 1 do
+    for y = 0 to Matrix.height game.field - 1 do
+      match (Matrix.get game.field x y).puyo with
+        | None -> ()
+        | Some puyo -> draw_puyo puyo x y
+    done;
+  done;
   update ()

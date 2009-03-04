@@ -13,3 +13,5 @@ val rotate_left: t -> t
 val rotate_right: t -> t
 
 val collision: t -> int -> int -> Cell.t Matrix.t -> bool
+
+val insert: t -> int -> int -> Cell.t Matrix.t -> Cell.t Matrix.t

@@ -6,3 +6,7 @@ type t = {
 let empty = {
   puyo = None;
 }
+
+let make p = {
+  puyo = Some p;
+}
