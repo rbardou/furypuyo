@@ -4,7 +4,10 @@ open IO
 open Puyo
 open Cell
 
-let () = IO.init (20*Game.width) (20*Game.height-40)
+let cellw = 20
+let cellh = 20
+
+let () = IO.init (cellw*Game.width) (cellh*(Game.height-2))
 
 let load_puyo = Sprite.load
 let sprite_puyo_red = load_puyo "data/red.png"
@@ -20,10 +23,19 @@ let sprite_of_puyo p =
     | Blue -> sprite_puyo_blue
     | Yellow -> sprite_puyo_yellow
 
-let draw_puyo puyo x y =
-  Sprite.draw (sprite_of_puyo puyo) (x*20) ((y-2)*20)
+let draw_puyo now puyo x y =
+  let dx, dy = match puyo.effect with
+    | Moving me when now < me.me_end ->
+        let d = float_of_int (now - me.me_start) in
+        let dx = (d *. me.me_sx +. me.me_px) *. float_of_int cellw in
+        let dy = (d *. me.me_sy +. me.me_py) *. float_of_int cellh in
+        int_of_float dx, int_of_float dy
+    | _ -> 0, 0
+  in
+  Sprite.draw (sprite_of_puyo puyo) (x*20+dx) ((y-2)*20+dy)
 
 let draw game =
+  let draw_puyo = draw_puyo game.now in
   Sprite.draw background 0 0;
   begin match game.incb with
     | List1 puyos

@@ -27,6 +27,7 @@ type state =
   | GameOver
 
 type game = {
+  now: int;
   field: Cell.t Matrix.t;
   incb: Block.t;
   incx: int;
@@ -41,6 +42,7 @@ let start () =
   let rand = Rand.self_init () in
   let rand, generator, incoming = Generator.next generator rand in
   {
+    now = 0;
     field = Matrix.make width height Cell.empty;
     incb = incoming;
     incx = 2;
@@ -107,12 +109,18 @@ let delete_big_groups game =
     { game with state = Delete { ds_cells = bg; ds_delay = 50; ds_counts = counts } }
 
 let heap_gravity game =
+  let delay = match game.state with
+    | Heaping hs -> max 1 (hs.hs_last_delay - 2)
+    | _ -> 10
+  in
   let rec cell modified x y f =
     if y < 0 then modified, f else
       let modified, f =
         let cur = Matrix.get f x y in
         let bot = Matrix.get f x (y+1) in
         if not (Cell.is_empty cur) && Cell.is_empty bot then
+          let cur =
+            Cell.apply_puyo_effect (moving_effect game.now 0 1 delay) cur in
           let f = Matrix.set f x (y+1) cur in
           true, Matrix.set f x y Cell.empty
         else
@@ -126,10 +134,6 @@ let heap_gravity game =
       col modified (x-1) f
   in
   let modified, f = col false (Matrix.width game.field - 1) game.field in
-  let delay = match game.state with
-    | Heaping hs -> max 1 (hs.hs_last_delay - 2)
-    | _ -> 10
-  in
   if modified then
     { game with
         field = f;
@@ -170,7 +174,9 @@ let move insert x y game =
     else
       game
   else
-    { game with incx = game.incx+x; incy = game.incy+y }
+    { game with
+        incx = game.incx+x;
+        incy = game.incy+y }
 
 let transform f game =
   let newb = f game.incb in
@@ -234,6 +240,7 @@ let check_game_over game =
 
 let think game =
   let game = check_game_over game in
+  let game = { game with now = game.now + 1 } in
   match game.state with
     | Normal ns ->
         if ns.ns_next_gravity <= 0 then
