@@ -17,6 +17,7 @@ type heaping_state = {
 type delete_state = {
   ds_cells: (int * int) list;
   ds_delay: int;
+  ds_counts: int list;
 }
 
 type state =
@@ -77,13 +78,16 @@ let matrix_big_groups f =
       | None, _ | _, None -> false
   in
   let big_groups = ref [] in
+  let counts = ref [] in
   for x = 0 to w - 1 do
     for y = 0 to h - 1 do
       let n = 2*(x+y*h) in
       let count = mark n (is_color_of x y) x y in
       unmark ();
-      if count >= 4 then
+      if count >= 4 then begin
         big_groups := (n+2) :: !big_groups;
+        counts := count :: !counts;
+      end
     done
   done;
   let result = ref [] in
@@ -93,14 +97,14 @@ let matrix_big_groups f =
         result := (x, y) :: !result;
     done
   done;
-  !result
+  !result, !counts
 
 let delete_big_groups game =
-  let bg = matrix_big_groups game.field in
+  let bg, counts = matrix_big_groups game.field in
   if bg = [] then
     game
   else
-    { game with state = Delete { ds_cells = bg; ds_delay = 50 } }
+    { game with state = Delete { ds_cells = bg; ds_delay = 50; ds_counts = counts } }
 
 let heap_gravity game =
   let rec cell modified x y f =
@@ -135,7 +139,8 @@ let heap_gravity game =
     let game = { game with state = Normal { ns_next_gravity = 100 } } in
     delete_big_groups game
 
-let really_delete game cells =
+let really_delete game ds =
+  let cells = ds.ds_cells in
   let f =
     List.fold_left
       (fun f (x, y) -> Matrix.set f x y Cell.empty)
@@ -247,7 +252,7 @@ let think game =
               Heaping { hs with hs_next_gravity = hs.hs_next_gravity - 1 } }
     | Delete ds ->
         if ds.ds_delay <= 0 then
-          really_delete game ds.ds_cells
+          really_delete game ds
         else
           { game with state = Delete { ds with ds_delay = ds.ds_delay - 1 } }
     | GameOver ->
