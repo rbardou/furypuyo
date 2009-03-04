@@ -10,8 +10,12 @@ let rec loop game =
 let () =
   let game = Game.start () in
   Reader.key_down Sdlkey.KEY_ESCAPE Action.Quit;
-  Reader.key_down Sdlkey.KEY_LEFT Action.Left;
-  Reader.key_down Sdlkey.KEY_RIGHT Action.Right;
-  Reader.key_down Sdlkey.KEY_UP Action.Up;
-  Reader.key_down Sdlkey.KEY_DOWN Action.Down;
+  Reader.key_down Sdlkey.KEY_LEFT Action.MLeft;
+  Reader.key_down Sdlkey.KEY_RIGHT Action.MRight;
+  Reader.key_down Sdlkey.KEY_UP Action.RLeft;
+  Reader.key_down Sdlkey.KEY_RCTRL Action.RLeft;
+  Reader.key_down Sdlkey.KEY_LCTRL Action.RLeft;
+  Reader.key_down Sdlkey.KEY_LALT Action.RRight;
+  Reader.key_down Sdlkey.KEY_KP0 Action.RRight;
+  Reader.key_down Sdlkey.KEY_DOWN Action.MDown;
   loop game

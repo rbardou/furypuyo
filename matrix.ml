@@ -23,3 +23,5 @@ let set f x y v = { f with data = PosMap.add (x, y) v f.data }
 let width f = f.width
 
 let height f = f.height
+
+let inside f x y = x >= 0 && y >= 0 && x < f.width && y < f.height

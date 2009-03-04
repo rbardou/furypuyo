@@ -1,1 +1,1 @@
-type t = Quit | Left | Right | Up | Down
+type t = Quit | MLeft | MRight | MDown | RLeft | RRight

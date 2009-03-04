@@ -3,7 +3,7 @@ open Game
 open IO
 open Puyo
 
-let () = IO.init 800 600
+let () = IO.init (20*Game.width) (20*Game.height)
 
 let load_puyo = Sprite.load
 let sprite_puyo_red = load_puyo "data/red.png"

@@ -58,7 +58,7 @@ let all_blocks colors =
            Quad (a, next_colors next_color4 a))
       combs
   in
-  twos @ threes1 @ threes2 @ fours
+  twos @ threes1 @ threes2 @ fours @ fours @ fours @ fours
 
 let random colors =
   let blocks = Array.of_list (all_blocks colors) in

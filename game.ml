@@ -21,30 +21,43 @@ let start () =
   {
     field = Matrix.make width height Cell.empty;
     incb = incoming;
-    incx = 3;
-    incy = 1;
+    incx = 2;
+    incy = 0;
     rand = rand;
     generator = generator;
     next_down = 100;
   }
 
+let move x y game =
+  if Block.collision game.incb (game.incx+x) (game.incy+y) game.field then
+    game
+  else
+    { game with incx = game.incx+x; incy = game.incy+y }
+
+let transform f game =
+  let newb = f game.incb in
+  if Block.collision newb game.incx game.incy game.field then
+    game
+  else
+    { game with incb = newb }
+
 let act game = function
   | Quit ->
       IO.quit ();
       exit 0
-  | Left ->
-      { game with incx = game.incx - 1 }
-  | Right ->
-      { game with incx = game.incx + 1 }
-  | Up ->
-      { game with incb = Block.rotate_left game.incb }
-  | Down ->
-      { game with incb = Block.rotate_right game.incb }
+  | MLeft ->
+      move (-1) 0 game
+  | MRight ->
+      move 1 0 game
+  | MDown ->
+      move 0 1 game
+  | RLeft ->
+      transform Block.rotate_left game
+  | RRight ->
+      transform Block.rotate_right game
 
 let think game =
   if game.next_down <= 0 then
-    { game with
-        incy = game.incy + 1;
-        next_down = 100 }
+    { (move 0 1 game) with next_down = 100 }
   else
     { game with next_down = game.next_down - 1 }
