@@ -1,3 +1,5 @@
+open Puyo
+
 type t = {
   puyo: Puyo.t option;
   (* animations: ... *)
@@ -12,6 +14,11 @@ let make p = {
 }
 
 let is_empty c = c.puyo = None
+
+let is_gray c =
+  match c.puyo with
+    | None -> false
+    | Some p -> p.color = Gray
 
 let apply_puyo_effect e c =
   match c.puyo with

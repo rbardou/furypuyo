@@ -1,4 +1,4 @@
-type color = Red | Green | Blue | Yellow
+type color = Red | Green | Blue | Yellow | Gray
 
 type moving_effect = {
   me_start: int;
@@ -36,3 +36,5 @@ let make color = {
   color = color;
   effect = NoEffect;
 }
+
+let gray = make Gray

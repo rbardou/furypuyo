@@ -15,6 +15,7 @@ let sprite_puyo_red = load_puyo "data/red.png"
 let sprite_puyo_green = load_puyo "data/green.png"
 let sprite_puyo_blue = load_puyo "data/blue.png"
 let sprite_puyo_yellow = load_puyo "data/yellow.png"
+let sprite_puyo_gray = load_puyo "data/gray.png"
 let foreground = Sprite.load "data/foreground.png"
 let background = Sprite.load "data/background.png"
 let font = Text.load "data/pouyou.ttf" 16
@@ -25,6 +26,7 @@ let sprite_of_puyo p =
     | Green -> sprite_puyo_green
     | Blue -> sprite_puyo_blue
     | Yellow -> sprite_puyo_yellow
+    | Gray -> sprite_puyo_gray
 
 let draw_puyo game puyo x y =
   match game.state with

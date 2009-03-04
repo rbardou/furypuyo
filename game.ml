@@ -24,11 +24,18 @@ type gameover_state = {
   gos_start: int;
 }
 
+type garbage_state = {
+  gs_last_delay: int;
+  gs_next: int;
+  gs_remaining: int list list;
+}
+
 type state =
   | Normal of normal_state
   | Heaping of heaping_state
   | Delete of delete_state
   | GameOver of gameover_state
+  | Garbage of garbage_state
 
 type game = {
   now: int;
@@ -97,7 +104,8 @@ let matrix_big_groups f =
   in
   let is_color_of x y p =
     match (Matrix.get f x y).puyo, p.puyo with
-      | Some puyo, Some p -> puyo.color = p.color
+      | Some puyo, Some p ->
+          puyo.color = p.color && p.color <> Gray
       | None, _ | _, None -> false
   in
   let big_groups = ref [] in
@@ -114,10 +122,20 @@ let matrix_big_groups f =
     done
   done;
   let result = ref [] in
+  let is_in_big_group x y =
+    Matrix.inside f x y && List.mem m.(x).(y) !big_groups in
   for x = 0 to w - 1 do
     for y = 0 to h - 1 do
-      if List.mem m.(x).(y) !big_groups then
-        result := (x, y) :: !result;
+      let condition =
+        if Cell.is_gray (Matrix.get f x y) then
+          is_in_big_group (x-1) y
+          || is_in_big_group x (y+1)
+          || is_in_big_group (x+1) y
+          || is_in_big_group x (y-1)
+        else
+          is_in_big_group x y
+      in
+      if condition then result := (x, y) :: !result;
     done
   done;
   !result, !counts
@@ -133,11 +151,7 @@ let delete_big_groups game =
                          ds_counts = counts };
         chain = game.chain + 1 }
 
-let heap_gravity game =
-  let delay = match game.state with
-    | Heaping hs -> max 1 (hs.hs_last_delay - 2)
-    | _ -> 10
-  in
+let heap_gravity_gen now delay field =
   let rec cell modified x y f =
     if y < 0 then modified, f else
       let modified, f =
@@ -145,7 +159,7 @@ let heap_gravity game =
         let bot = Matrix.get f x (y+1) in
         if not (Cell.is_empty cur) && Cell.is_empty bot then
           let cur =
-            Cell.apply_puyo_effect (moving_effect game.now 0 1 delay) cur in
+            Cell.apply_puyo_effect (moving_effect now 0 1 delay) cur in
           let f = Matrix.set f x (y+1) cur in
           true, Matrix.set f x y Cell.empty
         else
@@ -155,10 +169,17 @@ let heap_gravity game =
   in
   let rec col modified x f =
     if x < 0 then modified, f else
-      let modified, f = cell modified x (Matrix.height game.field - 2) f in
+      let modified, f = cell modified x (Matrix.height field - 2) f in
       col modified (x-1) f
   in
-  let modified, f = col false (Matrix.width game.field - 1) game.field in
+  col false (Matrix.width field - 1) field
+
+let heap_gravity game =
+  let delay = match game.state with
+    | Heaping hs -> max 1 (hs.hs_last_delay - 2)
+    | _ -> 10
+  in
+  let modified, f = heap_gravity_gen game.now delay game.field in
   if modified then
     { game with
         field = f;
@@ -242,6 +263,22 @@ let transform f game =
   else
     { game with incb = newb }
 
+let garbage lines rem game =
+  let full_line =
+    Array.to_list (Array.init (Matrix.width game.field) (fun i -> i)) in
+  let rec full = function
+    | 0 -> []
+    | n -> full_line :: full (n-1)
+  in
+  let glines = full lines in
+  let delay = 10 in
+  let gs = {
+    gs_last_delay = delay;
+    gs_next = delay;
+    gs_remaining = glines;
+  } in
+  { game with state = Garbage gs }
+
 let act game action =
   match game.state with
     | Normal _ ->
@@ -259,10 +296,13 @@ let act game action =
               transform Block.rotate_left game
           | RRight ->
               transform Block.rotate_right game
+          | InstaFall ->
+              garbage 4 3 game
         end
     | Heaping _
     | Delete _
-    | GameOver _ ->
+    | GameOver _
+    | Garbage _ ->
         begin match action with
           | Quit ->
               IO.quit ();
@@ -280,6 +320,35 @@ let check_game_over game =
         else
           game
     | _ -> game
+
+let garbage_line gs game =
+  let delay = max 1 (gs.gs_last_delay - 2) in
+  let modified, field = heap_gravity_gen game.now delay game.field in
+  match gs.gs_remaining with
+    | l :: rem ->
+        let gs = {
+          gs_last_delay = delay;
+          gs_next = delay;
+          gs_remaining = rem;
+        } in
+        let field =
+          List.fold_left
+            (fun f x -> Matrix.set f x 0 (Cell.make Puyo.gray))
+            field l
+        in
+        { game with
+            state = Garbage gs;
+            field = field }
+    | [] ->
+        if modified then
+          let gs = {
+            gs_last_delay = delay;
+            gs_next = delay;
+            gs_remaining = [];
+          } in
+          { game with state = Garbage gs; field = field }
+        else
+          { game with state = Normal { ns_next_gravity = game.inc_delay } }
 
 let think game =
   let game = check_game_over game in
@@ -305,5 +374,10 @@ let think game =
           really_delete game ds
         else
           { game with state = Delete { ds with ds_delay = ds.ds_delay - 1 } }
+    | Garbage gs ->
+        if gs.gs_next <= 0 then
+          garbage_line gs game
+        else
+          { game with state = Garbage { gs with gs_next = gs.gs_next - 1 } }
     | GameOver _ ->
         game

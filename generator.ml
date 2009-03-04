@@ -11,12 +11,6 @@ type t = {
 let combinations l =
   List.flatten (List.map (fun x -> List.map (fun y -> x, y) l) l)
 
-let next_color4 = function
-  | Red -> Green
-  | Green -> Blue
-  | Blue -> Yellow
-  | Yellow -> Red
-
 let next_colors f origin =
   let rec next acc color =
     let nc = f color in
