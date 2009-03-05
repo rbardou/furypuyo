@@ -29,3 +29,8 @@ let puyo c =
   match c.puyo with
     | None -> raise (Invalid_argument "Cell.puyo")
     | Some p -> p
+
+let to_string c =
+  match c.puyo with
+    | None -> "None"
+    | Some p -> "Some " ^ Puyo.to_string p

@@ -66,11 +66,18 @@ let draw game =
     | Falling fs -> draw_falling game fs
     | _ -> ()
   end;
+  let hidden = match game.state with
+    | Popping ps ->
+        if game.now / 2 mod 2 = 0 then ps.pop_puyos else []
+    | _ -> []
+  in
   for x = 0 to Matrix.width game.field - 1 do
     for y = 0 to Matrix.height game.field - 1 do
       match (Matrix.get game.field x y).puyo with
         | None -> ()
-        | Some puyo -> draw_field_puyo puyo x y
+        | Some puyo ->
+            if not (List.mem (x, y) hidden) then
+              draw_field_puyo puyo x y
     done;
   done;
 (*  Sprite.draw foreground 0 0;*)

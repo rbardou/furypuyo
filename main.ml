@@ -18,5 +18,6 @@ let () =
   Reader.key_down Sdlkey.KEY_LALT Action.RRight;
   Reader.key_down Sdlkey.KEY_KP0 Action.RRight;
   Reader.key_down Sdlkey.KEY_SPACE Action.InstaFall;
+  Reader.key_down Sdlkey.KEY_d Action.Debug;
   Reader.key_continuous Sdlkey.KEY_DOWN Action.MDown;
   loop game

@@ -38,3 +38,11 @@ let make color = {
 }
 
 let gray = make Gray
+
+let to_string p =
+  match p.color with
+    | Red -> "Red"
+    | Green -> "Green"
+    | Blue -> "Blue"
+    | Yellow -> "Yellow"
+    | Gray -> "Gray"

@@ -1,5 +1,6 @@
 open Action
 open Puyo
+open Cell
 
 let smooth_factor = 1024
 
@@ -26,16 +27,21 @@ type falling_state = {
   f_speed: int; (** smoothed y per frame *)
 }
 
+type popping_state = {
+  pop_end: int;
+  pop_puyos: (int * int) list;
+}
+
 type gameover_state = {
   go_bla: int;
 }
-
 
 type state =
   | Starting
   | Incoming of incoming_state
   | Inserting of inserting_state
   | Falling of falling_state
+  | Popping of popping_state
   | GameOver of gameover_state
 
 type speed = {
@@ -49,6 +55,8 @@ type speed = {
     (** delay the block stayed without moving when inserted *)
   sp_gravity: int;
     (** acceleration (smoothed y per frame per frame) for falling blocks *)
+  sp_pop_delay: int;
+    (** time puyos take to pop *)
 }
 
 type game = {
@@ -60,6 +68,66 @@ type game = {
   score: int;
   speed: speed;
 }
+
+let matrix_big_groups f =
+  let w = Matrix.width f and h = Matrix.height f in
+  let m = Array.init w (fun _ -> Array.make h 0) in
+  let rec mark n c x y =
+    let mark = mark n c in
+    if Matrix.inside f x y && m.(x).(y) = 0 then begin
+      m.(x).(y) <- n + 1;
+      if c (Matrix.get f x y) then begin
+        m.(x).(y) <- n + 2;
+        1 + mark (x+1) y + mark (x-1) y + mark x (y+1) + mark x (y-1)
+      end else 0
+    end else 0
+  in
+  let unmark () =
+    for x = 0 to w - 1 do
+      for y = 0 to h - 1 do
+        let v = m.(x).(y) in
+        if v mod 2 = 1 then
+          m.(x).(y) <- 0
+      done
+    done
+  in
+  let is_color_of x y p =
+    match (Matrix.get f x y).puyo, p.puyo with
+      | Some puyo, Some p ->
+          puyo.color = p.color && p.color <> Gray
+      | None, _ | _, None -> false
+  in
+  let big_groups = ref [] in
+  let counts = ref [] in
+  for x = 0 to w - 1 do
+    for y = 0 to h - 1 do
+      let n = 2*(x+y*h) in
+      let count = mark n (is_color_of x y) x y in
+      unmark ();
+      if count >= 4 then begin
+        big_groups := (n+2) :: !big_groups;
+        counts := count :: !counts;
+      end
+    done
+  done;
+  let result = ref [] in
+  let is_in_big_group x y =
+    Matrix.inside f x y && List.mem m.(x).(y) !big_groups in
+  for x = 0 to w - 1 do
+    for y = 0 to h - 1 do
+      let condition =
+        if Cell.is_gray (Matrix.get f x y) then
+          is_in_big_group (x-1) y
+          || is_in_big_group x (y+1)
+          || is_in_big_group (x+1) y
+          || is_in_big_group x (y-1)
+        else
+          is_in_big_group x y
+      in
+      if condition then result := (x, y) :: !result;
+    done
+  done;
+  !result, !counts
 
 let start_incoming game =
   let rand, generator, block = Generator.next game.generator game.rand in
@@ -112,10 +180,25 @@ let extract_falling_puyos field =
   in
   col [] (Matrix.width field - 1) field
 
-let check_and_start_falling game =
+let start_popping game puyos =
+  let ps = {
+    pop_end = game.now + game.speed.sp_pop_delay;
+    pop_puyos = puyos;
+  } in
+  { game with state = Popping ps }
+
+let check_and_start_popping game =
+  let puyos, _ = matrix_big_groups game.field in
+  match puyos with
+    | [] ->
+        start_incoming game
+    | _ ->
+        start_popping game puyos
+
+let check_and_start_chain game =
   match extract_falling_puyos game.field with
     | [], _ ->
-        start_incoming game
+        check_and_start_popping game
     | puyos, field ->
         start_falling { game with field = field } (List.rev puyos)
 
@@ -143,7 +226,7 @@ let think_incoming game is =
   fall game is game.speed.sp_fall
 
 let think_inserting game is =
-  if game.now >= is.ins_end then check_and_start_falling game
+  if game.now >= is.ins_end then check_and_start_chain game
   else game
 
 let think_falling game fs =
@@ -154,11 +237,14 @@ let think_falling game fs =
         let new_y = smooth_y y + fs.f_y in
         let real_new_y = unsmooth_y new_y in
         if not (Matrix.inside game.field x real_new_y &&
-                  Cell.is_empty (Matrix.get game.field x real_new_y)) then begin
+                  Cell.is_empty (Matrix.get game.field x real_new_y)) then
+          let cell = Cell.make puyo in
+          Printf.printf "insert %d %d = %s\n%!" x (real_new_y - 1)
+            (Cell.to_string cell);
           let new_field =
-            Matrix.set game.field x (real_new_y - 1) (Cell.make puyo) in
+            Matrix.set game.field x (real_new_y - 1) cell in
           fall_puyos new_field puyos rem
-        end else begin
+        else begin
           fall_puyos field (p :: puyos) rem
         end
   in
@@ -166,7 +252,7 @@ let think_falling game fs =
   let game = { game with field = field } in
   match puyos with
     | [] ->
-        start_incoming game
+        check_and_start_popping game
     | _ ->
         let new_speed =
           min (smooth_factor - 1) (fs.f_speed + game.speed.sp_gravity) in
@@ -176,6 +262,17 @@ let think_falling game fs =
           f_y = fs.f_y + fs.f_speed;
         } in
         { game with state = Falling fs }
+
+let pop_puyos field puyos =
+  List.fold_left
+    (fun f (x, y) -> Matrix.set f x y Cell.empty)
+    field puyos
+
+let think_popping game ps =
+  if game.now >= ps.pop_end then
+    let field = pop_puyos game.field ps.pop_puyos in
+    check_and_start_chain { game with field = field }
+  else game
 
 let quit () =
   IO.quit ();
@@ -219,6 +316,19 @@ let insta_fall game is =
   let y = find_y (unsmooth_y is.inc_y) in
   start_inserting game b x y
 
+let debug game =
+  let f = game.field in
+  let f = Matrix.set f 0 13 (Cell.make (Puyo.make Yellow)) in
+  let f = Matrix.set f 1 13 (Cell.make (Puyo.make Yellow)) in
+  let f = Matrix.set f 2 13 (Cell.make (Puyo.make Yellow)) in
+  let f = Matrix.set f 0 12 (Cell.make (Puyo.make Green)) in
+  let f = Matrix.set f 1 12 (Cell.make (Puyo.make Green)) in
+  let f = Matrix.set f 2 12 (Cell.make (Puyo.make Yellow)) in
+  let f = Matrix.set f 0 11 (Cell.make (Puyo.make Yellow)) in
+  let f = Matrix.set f 1 11 (Cell.make (Puyo.make Yellow)) in
+  let f = Matrix.set f 2 11 (Cell.make (Puyo.make Yellow)) in
+  { game with field = f }
+
 let act_incoming game is = function
   | Quit -> quit ()
   | MLeft -> move game is (-1)
@@ -227,6 +337,7 @@ let act_incoming game is = function
   | RLeft -> rotate Block.rotate_left game is
   | RRight -> rotate Block.rotate_right game is
   | InstaFall -> insta_fall game is
+  | Debug -> debug game
 
 let act_quit game = function
   | Quit -> quit ()
@@ -237,6 +348,7 @@ let act game input =
     | Starting
     | Inserting _
     | Falling _
+    | Popping _
     | GameOver _ -> act_quit game input
     | Incoming is -> act_incoming game is input
 
@@ -247,6 +359,7 @@ let think game =
     | Incoming is -> think_incoming game is
     | Inserting is -> think_inserting game is
     | Falling fs -> think_falling game fs
+    | Popping ps -> think_popping game ps
     | _ -> assert false (* TODO *)
 
 let start () =
@@ -265,5 +378,22 @@ let start () =
       sp_fall_fast = 300;
       sp_insert_delay = 10;
       sp_gravity = 10;
+      sp_pop_delay = 40;
     };
   }
+
+(* bug
+
+YYY
+BBY
+YYY
+---
+
+becomes
+
+ B
+---
+
+One blue has disappeared
+
+(actually B was green) *)
