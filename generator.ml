@@ -31,7 +31,7 @@ let next_in_list l c =
 let twos colors =
   List.map
     (fun (a, b) -> List1 [ 0, 0, Puyo.make a;
-                           0, 1, Puyo.make b ])
+                           0, -1, Puyo.make b ])
     (combinations colors)
 
 let threes1 colors =
