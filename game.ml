@@ -20,24 +20,22 @@ type inserting_state = {
   ins_end: int;
 }
 
-type chaining_state = {
-  c_bla: int;
+type falling_state = {
+  f_puyos: (int * int * Puyo.t) list; (** (x, original y, puyo) list *)
+  f_y: int; (** smoothed y offset *)
+  f_speed: int; (** smoothed y per frame *)
 }
 
 type gameover_state = {
   go_bla: int;
 }
 
-type garbage_state = {
-  ga_bla: int;
-}
 
 type state =
   | Starting
   | Incoming of incoming_state
   | Inserting of inserting_state
-  | Chaining of chaining_state
-  | Garbage of garbage_state
+  | Falling of falling_state
   | GameOver of gameover_state
 
 type speed = {
@@ -49,6 +47,8 @@ type speed = {
     (** number of (additional) smoothed cells by frame *)
   sp_insert_delay: int;
     (** delay the block stayed without moving when inserted *)
+  sp_gravity: int;
+    (** acceleration (smoothed y per frame per frame) for falling blocks *)
 }
 
 type game = {
@@ -83,6 +83,42 @@ let start_inserting game block x y =
       state = Inserting is;
       field = new_field }
 
+let start_falling game puyos =
+  let fs = {
+    f_puyos = puyos;
+    f_y = 0;
+    f_speed = 0;
+  } in
+  { game with state = Falling fs }
+
+(** return puyos from top to bottom *)
+let extract_falling_puyos field =
+  let rec cell puyos x y f =
+    if y < 0 then puyos, f else
+      let puyos, f =
+        let cur = Matrix.get f x y in
+        let bot = Matrix.get f x (y+1) in
+        if not (Cell.is_empty cur) && Cell.is_empty bot then
+          (x, y, Cell.puyo cur) :: puyos, Matrix.set f x y Cell.empty
+        else
+          puyos, f
+      in
+      cell puyos x (y-1) f
+  in
+  let rec col puyos x f =
+    if x < 0 then puyos, f else
+      let puyos, f = cell puyos x (Matrix.height field - 2) f in
+      col puyos (x-1) f
+  in
+  col [] (Matrix.width field - 1) field
+
+let check_and_start_falling game =
+  match extract_falling_puyos game.field with
+    | [], _ ->
+        start_incoming game
+    | puyos, field ->
+        start_falling { game with field = field } (List.rev puyos)
+
 let fall game is speed =
   let new_y = is.inc_y + speed in
   let real_new_y = unsmooth_y new_y in
@@ -107,8 +143,39 @@ let think_incoming game is =
   fall game is game.speed.sp_fall
 
 let think_inserting game is =
-  if game.now >= is.ins_end then assert false
+  if game.now >= is.ins_end then check_and_start_falling game
   else game
+
+let think_falling game fs =
+  let rec fall_puyos field puyos = function
+    | [] ->
+        field, puyos
+    | ((x, y, puyo) as p) :: rem ->
+        let new_y = smooth_y y + fs.f_y in
+        let real_new_y = unsmooth_y new_y in
+        if not (Matrix.inside game.field x real_new_y &&
+                  Cell.is_empty (Matrix.get game.field x real_new_y)) then begin
+          let new_field =
+            Matrix.set game.field x (real_new_y - 1) (Cell.make puyo) in
+          fall_puyos new_field puyos rem
+        end else begin
+          fall_puyos field (p :: puyos) rem
+        end
+  in
+  let field, puyos = fall_puyos game.field [] fs.f_puyos in
+  let game = { game with field = field } in
+  match puyos with
+    | [] ->
+        start_incoming game
+    | _ ->
+        let new_speed =
+          min (smooth_factor - 1) (fs.f_speed + game.speed.sp_gravity) in
+        let fs = {
+          f_puyos = puyos;
+          f_speed = new_speed;
+          f_y = fs.f_y + fs.f_speed;
+        } in
+        { game with state = Falling fs }
 
 let quit () =
   IO.quit ();
@@ -167,10 +234,11 @@ let act_quit game = function
 
 let act game input =
   match game.state with
-    | Starting -> act_quit game input
+    | Starting
+    | Inserting _
+    | Falling _
+    | GameOver _ -> act_quit game input
     | Incoming is -> act_incoming game is input
-    | Inserting _ -> act_quit game input
-    | _ -> assert false (* TODO *)
 
 let think game =
   let game = { game with now = game.now + 1 } in
@@ -178,6 +246,7 @@ let think game =
     | Starting -> start_incoming game
     | Incoming is -> think_incoming game is
     | Inserting is -> think_inserting game is
+    | Falling fs -> think_falling game fs
     | _ -> assert false (* TODO *)
 
 let start () =
@@ -193,7 +262,8 @@ let start () =
     speed = {
       sp_fall_absorb = 100;
       sp_fall = 20;
-      sp_fall_fast = 200;
-      sp_insert_delay = 20;
+      sp_fall_fast = 300;
+      sp_insert_delay = 10;
+      sp_gravity = 10;
     };
   }

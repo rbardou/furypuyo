@@ -51,10 +51,19 @@ let draw_incoming game is =
   in
   List.iter (fun (x, y, p) -> draw_puyo p x y) block
 
+let draw_falling game fs =
+  let draw_puyo p x y =
+    draw_puyo p
+      (field_puyo_x x)
+      (field_puyo_y y + cellh * fs.f_y / Game.smooth_factor)
+  in
+  List.iter (fun (x, y, p) -> draw_puyo p x y) fs.f_puyos
+
 let draw game =
   Sprite.draw background 0 0;
   begin match game.state with
     | Incoming is -> draw_incoming game is
+    | Falling fs -> draw_falling game fs
     | _ -> ()
   end;
   for x = 0 to Matrix.width game.field - 1 do

@@ -24,3 +24,8 @@ let apply_puyo_effect e c =
   match c.puyo with
     | None -> c
     | Some p -> { puyo = Some { p with Puyo.effect = e } }
+
+let puyo c =
+  match c.puyo with
+    | None -> raise (Invalid_argument "Cell.puyo")
+    | Some p -> p
