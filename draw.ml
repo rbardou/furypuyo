@@ -55,6 +55,7 @@ let draw game =
     draw_puyo { p with effect = game.inc_effect } in
   Sprite.draw background 0 0;
   begin match game.incb with
+    | List0 puyos
     | List1 puyos
     | List2 puyos ->
         List.iter

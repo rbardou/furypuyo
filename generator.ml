@@ -30,8 +30,8 @@ let next_in_list l c =
 
 let twos colors =
   List.map
-    (fun (a, b) -> List1 [ 0, 0, Puyo.make a;
-                           0, -1, Puyo.make b ])
+    (fun (a, b) -> List0 [ 0, 0, Puyo.make a;
+                           0, 1, Puyo.make b ])
     (combinations colors)
 
 let threes1 colors =
@@ -43,7 +43,7 @@ let threes1 colors =
 
 let threes2 colors =
   List.map
-    (fun (a, b) -> List1 [ 0, 0, Puyo.make a;
+    (fun (a, b) -> List0 [ 0, 0, Puyo.make a;
                            0, 1, Puyo.make a;
                            1, 1, Puyo.make b ])
     (combinations colors)

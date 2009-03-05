@@ -1,6 +1,8 @@
 (** Blocks *)
 
 type t =
+  | List0 of (int * int * Puyo.t) list
+      (** Center of rotation at [(0, 1)]. *)
   | List1 of (int * int * Puyo.t) list
       (** Center of rotation at [(0, 0)]. *)
   | List2 of (int * int * Puyo.t) list

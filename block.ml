@@ -1,11 +1,14 @@
 open Cell
 
 type t =
+  | List0 of (int * int * Puyo.t) list
   | List1 of (int * int * Puyo.t) list
   | List2 of (int * int * Puyo.t) list
   | Quad of Puyo.color * Puyo.color list
 
 let rotate_left = function
+  | List0 l ->
+      List0 (List.map (fun (x, y, p) -> y-1, 1-x, p) l)
   | List1 l ->
       List1 (List.map (fun (x, y, p) -> y, -x, p) l)
   | List2 l ->
@@ -16,6 +19,8 @@ let rotate_left = function
         | y::r -> Quad (y, x :: List.rev r)
 
 let rotate_right = function
+  | List0 l ->
+      List0 (List.map (fun (x, y, p) -> 1-y, 1+x, p) l)
   | List1 l ->
       List1 (List.map (fun (x, y, p) -> -y, x, p) l)
   | List2 l ->
@@ -32,6 +37,7 @@ let collision block x y matrix =
   in
   let ko x' y' = not (ok x' y') in
   match block with
+    | List0 l
     | List1 l
     | List2 l ->
         List.fold_left
@@ -48,6 +54,7 @@ let insert_list matrix x y l =
 
 let insert block x y matrix =
   match block with
+    | List0 l
     | List1 l
     | List2 l ->
         insert_list matrix x y l
