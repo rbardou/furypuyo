@@ -31,11 +31,17 @@ let sprite_of_puyo p =
 let draw_puyo p =
   Sprite.draw (sprite_of_puyo p)
 
+let field_puyo_x x = cellw * x
+let field_puyo_y y = cellh * (y - 2) + fieldy
+
+let draw_field_puyo p x y =
+  Sprite.draw (sprite_of_puyo p) (field_puyo_x x) (field_puyo_y y)
+
 let draw_incoming game is =
   let draw_puyo p x y =
     draw_puyo p
-      (cellw * (x + is.inc_x))
-      (cellh * (y - 2) + cellh * is.inc_y / Game.smooth_factor + fieldy)
+      (field_puyo_x (x + is.inc_x))
+      (field_puyo_y y + cellh * is.inc_y / Game.smooth_factor)
   in
   let block = match is.inc_block with
     | List0 l | List1 l | List2 l -> l
@@ -51,5 +57,12 @@ let draw game =
     | Incoming is -> draw_incoming game is
     | _ -> ()
   end;
-  update ()
+  for x = 0 to Matrix.width game.field - 1 do
+    for y = 0 to Matrix.height game.field - 1 do
+      match (Matrix.get game.field x y).puyo with
+        | None -> ()
+        | Some puyo -> draw_field_puyo puyo x y
+    done;
+  done;
 (*  Sprite.draw foreground 0 0;*)
+  update ()
