@@ -147,7 +147,7 @@ let delete_big_groups game =
   else
     { game with
         state = Delete { ds_cells = bg;
-                         ds_delay = 50;
+                         ds_delay = 60;
                          ds_counts = counts };
         chain = game.chain + 1 }
 
@@ -177,7 +177,7 @@ let heap_gravity_gen now delay field =
 let heap_gravity game =
   let delay = match game.state with
     | Heaping hs -> max 1 (hs.hs_last_delay - 2)
-    | _ -> 10
+    | _ -> 12
   in
   let modified, f = heap_gravity_gen game.now delay game.field in
   if modified then

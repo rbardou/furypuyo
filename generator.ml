@@ -101,9 +101,9 @@ let nice colors =
     twos colors;
     quads colors @ twotwos colors;
     twos colors;
-    threes1 colors @ threes2 colors;
     twos colors;
-    twos colors @ threes1 colors @ twotwos colors;
+    twos colors;
+    threes1 colors @ threes2 colors;
   ]
 
 let next gen rand = gen.generator gen rand
