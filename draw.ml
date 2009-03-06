@@ -80,5 +80,5 @@ let draw game =
               draw_field_puyo puyo x y
     done;
   done;
-(*  Sprite.draw foreground 0 0;*)
+  Sprite.draw foreground 0 0;
   update ()

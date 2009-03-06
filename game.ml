@@ -371,7 +371,7 @@ let start () =
     state = Starting;
     score = 0;
     speed = {
-      sp_fall_absorb = 100;
+      sp_fall_absorb = smooth_factor;
       sp_fall = 20;
       sp_fall_fast = 300;
       sp_insert_delay = 10;
@@ -379,19 +379,3 @@ let start () =
       sp_pop_delay = 40;
     };
   }
-
-(* bug
-
-YYY
-BBY
-YYY
----
-
-becomes
-
- B
----
-
-One blue has disappeared
-
-(actually B was green) *)

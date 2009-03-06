@@ -1,14 +1,10 @@
-Feel
-====
-
-* insertion delay
-* incoming puyo drawn ahead, not late
-* smooth fast falling
-* no incoming puyo while chaining
-
 Features
 ========
 
+* game over
+* score
 * view next blocks
 * single player challenge
+* rotation animation
+* more puyo images
 * multiplayer
