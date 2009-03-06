@@ -237,12 +237,10 @@ let think_falling game fs =
         let new_y = smooth_y y + fs.f_y in
         let real_new_y = unsmooth_y new_y in
         if not (Matrix.inside game.field x real_new_y &&
-                  Cell.is_empty (Matrix.get game.field x real_new_y)) then
+                  Cell.is_empty (Matrix.get field x real_new_y)) then
           let cell = Cell.make puyo in
-          Printf.printf "insert %d %d = %s\n%!" x (real_new_y - 1)
-            (Cell.to_string cell);
           let new_field =
-            Matrix.set game.field x (real_new_y - 1) cell in
+            Matrix.set field x (real_new_y - 1) cell in
           fall_puyos new_field puyos rem
         else begin
           fall_puyos field (p :: puyos) rem
