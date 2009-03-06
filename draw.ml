@@ -86,4 +86,11 @@ let draw game =
     done;
   done;
   Sprite.draw foreground 0 0;
+  Text.write font ~color: Sdlvideo.red 5 1 (string_of_int game.score);
+  begin match game.state with
+    | Popping ps ->
+        Text.write font ~color: Sdlvideo.red 5 14
+          (Printf.sprintf "+ %d x %d" ps.pop_score_base ps.pop_score_mult);
+    | _ -> ()
+  end;
   update ()

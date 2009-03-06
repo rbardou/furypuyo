@@ -30,6 +30,8 @@ type falling_state = {
 type popping_state = {
   pop_end: int;
   pop_puyos: (int * int) list;
+  pop_score_base: int;
+  pop_score_mult: int;
 }
 
 type gameover_state = {
@@ -68,6 +70,7 @@ type game = {
   state: state;
   score: int;
   speed: speed;
+  chain: int;
 }
 
 let matrix_big_groups f =
@@ -153,6 +156,7 @@ let start_incoming game =
       inc_insert_time = game.speed.sp_fall_absorb;
     } in
     { game with
+        chain = 1;
         state = Incoming is;
         rand = rand;
         generator = generator }
@@ -195,20 +199,46 @@ let extract_falling_puyos field =
   in
   col [] (Matrix.width field - 1) field
 
-let start_popping game puyos =
+let chain_mult game =
+  match game.chain with
+    | 1 -> -2
+    | 2 -> 4
+    | 3 -> 12
+    | 4 -> 18
+    | 5 -> 29
+    | 6 -> 63
+    | 7 -> 107
+    | 8 -> 163
+    | 9 -> 119
+    | 10 -> 275
+    | 11 -> 345
+    | 12 -> 415
+    | 13 -> 485
+    | 14 -> 555
+    | 15 -> 625
+    | _ -> 695
+
+let start_popping game puyos groups =
+  let score_base = List.fold_left (fun acc x -> acc + 10 * x) 0 groups in
+  let score_mult =
+    List.fold_left (fun acc x -> acc + chain_mult game + x) 0 groups in
   let ps = {
     pop_end = game.now + game.speed.sp_pop_delay;
     pop_puyos = puyos;
+    pop_score_base = score_base;
+    pop_score_mult = score_mult;
   } in
-  { game with state = Popping ps }
+  { game with
+      state = Popping ps;
+      chain = game.chain + 1 }
 
 let check_and_start_popping game =
-  let puyos, _ = matrix_big_groups game.field in
+  let puyos, groups = matrix_big_groups game.field in
   match puyos with
     | [] ->
         start_incoming game
     | _ ->
-        start_popping game puyos
+        start_popping game puyos groups
 
 let check_and_start_chain game =
   match extract_falling_puyos game.field with
@@ -284,7 +314,8 @@ let pop_puyos field puyos =
 let think_popping game ps =
   if game.now >= ps.pop_end then
     let field = pop_puyos game.field ps.pop_puyos in
-    check_and_start_chain { game with field = field }
+    let score = game.score + ps.pop_score_base * ps.pop_score_mult in
+    check_and_start_chain { game with field = field; score = score }
   else game
 
 let think_game_over game gos =
@@ -392,6 +423,7 @@ let start () =
     generator = generator;
     state = Starting;
     score = 0;
+    chain = 1;
     speed = {
       sp_fall_absorb = smooth_factor;
       sp_fall = 20;
