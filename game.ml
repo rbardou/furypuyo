@@ -39,6 +39,7 @@ type popping_state = {
 type gameover_state = {
   go_speed: int;
   go_y: int; (** smoothed *)
+  go_end: int;
 }
 
 type state =
@@ -144,6 +145,7 @@ let start_game_over game =
   let go = {
     go_speed = 0;
     go_y = 0;
+    go_end = game.now + 200;
   } in
   { game with state = GameOver go }
 
@@ -339,11 +341,15 @@ let think_popping game ps =
   else game
 
 let think_game_over game gos =
-  let gos = {
-    go_speed = gos.go_speed + game.speed.sp_gravity;
-    go_y = gos.go_y + gos.go_speed;
-  } in
-  { game with state = GameOver gos }
+  if gos.go_end > game.now then
+    let gos = {
+      gos with
+        go_speed = gos.go_speed + game.speed.sp_gravity;
+        go_y = gos.go_y + gos.go_speed;
+    } in
+    { game with state = GameOver gos }
+  else
+    game
 
 let quit () =
   IO.quit ();
