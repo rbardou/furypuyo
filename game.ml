@@ -27,6 +27,7 @@ type falling_state = {
   f_puyos: (int * int * Puyo.t) list; (** (x, original y, puyo) list *)
   f_y: int; (** smoothed y offset *)
   f_speed: int; (** smoothed y per frame *)
+  f_garbage: bool;
 }
 
 type popping_state = {
@@ -153,22 +154,47 @@ let check_game_over game =
   let f = game.field in
   not (Cell.is_empty (Matrix.get f 2 2) && Cell.is_empty (Matrix.get f 3 2))
 
-let start_falling game puyos =
+let start_falling game puyos garbage =
   let fs = {
     f_puyos = puyos;
     f_y = 0;
     f_speed = 0;
+    f_garbage = garbage;
   } in
   { game with state = Falling fs }
 
+(** return puyos from top to bottom *)
+let make_garbage game count =
+  let g = Puyo.gray in
+  let w = Matrix.width game.field in
+  let rec make_line acc y = function
+    | 0 -> acc
+    | n -> let n = n - 1 in make_line ((n, y, g) :: acc) y n
+  in
+  let make_line y = make_line [] y w in
+  let rec make_last_line acc y = function
+    | 0 -> acc
+    | n -> make_last_line ((n - 1, y, g) :: acc) y (n - 1)
+  in
+  let rec make_lines acc y count =
+    if count > w then
+      make_lines (make_line y :: acc) (y - 1) (count - w)
+    else
+      make_last_line [] y count :: acc
+  in
+  let lines = make_lines [] 1 count in
+  game, List.flatten lines
+
 let start_garbage game =
   let count = min 30 game.garbage_ready in
-  { game with garbage_ready = game.garbage_ready - count }
+  let game = { game with garbage_ready = game.garbage_ready - count } in
+  let game, puyos = make_garbage game count in
+  start_falling game (List.rev puyos) true
 
-let start_incoming game =
+let start_incoming ?(check_garbage = true) game =
   if check_game_over game then
     start_game_over game
-  else if game.garbage_ready > 0 then
+  else if check_garbage && game.garbage_ready > 0 then
     start_garbage game
   else
     let rand, generator, block = Generator.next game.generator game.rand in
@@ -266,7 +292,7 @@ let check_and_start_chain game =
     | [], _ ->
         check_and_start_popping game
     | puyos, field ->
-        start_falling { game with field = field } (List.rev puyos)
+        start_falling { game with field = field } (List.rev puyos) false
 
 let fall game is speed =
   let new_y = is.inc_y + speed in
@@ -317,14 +343,18 @@ let think_falling game fs =
   let game = { game with field = field } in
   match puyos with
     | [] ->
-        check_and_start_popping game
+        if fs.f_garbage then
+          start_incoming ~check_garbage: false game
+        else
+          check_and_start_popping game
     | _ ->
         let new_speed =
           min (smooth_factor - 1) (fs.f_speed + game.speed.sp_gravity) in
         let fs = {
-          f_puyos = puyos;
-          f_speed = new_speed;
-          f_y = fs.f_y + fs.f_speed;
+          fs with
+            f_puyos = puyos;
+            f_speed = new_speed;
+            f_y = fs.f_y + fs.f_speed;
         } in
         { game with state = Falling fs }
 
