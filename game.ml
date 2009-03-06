@@ -246,8 +246,8 @@ let extract_falling_puyos field =
   in
   col [] (Matrix.width field - 1) field
 
-let chain_mult game =
-  match game.chain with
+let chain_mult game chain =
+  match chain with
     | 1 -> -2
     | 2 -> 4
     | 3 -> 12
@@ -268,7 +268,7 @@ let chain_mult game =
 let start_popping game puyos groups =
   let score_base = List.fold_left (fun acc x -> acc + 10 * x) 0 groups in
   let score_mult =
-    List.fold_left (fun acc x -> acc + chain_mult game + x) 0 groups in
+    List.fold_left (fun acc x -> acc + chain_mult game game.chain + x) 0 groups in
   let ps = {
     pop_end = game.now + game.speed.sp_pop_delay;
     pop_puyos = puyos;
