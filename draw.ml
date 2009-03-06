@@ -7,8 +7,12 @@ open Cell
 let cellw = 20
 let cellh = 20
 let fieldy = 30
+let next_block1_x = cellw*6+15
+let next_block1_y = fieldy+15
+let next_block2_x = cellw*6+15
+let next_block2_y = fieldy+30+2*cellh
 
-let () = IO.init (cellw*6) (cellh*12 + fieldy)
+let () = IO.init (cellw*8+30) (cellh*12 + fieldy)
 
 let load_puyo = Sprite.load
 let sprite_puyo_red = load_puyo "data/red.png"
@@ -40,19 +44,21 @@ let draw_field_puyo p x y y_offset =
     (field_puyo_x x)
     (field_puyo_y y + cellh * y_offset / Game.smooth_factor)
 
+let block_puyos = function
+  | List0 l | List1 l | List2 l -> l
+  | Quad (c, _) ->
+      let p = Puyo.make c in
+      [ 0, 0, p; 0, 1, p; 1, 0, p; 1, 1, p ]
+
+let draw_block block x y =
+  List.iter
+    (fun (x', y', p) -> draw_puyo p (x + cellw * x') (y + cellh * y'))
+    (block_puyos block)
+
 let draw_incoming game is =
-  let draw_puyo p x y =
-    draw_puyo p
-      (field_puyo_x (x + is.inc_x))
-      (field_puyo_y y + cellh * is.inc_y / Game.smooth_factor)
-  in
-  let block = match is.inc_block with
-    | List0 l | List1 l | List2 l -> l
-    | Quad (c, _) ->
-        let p = Puyo.make c in
-        [ 0, 0, p; 0, 1, p; 1, 0, p; 1, 1, p ]
-  in
-  List.iter (fun (x, y, p) -> draw_puyo p x y) block
+  let x = field_puyo_x is.inc_x in
+  let y = field_puyo_y 0 + cellh * is.inc_y / Game.smooth_factor in
+  draw_block is.inc_block x y
 
 let draw_falling game fs =
   let draw_puyo p x y =
@@ -85,6 +91,12 @@ let draw game =
               draw_field_puyo puyo x y !y_offset
     done;
   done;
+  begin match game.next_blocks with
+    | b1 :: b2 :: _ ->
+        draw_block b1 next_block1_x next_block1_y;
+        draw_block b2 next_block2_x next_block2_y
+    | _ -> ()
+  end;
   Sprite.draw foreground 0 0;
   Text.write font ~color: Sdlvideo.red 5 1 (string_of_int game.score);
   begin match game.state with

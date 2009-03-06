@@ -71,6 +71,11 @@ type game = {
   score: int;
   speed: speed;
   chain: int;
+  next_blocks: Block.t list;
+  garbage_incoming: int;
+    (** garbage that can be offset but that won't fall yet *)
+  garbage_ready: int;
+    (** garbage ready to fall *)
 }
 
 let matrix_big_groups f =
@@ -144,11 +149,30 @@ let check_game_over game =
   let f = game.field in
   not (Cell.is_empty (Matrix.get f 2 2) && Cell.is_empty (Matrix.get f 3 2))
 
+let start_falling game puyos =
+  let fs = {
+    f_puyos = puyos;
+    f_y = 0;
+    f_speed = 0;
+  } in
+  { game with state = Falling fs }
+
+let start_garbage game =
+  let count = min 30 game.garbage_ready in
+  { game with garbage_ready = game.garbage_ready - count }
+
 let start_incoming game =
   if check_game_over game then
     start_game_over game
+  else if game.garbage_ready > 0 then
+    start_garbage game
   else
     let rand, generator, block = Generator.next game.generator game.rand in
+    let next_blocks = game.next_blocks @ [ block ] in
+    let block, next_blocks = match next_blocks with
+      | [] -> assert false
+      | x::r -> x, r
+    in
     let is = {
       inc_block = block;
       inc_x = 2;
@@ -159,7 +183,8 @@ let start_incoming game =
         chain = 1;
         state = Incoming is;
         rand = rand;
-        generator = generator }
+        generator = generator;
+        next_blocks = next_blocks }
 
 let start_inserting game block x y =
   let new_field = Block.insert block x y game.field in
@@ -169,14 +194,6 @@ let start_inserting game block x y =
   { game with
       state = Inserting is;
       field = new_field }
-
-let start_falling game puyos =
-  let fs = {
-    f_puyos = puyos;
-    f_y = 0;
-    f_speed = 0;
-  } in
-  { game with state = Falling fs }
 
 (** return puyos from top to bottom *)
 let extract_falling_puyos field =
@@ -282,11 +299,12 @@ let think_falling game fs =
         let new_y = smooth_y y + fs.f_y in
         let real_new_y = unsmooth_y new_y in
         if not (Matrix.inside game.field x real_new_y &&
-                  Cell.is_empty (Matrix.get field x real_new_y)) then
-          let cell = Cell.make puyo in
-          let new_field =
-            Matrix.set field x (real_new_y - 1) cell in
-          fall_puyos new_field puyos rem
+                  Cell.is_empty (Matrix.get field x real_new_y))
+          && real_new_y >= 2 then
+            let cell = Cell.make puyo in
+            let new_field =
+              Matrix.set field x (real_new_y - 1) cell in
+            fall_puyos new_field puyos rem
         else begin
           fall_puyos field (p :: puyos) rem
         end
@@ -368,17 +386,7 @@ let insta_fall game is =
   start_inserting game b x y
 
 let debug game =
-  let f = game.field in
-  let f = Matrix.set f 0 13 (Cell.make (Puyo.make Yellow)) in
-  let f = Matrix.set f 1 13 (Cell.make (Puyo.make Yellow)) in
-  let f = Matrix.set f 2 13 (Cell.make (Puyo.make Yellow)) in
-  let f = Matrix.set f 0 12 (Cell.make (Puyo.make Green)) in
-  let f = Matrix.set f 1 12 (Cell.make (Puyo.make Green)) in
-  let f = Matrix.set f 2 12 (Cell.make (Puyo.make Yellow)) in
-  let f = Matrix.set f 0 11 (Cell.make (Puyo.make Yellow)) in
-  let f = Matrix.set f 1 11 (Cell.make (Puyo.make Yellow)) in
-  let f = Matrix.set f 2 11 (Cell.make (Puyo.make Yellow)) in
-  { game with field = f }
+  { game with garbage_ready = 51 }
 
 let act_incoming game is = function
   | Quit -> quit ()
@@ -416,6 +424,8 @@ let think game =
 let start () =
   let generator = Generator.nice [ Red; Green; Blue; Yellow ] in
   let rand = Rand.self_init () in
+  let rand, generator, block1 = Generator.next generator rand in
+  let rand, generator, block2 = Generator.next generator rand in
   {
     now = 0;
     field = Matrix.make 6 14 Cell.empty;
@@ -432,4 +442,7 @@ let start () =
       sp_gravity = 10;
       sp_pop_delay = 40;
     };
+    next_blocks = [ block1; block2 ];
+    garbage_incoming = 0;
+    garbage_ready = 0;
   }
