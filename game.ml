@@ -2,6 +2,8 @@ open Action
 open Puyo
 open Cell
 
+let invisible_lines = 2
+
 let smooth_factor = 1024
 
 let unsmooth_y y =
@@ -83,7 +85,7 @@ let matrix_big_groups f =
   let m = Array.init w (fun _ -> Array.make h 0) in
   let rec mark n c x y =
     let mark = mark n c in
-    if Matrix.inside f x y && m.(x).(y) = 0 then begin
+    if Matrix.inside f x y && y >= invisible_lines && m.(x).(y) = 0 then begin
       m.(x).(y) <- n + 1;
       if c (Matrix.get f x y) then begin
         m.(x).(y) <- n + 2;
