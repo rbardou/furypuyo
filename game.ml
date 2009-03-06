@@ -33,7 +33,8 @@ type popping_state = {
 }
 
 type gameover_state = {
-  go_bla: int;
+  go_speed: int;
+  go_y: int; (** smoothed *)
 }
 
 type state =
@@ -129,18 +130,32 @@ let matrix_big_groups f =
   done;
   !result, !counts
 
-let start_incoming game =
-  let rand, generator, block = Generator.next game.generator game.rand in
-  let is = {
-    inc_block = block;
-    inc_x = 2;
-    inc_y = 0;
-    inc_insert_time = game.speed.sp_fall_absorb;
+let start_game_over game =
+  let go = {
+    go_speed = 0;
+    go_y = 0;
   } in
-  { game with
-      state = Incoming is;
-      rand = rand;
-      generator = generator }
+  { game with state = GameOver go }
+
+let check_game_over game =
+  let f = game.field in
+  not (Cell.is_empty (Matrix.get f 2 2) && Cell.is_empty (Matrix.get f 3 2))
+
+let start_incoming game =
+  if check_game_over game then
+    start_game_over game
+  else
+    let rand, generator, block = Generator.next game.generator game.rand in
+    let is = {
+      inc_block = block;
+      inc_x = 2;
+      inc_y = 0;
+      inc_insert_time = game.speed.sp_fall_absorb;
+    } in
+    { game with
+        state = Incoming is;
+        rand = rand;
+        generator = generator }
 
 let start_inserting game block x y =
   let new_field = Block.insert block x y game.field in
@@ -272,6 +287,13 @@ let think_popping game ps =
     check_and_start_chain { game with field = field }
   else game
 
+let think_game_over game gos =
+  let gos = {
+    go_speed = gos.go_speed + game.speed.sp_gravity;
+    go_y = gos.go_y + gos.go_speed;
+  } in
+  { game with state = GameOver gos }
+
 let quit () =
   IO.quit ();
   exit 0
@@ -358,7 +380,7 @@ let think game =
     | Inserting is -> think_inserting game is
     | Falling fs -> think_falling game fs
     | Popping ps -> think_popping game ps
-    | _ -> assert false (* TODO *)
+    | GameOver gos -> think_game_over game gos
 
 let start () =
   let generator = Generator.nice [ Red; Green; Blue; Yellow ] in

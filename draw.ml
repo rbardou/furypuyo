@@ -34,8 +34,11 @@ let draw_puyo p =
 let field_puyo_x x = cellw * x
 let field_puyo_y y = cellh * (y - 2) + fieldy
 
-let draw_field_puyo p x y =
-  Sprite.draw (sprite_of_puyo p) (field_puyo_x x) (field_puyo_y y)
+let draw_field_puyo p x y y_offset =
+  Sprite.draw
+    (sprite_of_puyo p)
+    (field_puyo_x x)
+    (field_puyo_y y + cellh * y_offset / Game.smooth_factor)
 
 let draw_incoming game is =
   let draw_puyo p x y =
@@ -61,9 +64,11 @@ let draw_falling game fs =
 
 let draw game =
   Sprite.draw background 0 0;
+  let y_offset = ref 0 in
   begin match game.state with
     | Incoming is -> draw_incoming game is
     | Falling fs -> draw_falling game fs
+    | GameOver gos -> y_offset := gos.go_y
     | _ -> ()
   end;
   let hidden = match game.state with
@@ -77,7 +82,7 @@ let draw game =
         | None -> ()
         | Some puyo ->
             if not (List.mem (x, y) hidden) then
-              draw_field_puyo puyo x y
+              draw_field_puyo puyo x y !y_offset
     done;
   done;
   Sprite.draw foreground 0 0;
