@@ -27,7 +27,6 @@ type falling_state = {
   f_puyos: (int * int * Puyo.t) list; (** (x, original y, puyo) list *)
   f_y: int; (** smoothed y offset *)
   f_speed: int; (** smoothed y per frame *)
-  f_garbage: bool;
 }
 
 type popping_state = {
@@ -80,6 +79,7 @@ type game = {
     (** garbage that can be offset but that won't fall yet *)
   garbage_ready: int;
     (** garbage ready to fall *)
+  garbage_protection: bool;
 }
 
 let matrix_big_groups f =
@@ -154,12 +154,11 @@ let check_game_over game =
   let f = game.field in
   not (Cell.is_empty (Matrix.get f 2 2) && Cell.is_empty (Matrix.get f 3 2))
 
-let start_falling game puyos garbage =
+let start_falling game puyos =
   let fs = {
     f_puyos = puyos;
     f_y = 0;
     f_speed = 0;
-    f_garbage = garbage;
   } in
   { game with state = Falling fs }
 
@@ -187,14 +186,18 @@ let make_garbage game count =
 
 let start_garbage game =
   let count = min 30 game.garbage_ready in
-  let game = { game with garbage_ready = game.garbage_ready - count } in
+  let game = {
+    game with
+      garbage_ready = game.garbage_ready - count;
+      garbage_protection = true;
+  } in
   let game, puyos = make_garbage game count in
-  start_falling game (List.rev puyos) true
+  start_falling game (List.rev puyos)
 
-let start_incoming ?(check_garbage = true) game =
+let start_incoming game =
   if check_game_over game then
     start_game_over game
-  else if check_garbage && game.garbage_ready > 0 then
+  else if game.garbage_ready > 0 && not game.garbage_protection then
     start_garbage game
   else
     let rand, generator, block = Generator.next game.generator game.rand in
@@ -214,7 +217,8 @@ let start_incoming ?(check_garbage = true) game =
         state = Incoming is;
         rand = rand;
         generator = generator;
-        next_blocks = next_blocks }
+        next_blocks = next_blocks;
+        garbage_protection = false }
 
 let start_inserting game block x y =
   let new_field = Block.insert block x y game.field in
@@ -277,7 +281,8 @@ let start_popping game puyos groups =
   } in
   { game with
       state = Popping ps;
-      chain = game.chain + 1 }
+      chain = game.chain + 1;
+      garbage_protection = true }
 
 let check_and_start_popping game =
   let puyos, groups = matrix_big_groups game.field in
@@ -292,7 +297,7 @@ let check_and_start_chain game =
     | [], _ ->
         check_and_start_popping game
     | puyos, field ->
-        start_falling { game with field = field } (List.rev puyos) false
+        start_falling { game with field = field } (List.rev puyos)
 
 let fall game is speed =
   let new_y = is.inc_y + speed in
@@ -343,18 +348,14 @@ let think_falling game fs =
   let game = { game with field = field } in
   match puyos with
     | [] ->
-        if fs.f_garbage then
-          start_incoming ~check_garbage: false game
-        else
-          check_and_start_popping game
+        check_and_start_popping game
     | _ ->
         let new_speed =
           min (smooth_factor - 1) (fs.f_speed + game.speed.sp_gravity) in
         let fs = {
-          fs with
-            f_puyos = puyos;
-            f_speed = new_speed;
-            f_y = fs.f_y + fs.f_speed;
+          f_puyos = puyos;
+          f_speed = new_speed;
+          f_y = fs.f_y + fs.f_speed;
         } in
         { game with state = Falling fs }
 
@@ -483,4 +484,5 @@ let start () =
     next_blocks = [ block1; block2 ];
     garbage_incoming = 0;
     garbage_ready = 0;
+    garbage_protection = false;
   }
