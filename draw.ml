@@ -23,6 +23,8 @@ let sprite_puyo_yellow = load_puyo "data/yellow.png"
 let sprite_puyo_gray = load_puyo "data/gray.png"
 let foreground = Sprite.load "data/foreground.png"
 let background = Sprite.load "data/background.png"
+let garbage1 = Sprite.load "data/garbage1.png"
+let garbage6 = Sprite.load "data/garbage6.png"
 let font = Text.load "data/pouyou.ttf" 16
 
 let sprite_of_puyo p =
@@ -69,6 +71,22 @@ let draw_falling game fs =
   in
   List.iter (fun (x, y, p) -> draw_puyo p x y) fs.f_puyos
 
+let draw_garbage count =
+  let c6 = count / 6 in
+  let count = count mod 6 in
+  let list = [ c6, garbage6; count, garbage1 ] in
+  let draw x s = Sprite.draw s (x * cellw) garbage_y in
+  let rec go x l =
+    if x < 6 then match l with
+      | [] -> ()
+      | (0, sprite) :: rem ->
+	  go x rem
+      | (n, sprite) :: rem ->
+	  draw x sprite;
+	  go (x + 1) ((n - 1, sprite) :: rem)
+  in
+  go 0 list
+
 let draw game =
   Sprite.draw background 0 0;
   let y_offset = ref 0 in
@@ -99,6 +117,7 @@ let draw game =
     | _ -> ()
   end;
   Sprite.draw foreground 0 0;
+  draw_garbage (game.garbage_incoming + game.garbage_ready);
   Text.write font ~color: Sdlvideo.red 5 1 (string_of_int game.score);
   begin match game.state with
     | Popping ps ->
