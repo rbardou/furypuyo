@@ -6,13 +6,14 @@ open Cell
 
 let cellw = 20
 let cellh = 20
-let fieldy = 30
+let garbage_y = 30
+let field_y = 50
 let next_block1_x = cellw*6+15
-let next_block1_y = fieldy+15
+let next_block1_y = field_y+15
 let next_block2_x = cellw*6+15
-let next_block2_y = fieldy+30+2*cellh
+let next_block2_y = field_y+30+2*cellh
 
-let () = IO.init (cellw*8+30) (cellh*12 + fieldy)
+let () = IO.init (cellw*8+30) (cellh*12 + field_y)
 
 let load_puyo = Sprite.load
 let sprite_puyo_red = load_puyo "data/red.png"
@@ -36,7 +37,7 @@ let draw_puyo p =
   Sprite.draw (sprite_of_puyo p)
 
 let field_puyo_x x = cellw * x
-let field_puyo_y y = cellh * (y - 2) + fieldy
+let field_puyo_y y = cellh * (y - 2) + field_y
 
 let draw_field_puyo p x y y_offset =
   Sprite.draw
