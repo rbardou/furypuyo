@@ -25,6 +25,7 @@ let foreground = Sprite.load "data/foreground.png"
 let background = Sprite.load "data/background.png"
 let garbage1 = Sprite.load "data/garbage1.png"
 let garbage6 = Sprite.load "data/garbage6.png"
+let garbage30 = Sprite.load "data/garbage30.png"
 let font = Text.load "data/pouyou.ttf" 16
 
 let sprite_of_puyo p =
@@ -72,9 +73,11 @@ let draw_falling game fs =
   List.iter (fun (x, y, p) -> draw_puyo p x y) fs.f_puyos
 
 let draw_garbage count =
+  let c30 = count / 30 in
+  let count = count mod 30 in
   let c6 = count / 6 in
   let count = count mod 6 in
-  let list = [ c6, garbage6; count, garbage1 ] in
+  let list = [ c30, garbage30; c6, garbage6; count, garbage1 ] in
   let draw x s = Sprite.draw s (x * cellw) garbage_y in
   let rec go x l =
     if x < 6 then match l with
