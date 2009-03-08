@@ -49,10 +49,13 @@ let send_link game cpu =
     game, cpu
 
 let think game cpu =
-  if game.now >= cpu.start then
-    if (cpu.start - game.now) mod link_delay = 0 then
-      send_link game cpu
-    else
-      game, cpu
-  else
-    game, cpu
+  match game.state with
+    | GameOver _ -> game, cpu
+    | _ ->
+        if game.now >= cpu.start then
+          if (cpu.start - game.now) mod link_delay = 0 then
+            send_link game cpu
+          else
+            game, cpu
+        else
+          game, cpu
