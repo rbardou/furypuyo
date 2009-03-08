@@ -364,11 +364,29 @@ let pop_puyos field puyos =
     (fun f (x, y) -> Matrix.set f x y Cell.empty)
     field puyos
 
+let ceil_div x y =
+  if x mod y > 0 then x / y + 1 else x / y
+
 let think_popping game ps =
   if game.now >= ps.pop_end then
     let field = pop_puyos game.field ps.pop_puyos in
-    let score = game.score + ps.pop_score_base * ps.pop_score_mult in
-    check_and_start_chain { game with field = field; score = score }
+    let add_score = ps.pop_score_base * ps.pop_score_mult in
+    let garbage = ceil_div add_score 120 in
+    let garbage, garbage_ready =
+      if game.garbage_ready >= garbage then 0, game.garbage_ready - garbage
+      else garbage - game.garbage_ready, 0
+    in
+    let garbage, garbage_incoming =
+      if game.garbage_incoming >= garbage then 0, game.garbage_incoming - garbage
+      else garbage - game.garbage_incoming, 0
+    in
+    ignore garbage; (* TODO *)
+    check_and_start_chain
+      { game with
+	  field = field;
+	  score = game.score + add_score;
+	  garbage_incoming = garbage_incoming;
+	  garbage_ready = garbage_ready }
   else game
 
 let think_game_over game gos =

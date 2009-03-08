@@ -18,9 +18,6 @@ let start = {
   next_level = 2;
 }
 
-let ceil_div x y =
-  if x mod y > 0 then x / y + 1 else x / y
-
 let finish game cpu =
   let game =
     { game with

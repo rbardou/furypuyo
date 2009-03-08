@@ -1,7 +1,8 @@
 Features
 ========
 
-* garbage cancelling
+* garbage sending
+* garbage offsetting and fever
 * rotation animation
 * more, bigger puyo images
 * multiplayer
