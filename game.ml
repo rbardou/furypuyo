@@ -399,6 +399,7 @@ let rotate rotate_fun game is =
   try
     let b = is.inc_block and x = is.inc_x and y = is.inc_y in
     let b1 = rotate_fun b in
+    let b2 = rotate_fun b1 in
     let b, x, y =
       List.find
         (fun (b, x, y) -> not (Block.collision b x (unsmooth_y y) game.field))
@@ -406,9 +407,9 @@ let rotate rotate_fun game is =
           b1, x, y;
           b1, x - 1, y;
           b1, x + 1, y;
-          rotate_fun b1, x, y;
+          b2, x, y;
           b1, x, y - smooth_factor;
-          rotate_fun b1, x, y - smooth_factor;
+          b2, x, y - smooth_factor;
         ]
     in
     let is = { is with inc_block = b; inc_x = x; inc_y = y } in
