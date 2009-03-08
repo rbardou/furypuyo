@@ -583,13 +583,13 @@ let start () =
       sp_fall_absorb = smooth_factor;
       sp_fall = 20;
       sp_fall_fast = 300;
-      sp_insert_delay = 10;
-      sp_gravity = 10;
-      sp_pop_delay = 40;
+      sp_insert_delay = 20;
+      sp_gravity = 8;
+      sp_pop_delay = 60;
       sp_fever_delay = 150;
       sp_fever_initial = 500;
       sp_fever_gravity = 20;
-      sp_fever_pop_delay = 20;
+      sp_fever_pop_delay = 30;
     };
     next_blocks = [ block1; block2 ];
     garbage_incoming = 0;
