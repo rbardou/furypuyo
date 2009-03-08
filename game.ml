@@ -397,19 +397,21 @@ let move game is delta =
 
 let rotate rotate_fun game is =
   try
-    let b = is.inc_block and x = is.inc_x and y = unsmooth_y is.inc_y in
+    let b = is.inc_block and x = is.inc_x and y = is.inc_y in
     let b1 = rotate_fun b in
-    let b, x =
+    let b, x, y =
       List.find
-        (fun (b, x) -> not (Block.collision b x y game.field))
+        (fun (b, x, y) -> not (Block.collision b x (unsmooth_y y) game.field))
         [
-          b1, x;
-          b1, x - 1;
-          b1, x + 1;
-          rotate_fun b1, x;
+          b1, x, y;
+          b1, x - 1, y;
+          b1, x + 1, y;
+          rotate_fun b1, x, y;
+          b1, x, y - smooth_factor;
+          rotate_fun b1, x, y - smooth_factor;
         ]
     in
-    let is = { is with inc_block = b; inc_x = x } in
+    let is = { is with inc_block = b; inc_x = x; inc_y = y } in
     { game with state = Incoming is }
   with Not_found ->
     game
