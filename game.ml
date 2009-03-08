@@ -405,10 +405,10 @@ let rotate rotate_fun game is =
         (fun (b, x, y) -> not (Block.collision b x (unsmooth_y y) game.field))
         [
           b1, x, y;
+          b1, x, y - smooth_factor;
           b1, x - 1, y;
           b1, x + 1, y;
           b2, x, y;
-          b1, x, y - smooth_factor;
           b2, x, y - smooth_factor;
         ]
     in
