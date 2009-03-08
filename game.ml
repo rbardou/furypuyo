@@ -67,6 +67,10 @@ type speed = {
     (** time to delete an offset *)
   sp_fever_initial: int;
     (** initial fever duration at maximum offsets *)
+  sp_fever_gravity: int;
+    (** acceleration (smoothed y per frame per frame) for falling blocks *)
+  sp_fever_pop_delay: int;
+    (** time puyos take to pop *)
 }
 
 type fever_state =
@@ -94,6 +98,30 @@ type game = {
   offsets: int;
   fever: fever_state;
 }
+
+let garbage_protection game =
+  match game.fever with
+    | FNone ->
+        game.garbage_protection
+    | FInitial _
+    | FDown _ ->
+        true
+
+let gravity game =
+  match game.fever with
+    | FNone ->
+        game.speed.sp_gravity
+    | FInitial _
+    | FDown _ ->
+        game.speed.sp_fever_gravity
+
+let pop_delay game =
+  match game.fever with
+    | FNone ->
+        game.speed.sp_pop_delay
+    | FInitial _
+    | FDown _ ->
+        game.speed.sp_fever_pop_delay
 
 let matrix_big_groups f =
   let w = Matrix.width f and h = Matrix.height f in
@@ -210,7 +238,7 @@ let start_garbage game =
 let start_incoming game =
   if check_game_over game then
     start_game_over game
-  else if game.garbage_ready > 0 && not game.garbage_protection then
+  else if game.garbage_ready > 0 && not (garbage_protection game) then
     start_garbage game
   else
     let rand, generator, block = Generator.next game.generator game.rand in
@@ -290,7 +318,7 @@ let start_popping game puyos groups =
       0 groups
   in
   let ps = {
-    pop_end = game.now + game.speed.sp_pop_delay;
+    pop_end = game.now + pop_delay game;
     pop_puyos = puyos;
     pop_score_base = score_base;
     pop_score_mult = score_mult;
@@ -367,7 +395,7 @@ let think_falling game fs =
         check_and_start_popping game
     | _ ->
         let new_speed =
-          min (smooth_factor - 1) (fs.f_speed + game.speed.sp_gravity) in
+          min (smooth_factor - 1) (fs.f_speed + gravity game) in
         let fs = {
           f_puyos = puyos;
           f_speed = new_speed;
@@ -560,11 +588,13 @@ let start () =
       sp_pop_delay = 40;
       sp_fever_delay = 150;
       sp_fever_initial = 500;
+      sp_fever_gravity = 20;
+      sp_fever_pop_delay = 20;
     };
     next_blocks = [ block1; block2 ];
     garbage_incoming = 0;
     garbage_ready = 0;
     garbage_protection = false;
-    offsets = 6;
+    offsets = 0;
     fever = FNone;
   }
