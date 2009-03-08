@@ -63,7 +63,18 @@ type speed = {
     (** acceleration (smoothed y per frame per frame) for falling blocks *)
   sp_pop_delay: int;
     (** time puyos take to pop *)
+  sp_fever_delay: int;
+    (** time to delete an offset *)
+  sp_fever_initial: int;
+    (** initial fever duration at maximum offsets *)
 }
+
+type fever_state =
+  | FNone
+  | FInitial of int
+      (** time when this state ends *)
+  | FDown of int
+      (** time of next down *)
 
 type game = {
   now: int;
@@ -80,6 +91,8 @@ type game = {
   garbage_ready: int;
     (** garbage ready to fall *)
   garbage_protection: bool;
+  offsets: int;
+  fever: fever_state;
 }
 
 let matrix_big_groups f =
@@ -272,7 +285,10 @@ let chain_mult game chain =
 let start_popping game puyos groups =
   let score_base = List.fold_left (fun acc x -> acc + 10 * x) 0 groups in
   let score_mult =
-    List.fold_left (fun acc x -> acc + chain_mult game game.chain + x) 0 groups in
+    List.fold_left
+      (fun acc x -> acc + chain_mult game game.chain + x)
+      0 groups
+  in
   let ps = {
     pop_end = game.now + game.speed.sp_pop_delay;
     pop_puyos = puyos;
@@ -367,8 +383,25 @@ let pop_puyos field puyos =
 let ceil_div x y =
   if x mod y > 0 then x / y + 1 else x / y
 
+let check_and_start_fever offsets game =
+  match game.fever with
+    | FNone ->
+        if offsets >= 7 then
+          FInitial (game.now + game.speed.sp_fever_initial)
+        else
+          FNone
+    | f -> f
+
 let think_popping game ps =
   if game.now >= ps.pop_end then
+    let offsets =
+      if game.garbage_incoming + game.garbage_ready > 0 then
+        game.offsets + 1
+      else
+        game.offsets
+    in
+    let offsets = min 7 offsets in
+    let fever = check_and_start_fever offsets game in
     let field = pop_puyos game.field ps.pop_puyos in
     let add_score = ps.pop_score_base * ps.pop_score_mult in
     let garbage = ceil_div add_score 120 in
@@ -386,7 +419,9 @@ let think_popping game ps =
 	  field = field;
 	  score = game.score + add_score;
 	  garbage_incoming = garbage_incoming;
-	  garbage_ready = garbage_ready }
+	  garbage_ready = garbage_ready;
+          offsets = offsets;
+          fever = fever }
   else game
 
 let think_game_over game gos =
@@ -471,8 +506,30 @@ let act game input =
     | GameOver _ -> act_quit game input
     | Incoming is -> act_incoming game is input
 
+let think_fever game =
+  match game.fever with
+    | FNone -> game
+    | FInitial t ->
+        if t <= game.now then
+          { game with fever = FDown (game.now + game.speed.sp_fever_delay) }
+        else
+          game
+    | FDown t ->
+        if t <= game.now then
+          if game.offsets <= 1 then
+            { game with
+                offsets = 0;
+                fever = FNone }
+          else
+            { game with
+                fever = FDown (game.now + game.speed.sp_fever_delay);
+                offsets = game.offsets - 1 }
+        else
+          game
+
 let think game =
   let game = { game with now = game.now + 1 } in
+  let game = think_fever game in
   match game.state with
     | Starting -> start_incoming game
     | Incoming is -> think_incoming game is
@@ -501,9 +558,13 @@ let start () =
       sp_insert_delay = 10;
       sp_gravity = 10;
       sp_pop_delay = 40;
+      sp_fever_delay = 150;
+      sp_fever_initial = 500;
     };
     next_blocks = [ block1; block2 ];
     garbage_incoming = 0;
     garbage_ready = 0;
     garbage_protection = false;
+    offsets = 6;
+    fever = FNone;
   }

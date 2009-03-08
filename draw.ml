@@ -9,9 +9,11 @@ let cellh = 20
 let garbage_y = 30
 let field_y = 50
 let next_block1_x = cellw*6+15
-let next_block1_y = field_y+15
+let next_block1_y = garbage_y+15
 let next_block2_x = cellw*6+15
-let next_block2_y = field_y+30+2*cellh
+let next_block2_y = garbage_y+30+2*cellh
+let offsets_x = cellw*6+15
+let offsets_y = next_block2_y+3*cellh
 
 let () = IO.init (cellw*8+30) (cellh*12 + field_y)
 
@@ -26,6 +28,8 @@ let background = Sprite.load "data/background.png"
 let garbage1 = Sprite.load "data/garbage1.png"
 let garbage6 = Sprite.load "data/garbage6.png"
 let garbage30 = Sprite.load "data/garbage30.png"
+let offset = Sprite.load "data/offset.png"
+let offset_fever = Sprite.load "data/offsetfever.png"
 let font = Text.load "data/pouyou.ttf" 16
 
 let sprite_of_puyo p =
@@ -90,7 +94,21 @@ let draw_garbage count =
   in
   go 0 list
 
+let draw_offsets n fever blit =
+  let draw m x y =
+    let sprite = if fever && blit then offset_fever else offset in
+    if n >= m then Sprite.draw sprite (offsets_x + x) (offsets_y + y)
+  in
+  draw 7 14 0;
+  draw 6 20 15;
+  draw 5 22 30;
+  draw 4 20 45;
+  draw 3 15 60;
+  draw 2 12 75;
+  draw 1 15 90
+
 let draw game =
+  let blit = game.now / 2 mod 2 = 0 in
   Sprite.draw background 0 0;
   let y_offset = ref 0 in
   begin match game.state with
@@ -101,7 +119,7 @@ let draw game =
   end;
   let hidden = match game.state with
     | Popping ps ->
-        if game.now / 2 mod 2 = 0 then ps.pop_puyos else []
+        if blit then ps.pop_puyos else []
     | _ -> []
   in
   for x = 0 to Matrix.width game.field - 1 do
@@ -119,6 +137,7 @@ let draw game =
         draw_block b2 next_block2_x next_block2_y
     | _ -> ()
   end;
+  draw_offsets game.offsets (game.fever <> FNone) blit;
   Sprite.draw foreground 0 0;
   draw_garbage (game.garbage_incoming + game.garbage_ready);
   Text.write font ~color: Sdlvideo.red 5 1 (string_of_int game.score);
