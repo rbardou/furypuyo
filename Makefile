@@ -4,8 +4,15 @@ ifeq ($(TERM), dumb)
 endif
 
 default:
-	rm -f pouyou
-	$(OCAMLBUILD) main.native pouyou.docdir/index.html
-	ln -s _build/main.native pouyou
+	$(OCAMLBUILD) main.native furypuyo.docdir/index.html
+	ln -f -s _build/main.native furypuyo
+	ln -f -s _build/furypuyo.docdir doc
 
-.PHONY: default
+clean:
+	rm -rf _build
+	rm -f furypuyo doc
+
+distclean dist-clean: clean
+	rm -f *~
+
+.PHONY: default clean distclean dist-clean
