@@ -59,7 +59,7 @@ let garbage1 = Sprite.load "data/garbage1.png"
 let garbage6 = Sprite.load "data/garbage6.png"
 let garbage30 = Sprite.load "data/garbage30.png"
 let offset = Sprite.load "data/offset.png"
-let offset_fever = Sprite.load "data/offsetfever.png"
+let offset_fury = Sprite.load "data/offsetfury.png"
 let font = Text.load "data/pouyou.ttf" 16
 
 let sprite_of_puyo p =
@@ -124,9 +124,9 @@ let draw_garbage count =
   in
   go 0 list
 
-let draw_offsets n fever blit =
+let draw_offsets n fury blit =
   let draw m x y =
-    let sprite = if fever && blit then offset_fever else offset in
+    let sprite = if fury && blit then offset_fury else offset in
     if n >= m then Sprite.draw sprite (offsets_x + x) (offsets_y + y)
   in
   draw 7 14 0;
@@ -167,7 +167,7 @@ let draw game =
         draw_block b2 next_block2_x next_block2_y
     | _ -> ()
   end;
-  draw_offsets game.offsets (game.fever <> FNone) blit;
+  draw_offsets game.offsets (game.fury <> FNone) blit;
   Sprite.draw foreground 0 0;
   draw_garbage (game.garbage_incoming + game.garbage_ready);
   Text.write font ~color: Sdlvideo.red 5 1 (string_of_int game.score);

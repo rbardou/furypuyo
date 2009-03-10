@@ -93,17 +93,17 @@ type speed = {
     (** acceleration (smoothed y per frame per frame) for falling blocks *)
   sp_pop_delay: int;
     (** time puyos take to pop *)
-  sp_fever_delay: int;
+  sp_fury_delay: int;
     (** time to delete an offset *)
-  sp_fever_initial: int;
-    (** initial fever duration at maximum offsets *)
-  sp_fever_gravity: int;
+  sp_fury_initial: int;
+    (** initial fury duration at maximum offsets *)
+  sp_fury_gravity: int;
     (** acceleration (smoothed y per frame per frame) for falling blocks *)
-  sp_fever_pop_delay: int;
+  sp_fury_pop_delay: int;
     (** time puyos take to pop *)
 }
 
-type fever_state =
+type fury_state =
   | FNone
   | FInitial of int
       (** time when this state ends *)
@@ -126,11 +126,11 @@ type game = {
     (** garbage ready to fall *)
   garbage_protection: bool;
   offsets: int;
-  fever: fever_state;
+  fury: fury_state;
 }
 
 let garbage_protection game =
-  match game.fever with
+  match game.fury with
     | FNone ->
         game.garbage_protection
     | FInitial _
@@ -138,20 +138,20 @@ let garbage_protection game =
         true
 
 let gravity game =
-  match game.fever with
+  match game.fury with
     | FNone ->
         game.speed.sp_gravity
     | FInitial _
     | FDown _ ->
-        game.speed.sp_fever_gravity
+        game.speed.sp_fury_gravity
 
 let pop_delay game =
-  match game.fever with
+  match game.fury with
     | FNone ->
         game.speed.sp_pop_delay
     | FInitial _
     | FDown _ ->
-        game.speed.sp_fever_pop_delay
+        game.speed.sp_fury_pop_delay
 
 let matrix_big_groups f =
   let w = Matrix.width f and h = Matrix.height f in
@@ -441,11 +441,11 @@ let pop_puyos field puyos =
 let ceil_div x y =
   if x mod y > 0 then x / y + 1 else x / y
 
-let check_and_start_fever offsets game =
-  match game.fever with
+let check_and_start_fury offsets game =
+  match game.fury with
     | FNone ->
         if offsets >= 7 then
-          FInitial (game.now + game.speed.sp_fever_initial)
+          FInitial (game.now + game.speed.sp_fury_initial)
         else
           FNone
     | f -> f
@@ -459,7 +459,7 @@ let think_popping game ps =
         game.offsets
     in
     let offsets = min 7 offsets in
-    let fever = check_and_start_fever offsets game in
+    let fury = check_and_start_fury offsets game in
     let field = pop_puyos game.field ps.pop_puyos in
     let add_score = ps.pop_score_base * ps.pop_score_mult in
     let garbage = ceil_div add_score 120 in
@@ -479,7 +479,7 @@ let think_popping game ps =
 	  garbage_incoming = garbage_incoming;
 	  garbage_ready = garbage_ready;
           offsets = offsets;
-          fever = fever }
+          fury = fury }
   else game
 
 let think_game_over game gos =
@@ -564,12 +564,12 @@ let act game input =
     | GameOver _ -> act_quit game input
     | Incoming is -> act_incoming game is input
 
-let think_fever game =
-  match game.fever with
+let think_fury game =
+  match game.fury with
     | FNone -> game
     | FInitial t ->
         if t <= game.now then
-          { game with fever = FDown (game.now + game.speed.sp_fever_delay) }
+          { game with fury = FDown (game.now + game.speed.sp_fury_delay) }
         else
           game
     | FDown t ->
@@ -577,17 +577,17 @@ let think_fever game =
           if game.offsets <= 1 then
             { game with
                 offsets = 0;
-                fever = FNone }
+                fury = FNone }
           else
             { game with
-                fever = FDown (game.now + game.speed.sp_fever_delay);
+                fury = FDown (game.now + game.speed.sp_fury_delay);
                 offsets = game.offsets - 1 }
         else
           game
 
 let think game =
   let game = { game with now = game.now + 1 } in
-  let game = think_fever game in
+  let game = think_fury game in
   match game.state with
     | Starting -> start_incoming game
     | Incoming is -> think_incoming game is
@@ -616,15 +616,15 @@ let start () =
       sp_insert_delay = 20;
       sp_gravity = 8;
       sp_pop_delay = 60;
-      sp_fever_delay = 200;
-      sp_fever_initial = 500;
-      sp_fever_gravity = 20;
-      sp_fever_pop_delay = 30;
+      sp_fury_delay = 200;
+      sp_fury_initial = 500;
+      sp_fury_gravity = 20;
+      sp_fury_pop_delay = 30;
     };
     next_blocks = [ block1; block2 ];
     garbage_incoming = 0;
     garbage_ready = 0;
     garbage_protection = false;
     offsets = 0;
-    fever = FNone;
+    fury = FNone;
   }
