@@ -28,6 +28,17 @@
 (* OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.   *)
 (**************************************************************************)
 
+let show_version () =
+  print_endline Version.string;
+  exit 0
+
+let speclist = Arg.align [
+  "-version", Arg.Unit show_version, " Show version and exit"
+]
+let usage_msg = "furypuyo [options]"
+let anon_fun x = raise (Arg.Bad ("unknown option: `"^x^"'"))
+let () = Arg.parse speclist anon_fun usage_msg
+
 module Reader = IO.MakeReader(Action)
 
 let rec loop game cpu =
