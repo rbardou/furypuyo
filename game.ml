@@ -93,8 +93,12 @@ type speed = {
     (** acceleration (smoothed y per frame per frame) for falling blocks *)
   sp_pop_delay: int;
     (** time puyos take to pop *)
-  sp_fury_delay: int;
-    (** time to delete an offset *)
+  sp_fury_initial_delay: int;
+    (** initial time to delete an offset *)
+  sp_fury_acceleration: int;
+    (** when an offset is deleted, add this to the time to delete an offset *)
+  sp_fury_minimum_delay: int;
+    (** minimum time to delete an offset *)
   sp_fury_initial: int;
     (** initial fury duration at maximum offsets *)
   sp_fury_gravity: int;
@@ -107,8 +111,8 @@ type fury_state =
   | FNone
   | FInitial of int
       (** time when this state ends *)
-  | FDown of int
-      (** time of next down *)
+  | FDown of int * int
+      (** time of next offset deletion, next delay to next offset deletion *)
 
 type game = {
   now: int;
@@ -539,7 +543,7 @@ let insta_fall game is =
   start_inserting game b x y
 
 let debug game =
-  { game with garbage_ready = 51 }
+  { game with offsets = 6 }
 
 let act_incoming game is = function
   | Quit -> quit ()
@@ -568,19 +572,22 @@ let think_fury game =
   match game.fury with
     | FNone -> game
     | FInitial t ->
+        let delay = game.speed.sp_fury_initial_delay in
         if t <= game.now then
-          { game with fury = FDown (game.now + game.speed.sp_fury_delay) }
+          { game with fury = FDown (game.now + delay, delay) }
         else
           game
-    | FDown t ->
+    | FDown (t, delay) ->
         if t <= game.now then
           if game.offsets <= 1 then
             { game with
                 offsets = 0;
                 fury = FNone }
           else
+            let newdelay = delay - game.speed.sp_fury_acceleration in
+            let newdelay = max newdelay game.speed.sp_fury_minimum_delay in
             { game with
-                fury = FDown (game.now + game.speed.sp_fury_delay);
+                fury = FDown (game.now + delay, newdelay);
                 offsets = game.offsets - 1 }
         else
           game
@@ -616,7 +623,9 @@ let start () =
       sp_insert_delay = 20;
       sp_gravity = 8;
       sp_pop_delay = 60;
-      sp_fury_delay = 200;
+      sp_fury_initial_delay = 200;
+      sp_fury_acceleration = 10;
+      sp_fury_minimum_delay = 50;
       sp_fury_initial = 500;
       sp_fury_gravity = 20;
       sp_fury_pop_delay = 30;
