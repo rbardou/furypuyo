@@ -129,6 +129,7 @@ type game = {
   garbage_ready: int;
     (** garbage ready to fall *)
   garbage_protection: bool;
+  garbage_position: int;
   offsets: int;
   fury: fury_state;
 }
@@ -237,6 +238,15 @@ let start_falling game puyos =
   } in
   { game with state = Falling fs }
 
+(** order: 0, 3, 4, 2, 1, 5 *)
+let next_garbage_position = function
+  | 0 -> 3
+  | 1 -> 5
+  | 2 -> 1
+  | 3 -> 4
+  | 4 -> 2
+  | _ -> 0
+
 (** return puyos from top to bottom *)
 let make_garbage game count =
   let g = Puyo.gray in
@@ -246,17 +256,21 @@ let make_garbage game count =
     | n -> let n = n - 1 in make_line ((n, y, g) :: acc) y n
   in
   let make_line y = make_line [] y w in
-  let rec make_last_line acc y = function
-    | 0 -> acc
-    | n -> make_last_line ((n - 1, y, g) :: acc) y (n - 1)
+  let rec make_last_line gp acc y = function
+    | 0 -> gp, acc
+    | n ->
+        let ngp = next_garbage_position gp in
+        make_last_line ngp ((ngp, y, g) :: acc) y (n - 1)
   in
   let rec make_lines acc y count =
     if count > w then
       make_lines (make_line y :: acc) (y - 1) (count - w)
     else
-      make_last_line [] y count :: acc
+      let gp, line = make_last_line game.garbage_position [] y count in
+      gp, line :: acc
   in
-  let lines = make_lines [] 1 count in
+  let gp, lines = make_lines [] 1 count in
+  let game = { game with garbage_position = gp } in
   game, List.flatten lines
 
 let start_garbage game =
@@ -543,7 +557,9 @@ let insta_fall game is =
   start_inserting game b x y
 
 let debug game =
-  { game with offsets = 6 }
+  { game with
+      offsets = 6;
+      garbage_ready = game.garbage_ready + 1 }
 
 let act_incoming game is = function
   | Quit -> quit ()
@@ -634,6 +650,7 @@ let start () =
     garbage_incoming = 0;
     garbage_ready = 0;
     garbage_protection = false;
+    garbage_position = -1;
     offsets = 0;
     fury = FNone;
   }
