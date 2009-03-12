@@ -10,16 +10,17 @@ type set
 val empty: set
   (** Empty graphic effect set. *)
 
-val add: set -> t -> int -> t
+val add: set -> t -> int -> set
   (** Add an effect to a set.
 
 [add set effect ending]: add [effect] to [set]. The effect will be removed
 after an [update] with time greater or equal than [ending]. *)
 
-val update: set -> int -> set
-  (** Remove effects which are over.
+val remove: set -> int -> set
+  (** Remove effects of a given ending time.
 
-[update set now]: remove effects whose ending time has passed. *)
+[remove set now]: remove effects whose ending time is [now]. Effects whose
+ending time is strictly less than [now] are not removed. *)
 
 val iter: (t -> unit) -> set -> unit
   (** Iteration over a set of graphic effects. *)
