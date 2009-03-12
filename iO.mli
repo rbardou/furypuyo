@@ -28,7 +28,7 @@
 (* OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.   *)
 (**************************************************************************)
 
-(** Input / output abstraction. *)
+(** Input / output abstraction *)
 
 type align =
   | Center

@@ -28,6 +28,8 @@
 (* OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.   *)
 (**************************************************************************)
 
+(** Matrix cell contents *)
+
 open Puyo
 
 type t = {
@@ -49,11 +51,6 @@ let is_gray c =
   match c.puyo with
     | None -> false
     | Some p -> p.color = Gray
-
-let apply_puyo_effect e c =
-  match c.puyo with
-    | None -> c
-    | Some p -> { puyo = Some { p with Puyo.effect = e } }
 
 let puyo c =
   match c.puyo with

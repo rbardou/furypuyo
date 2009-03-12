@@ -1,1 +1,1 @@
-let string = "0.2dev"
+let string = "0.1"

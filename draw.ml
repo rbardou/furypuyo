@@ -28,6 +28,8 @@
 (* OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.   *)
 (**************************************************************************)
 
+(** Draw game state on the screen *)
+
 open Block
 open Game
 open IO

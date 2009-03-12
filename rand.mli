@@ -28,6 +28,8 @@
 (* OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.   *)
 (**************************************************************************)
 
+(** Monadic pseudo-random number generator *)
+
 type t
 
 val self_init: unit -> t

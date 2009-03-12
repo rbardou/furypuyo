@@ -3,9 +3,14 @@ ifeq ($(TERM), dumb)
 	OCAMLBUILD := $(OCAMLBUILD) -classic-display
 endif
 
+default all world: furypuyo doc
+
 furypuyo:
-	$(OCAMLBUILD) main.native furypuyo.docdir/index.html
+	$(OCAMLBUILD) main.native
 	ln -f -s _build/main.native furypuyo
+
+doc:
+	$(OCAMLBUILD) furypuyo.docdir/index.html
 	ln -f -s _build/furypuyo.docdir doc
 
 clean:
@@ -18,4 +23,4 @@ distclean dist-clean: clean
 dist: furypuyo
 	darcs dist -d furypuyo-`./furypuyo -version`
 
-.PHONY: furypuyo clean distclean dist-clean dist
+.PHONY: furypuyo doc clean distclean dist-clean dist all world

@@ -28,4 +28,6 @@
 (* OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.   *)
 (**************************************************************************)
 
+(** Player actions *)
+
 type t = Quit | MLeft | MRight | MDown | RLeft | RRight | InstaFall | Debug

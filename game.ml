@@ -28,6 +28,8 @@
 (* OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.   *)
 (**************************************************************************)
 
+(** Game state and rules *)
+
 open Action
 open Puyo
 open Cell

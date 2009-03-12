@@ -28,7 +28,7 @@
 (* OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.   *)
 (**************************************************************************)
 
-(** Blocks *)
+(** Puyo blocks *)
 
 type t =
   | List0 of (int * int * Puyo.t) list
