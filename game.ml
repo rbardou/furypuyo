@@ -468,6 +468,18 @@ let check_and_start_fury offsets game =
           FNone
     | f -> f
 
+let is_empty_field f =
+  try
+    for x = 0 to Matrix.width f - 1 do
+      for y = 0 to Matrix.height f - 1 do
+        if not (Cell.is_empty (Matrix.get f x y)) then
+          raise Exit
+      done
+    done;
+    true
+  with Exit ->
+    false
+
 let think_popping game ps =
   if game.now >= ps.pop_end then
     let offsets =
@@ -480,6 +492,10 @@ let think_popping game ps =
     let fury = check_and_start_fury offsets game in
     let field = pop_puyos game.field ps.pop_puyos in
     let add_score = ps.pop_score_base * ps.pop_score_mult in
+    let add_score =
+      if is_empty_field field then add_score * 2 + 1000
+      else add_score
+    in
     let garbage = ceil_div add_score 120 in
     let garbage, garbage_ready =
       if game.garbage_ready >= garbage then 0, game.garbage_ready - garbage
