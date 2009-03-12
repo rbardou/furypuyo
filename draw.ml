@@ -30,6 +30,7 @@
 
 (** Draw game state on the screen *)
 
+open Gfx
 open Block
 open Game
 open IO
@@ -139,6 +140,11 @@ let draw_offsets n fury blit =
   draw 2 12 75;
   draw 1 15 90
 
+let gfx = function
+  | ClearScreen ->
+      Text.write font ~align: Center ~color: Sdlvideo.red
+        (3*cellw) (field_y + 5*cellh) "Clear Screen!"
+
 let draw game =
   let blit = game.now / 2 mod 2 = 0 in
   Sprite.draw background 0 0;
@@ -179,4 +185,5 @@ let draw game =
           (Printf.sprintf "+ %d x %d" ps.pop_score_base ps.pop_score_mult);
     | _ -> ()
   end;
+  Gfx.iter gfx game.gfx;
   update ()

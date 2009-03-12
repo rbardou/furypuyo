@@ -134,6 +134,7 @@ type game = {
   garbage_position: int;
   offsets: int;
   fury: fury_state;
+  gfx: Gfx.set;
 }
 
 let garbage_protection game =
@@ -159,6 +160,9 @@ let pop_delay game =
     | FInitial _
     | FDown _ ->
         game.speed.sp_fury_pop_delay
+
+let gfx_clear_screen game =
+  Gfx.add game.gfx Gfx.ClearScreen (game.now + 80)
 
 let matrix_big_groups f =
   let w = Matrix.width f and h = Matrix.height f in
@@ -494,9 +498,14 @@ let think_popping game ps =
     let fury = check_and_start_fury offsets game in
     let field = pop_puyos game.field ps.pop_puyos in
     let add_score = ps.pop_score_base * ps.pop_score_mult in
+    let screen_cleared = is_empty_field field in
     let add_score =
-      if is_empty_field field then add_score * 2 + 1000
+      if screen_cleared then add_score * 2 + 1000
       else add_score
+    in
+    let gfx =
+      if screen_cleared then gfx_clear_screen game
+      else game.gfx
     in
     let garbage = ceil_div add_score 120 in
     let garbage, garbage_ready =
@@ -515,7 +524,8 @@ let think_popping game ps =
 	  garbage_incoming = garbage_incoming;
 	  garbage_ready = garbage_ready;
           offsets = offsets;
-          fury = fury }
+          fury = fury;
+          gfx = gfx }
   else game
 
 let think_game_over game gos =
@@ -627,7 +637,11 @@ let think_fury game =
           game
 
 let think game =
-  let game = { game with now = game.now + 1 } in
+  let game =
+    { game with
+        now = game.now + 1;
+        gfx = Gfx.remove game.gfx game.now }
+  in
   let game = think_fury game in
   match game.state with
     | Starting -> start_incoming game
@@ -671,4 +685,5 @@ let start () =
     garbage_position = -1;
     offsets = 0;
     fury = FNone;
+    gfx = Gfx.empty;
   }

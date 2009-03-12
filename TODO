@@ -10,3 +10,4 @@ Other
 =====
 
 * deterministic Rand module
+* Gfx.set with arrays (using a bound on the length of effects)
