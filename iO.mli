@@ -102,8 +102,14 @@ module Sprite: sig
   type t
     (** The type of sprites. *)
 
-  val load: ?align: align -> string -> t
-    (** Load a sprite from a file. *)
+  val load: ?align: align -> ?transparency: [`NONE | `BLACK | `ALPHA] ->
+    string -> t
+    (** Load a sprite from a file.
+
+        Transparency:
+        - [`NONE] for no transparency (fastest) (default)
+        - [`BLACK] so that all black or fully transparent pixels are transparent
+        - [`ALPHA] for images with alpha channels (slowest) *)
 
   val draw: t -> int -> int -> unit
     (** Draw a sprite. *)

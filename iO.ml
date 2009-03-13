@@ -56,10 +56,21 @@ let init w h =
   screen := (fun () -> the_screen);
   last_tick := Sdltimer.get_ticks ()
 
+let fdp = ref 0
+let fdt = ref 0
+let fdc = ref 0
+let fdb = ref 0
+
 let frame_delay d =
   let now = Sdltimer.get_ticks () in
-  if !last_tick + d > now then
-    Sdltimer.delay (d - now + !last_tick);
+  let delay = d - now + !last_tick in
+  incr fdc;
+  fdt := !fdt + delay;
+  fdp := !fdp + d;
+  if delay > 0 then
+    Sdltimer.delay (d - now + !last_tick)
+  else
+    incr fdb;
   last_tick := Sdltimer.get_ticks ()
 
 let screen () = !screen ()
@@ -67,7 +78,11 @@ let screen () = !screen ()
 let update () =
   flip (screen ())
 
-let quit = Sdl.quit
+let quit () =
+  if !fdc > 0 then
+    Printf.printf "CPU usage: %d%% (%d/%d frame overflows)\n%!"
+      (100 * (!fdp - !fdt) / !fdp) !fdb !fdc;
+  Sdl.quit ()
 
 type align =
   | Center
@@ -115,6 +130,56 @@ module Text = struct
       } ()
 end
 
+let print_format surf =
+  let pfi = surface_format surf in
+  let bpp = pfi.bits_pp in
+  let rmask = pfi.rmask in
+  let gmask = pfi.gmask in
+  let bmask = pfi.bmask in
+  let amask = pfi.amask in
+  Printf.printf "%d, masks: %s, %s, %s, %s\n%!"
+    bpp
+    (Int32.to_string rmask)
+    (Int32.to_string gmask)
+    (Int32.to_string bmask)
+    (Int32.to_string amask)
+
+let make_colorkey_surface w h =
+  let pfi = surface_format (screen ()) in
+  let bpp = pfi.bits_pp in
+  let rmask = pfi.rmask in
+  let gmask = pfi.gmask in
+  let bmask = pfi.bmask in
+  let amask = pfi.amask in
+  let surf =
+    create_RGB_surface
+      [`HWSURFACE; `SRCCOLORKEY]
+      ~w ~h
+      ~bpp ~rmask ~gmask ~bmask ~amask
+  in
+  set_color_key surf 0l;
+  surf
+
+let make_opaque_surface w h =
+  create_RGB_surface_format (screen ()) [`HWSURFACE] ~w ~h
+
+let make_surface transparency =
+  match transparency with
+    | `NONE -> make_opaque_surface
+    | `BLACK -> make_colorkey_surface
+    | `ALPHA -> assert false (* TODO *)
+
+let copy_surface ?(x = 0) ?(y = 0) a b =
+  blit_surface
+    ~src: a
+    ~dst: b
+    ~dst_rect: {
+      r_x = x;
+      r_y = y;
+      r_w = 0;
+      r_h = 0;
+    } ()
+
 module Sprite = struct
   type t = {
     hotx: int;
@@ -131,8 +196,15 @@ module Sprite = struct
       surface = surface;
     }
 
-  let load ?align file =
-    of_surface ?align (Sdlloader.load_image file)
+  let load ?align ?(transparency = `NONE) file =
+    let surf = Sdlloader.load_image file in
+    let w, h, _ = surface_dims surf in
+    let surf_best =
+      if transparency = `ALPHA then surf else (* TODO *)
+        make_surface transparency w h
+    in
+    copy_surface surf surf_best;
+    of_surface ?align surf_best
 
   let draw sprite x y =
     blit_surface
@@ -146,22 +218,8 @@ module Sprite = struct
       } ()
 
   let screenshot ?align () =
-    let surface =
-      create_RGB_surface_format
-        (screen ())
-        [`HWSURFACE]
-        ~w: !width
-        ~h: !height
-    in
-    blit_surface
-      ~src: (screen ())
-      ~dst: surface
-      ~dst_rect: {
-        r_x = 0;
-        r_y = 0;
-        r_w = 0;
-        r_h = 0;
-      } ();
+    let surface = make_opaque_surface !width !height in
+    copy_surface (screen ()) surface;
     of_surface ?align surface
 end
 

@@ -37,32 +37,34 @@ open IO
 open Puyo
 open Cell
 
-let cellw = 20
-let cellh = 20
-let garbage_y = 30
-let field_y = 50
-let next_block1_x = cellw*6+15
-let next_block1_y = garbage_y+15
-let next_block2_x = cellw*6+15
-let next_block2_y = garbage_y+30+2*cellh
+let cellw = 40
+let cellh = 40
+let garbage_x = 20
+let garbage_y = 60
+let field_x = 20
+let field_y = 100
+let next_block1_x = 280
+let next_block1_y = 60
+let next_block2_x = 280
+let next_block2_y = 160
 let offsets_x = cellw*6+15
 let offsets_y = next_block2_y+3*cellh
 
-let () = IO.init (cellw*8+30) (cellh*12 + field_y)
+let () = IO.init 390 600
 
-let load_puyo = Sprite.load
-let sprite_puyo_red = load_puyo "data/red.png"
-let sprite_puyo_green = load_puyo "data/green.png"
-let sprite_puyo_blue = load_puyo "data/blue.png"
-let sprite_puyo_yellow = load_puyo "data/yellow.png"
-let sprite_puyo_gray = load_puyo "data/gray.png"
+let load_alpha = Sprite.load ~transparency: `ALPHA
+let sprite_puyo_red = load_alpha "data/red40.png"
+let sprite_puyo_green = load_alpha "data/green40.png"
+let sprite_puyo_blue = load_alpha "data/blue40.png"
+let sprite_puyo_yellow = load_alpha "data/yellow40.png"
+let sprite_puyo_gray = load_alpha "data/gray40.png"
 let foreground = Sprite.load "data/foreground.png"
 let background = Sprite.load "data/background.png"
-let garbage1 = Sprite.load "data/garbage1.png"
-let garbage6 = Sprite.load "data/garbage6.png"
-let garbage30 = Sprite.load "data/garbage30.png"
-let offset = Sprite.load "data/offset.png"
-let offset_fury = Sprite.load "data/offsetfury.png"
+let garbage1 = load_alpha "data/garbage1.png"
+let garbage6 = load_alpha "data/garbage6.png"
+let garbage30 = load_alpha "data/garbage30.png"
+let offset = load_alpha "data/offset.png"
+let offset_fury = load_alpha "data/offsetfury.png"
 let font = Text.load "data/pouyou.ttf" 16
 
 let sprite_of_puyo p =
@@ -76,7 +78,7 @@ let sprite_of_puyo p =
 let draw_puyo p =
   Sprite.draw (sprite_of_puyo p)
 
-let field_puyo_x x = cellw * x
+let field_puyo_x x = cellw * x + field_x
 let field_puyo_y y = cellh * (y - 2) + field_y
 
 let draw_field_puyo p x y y_offset =
@@ -115,7 +117,7 @@ let draw_garbage count =
   let c6 = count / 6 in
   let count = count mod 6 in
   let list = [ c30, garbage30; c6, garbage6; count, garbage1 ] in
-  let draw x s = Sprite.draw s (x * cellw) garbage_y in
+  let draw x s = Sprite.draw s (x * cellw + garbage_x) garbage_y in
   let rec go x l =
     if x < 6 then match l with
       | [] -> ()
