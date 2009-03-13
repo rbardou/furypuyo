@@ -52,6 +52,7 @@ let rec loop game cpu =
   loop game cpu
 
 let () =
+  Config.init ~var: "FURYPUYOCONF" "~/.furypuyo";
   let game = Game.start () in
   let cpu = Cpu.start in
   Reader.key_down Sdlkey.KEY_ESCAPE Action.Quit;
