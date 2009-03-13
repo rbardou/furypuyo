@@ -58,6 +58,10 @@ type 'a var = {
   v_contents: var_contents;
 }
 
+let get x = x.v_value
+
+let set x y = x.v_value <- y
+
 let rec find_var var = function
   | [] ->
       raise Not_found
@@ -71,15 +75,17 @@ let find_var v = find_var (String.uppercase v)
 
 let load file desc =
   let file = filename file in
-  let i = open_in file in
-  let lexbuf = Lexing.from_channel i in
   let contents = ref [] in
-  begin try
-    while true do
-      contents := Configlex.line lexbuf :: !contents
-    done
-  with End_of_file ->
-    ()
+  if Sys.file_exists file then begin
+    let i = open_in file in
+    let lexbuf = Lexing.from_channel i in
+    begin try
+      while true do
+        contents := Configlex.line lexbuf :: !contents
+      done
+    with End_of_file ->
+      ()
+    end
   end;
   {
     tf_name = file;
@@ -107,14 +113,9 @@ let save file =
            Var { vl with vl_value = value })
     file.tf_contents
   in
-  let out =
-    if Sys.file_exists file.tf_name then
-      open_out file.tf_name
-    else
-      let out = open_out file.tf_name in
-      fprintf out "# %s\n\n" file.tf_desc;
-      out
-  in
+  let out = open_out file.tf_name in
+  if file.tf_contents = [] then
+    fprintf out "# %s\n" file.tf_desc;
   List.iter
     (function
        | Empty s ->
@@ -127,7 +128,9 @@ let save file =
     (fun vn vc ->
        if not vc.vc_already_exists then
          fprintf out "\n# %s\n%s = %s\n" vc.vc_desc vn (vc.vc_print ()))
-    file.tf_vars
+    file.tf_vars;
+  fprintf out "%!";
+  close_out out
 
 let custom of_string to_string file var_name desc def =
   let value =

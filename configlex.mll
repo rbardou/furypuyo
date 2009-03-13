@@ -18,7 +18,8 @@
 
 let blank = [' ' '\t' '\r']
 let id = ['a'-'z' 'A'-'Z' '0'-'9' '_' '-']*
-let value_char = [^' ' '\t' '\r' '\n']
+let value_char = [^' ' '\t' '\r' '\n' '#']
+let comment = '#' [^'\n']*
 
 rule line = parse
   | (blank* as left) (id as name) (blank* '=' blank* as equal)
@@ -30,6 +31,9 @@ rule line = parse
           vl_value = value;
           vl_right = right
         } }
+  | [^'=' '\n']* as x
+      { nl_or_eof lexbuf;
+        Empty x }
   | eof
       { raise End_of_file }
 
@@ -37,7 +41,7 @@ and value = parse
   | '"'
       { Buffer.clear buf;
         quote lexbuf }
-  | ((blank* value_char)* as value) (blank* as right)
+  | ((blank* value_char)* as value) (blank* comment? as right)
       { nl_or_eof lexbuf;
         value, right }
 
@@ -54,7 +58,7 @@ and quote = parse
   | "\\\\"
   | '\\'
       { Buffer.add_char buf '\\'; quote lexbuf }
-  | '"' (blank* as right)
+  | '"' (blank* comment? as right)
       { nl_or_eof lexbuf;
         let value = Buffer.contents buf in
         value, right }

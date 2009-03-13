@@ -41,6 +41,14 @@ type text_file
 type 'a var
   (** The type of configuration variables. *)
 
+val get: 'a var -> 'a
+  (** Get the current value of a configuration variable. *)
+
+val set: 'a var -> 'a -> unit
+  (** Set the value of a configuration variable.
+
+The value is not saved into the file until you call [save]. *)
+
 val load: string -> string -> text_file
   (** Open a configuration file.
 
