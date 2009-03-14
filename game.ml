@@ -162,6 +162,25 @@ let pop_delay game =
     | FDown _ ->
         game.speed.sp_fury_pop_delay
 
+let rec gfx_explosion game gfx sprite power x y = function
+  | 0 -> gfx
+  | n ->
+      let angle = Random.float (2. *. 3.141592) in
+      let particle = {
+        Gfx.sprite = sprite;
+        Gfx.cx = x;
+        Gfx.cy = y;
+        Gfx.x = 0.;
+        Gfx.y = 0.;
+        Gfx.vx = ((0.5 +. Random.float 1.) *. cos angle) *. power;
+        Gfx.vy = ((0.5 +. Random.float 1.) *. sin angle) *. power;
+        Gfx.ax = -0.01 *. Random.float 1. *. cos angle *. power;
+        Gfx.ay = -0.01 *. Random.float 1. *. sin angle *. power;
+      } in
+      let life = 40 + Random.int 30 in
+      let gfx = Gfx.add gfx (Gfx.Particle particle) (game.now + life) in
+      gfx_explosion game gfx sprite power x y (n - 1)
+
 let gfx_clear_screen game =
   Gfx.add game.gfx Gfx.ClearScreen (game.now + 80)
 
@@ -494,6 +513,55 @@ let is_empty_field f =
   with Exit ->
     false
 
+(*
+  Score by chain count (4 puyos):
+  3: 560 (0-10, 0, 0, 0)
+  6: 2600 (10-15, 0-5, 0, 0)
+  9: 4840 (15, 5-10, 0-5, 0)
+  12: 16680 (15, 10, 5-10, 0-5)
+*)
+let gfx_pop game gfx puyos score =
+  let g, y, r, p, pow =
+    if score < 500 then
+      score / 50, 0, 0, 0,
+      0.5 +. float_of_int score /. 1000.
+    else if score < 2500 then
+      10 + (score - 500) / 400, score / 500, 0, 0,
+      1. +. float_of_int (score - 500) /. 4000.
+    else if score < 5000 then
+      15, score / 500, (score - 2500) / 500, 0,
+      1.5 +. float_of_int (score - 2500) /. 5000.
+    else if score < 15000 then
+      15, 10, 5 + (score - 5000) / 2000, (score - 5000) / 2000,
+      2. +. float_of_int (score - 5000) /. 20000.
+    else
+      15, 10, 10, 5, 2.5
+  in
+  let puyo_count = List.length puyos in
+  let random_array count =
+    let a = Array.make puyo_count 0 in
+    for i = 0 to count - 1 do
+      let r = Random.int puyo_count in
+      a.(r) <- a.(r) + 1
+    done;
+    a
+  in
+  let ga = random_array g in
+  let ya = random_array y in
+  let ra = random_array r in
+  let pa = random_array p in
+  let gfx, i =
+    List.fold_left
+      (fun (gfx, i) (x, y) ->
+         let gfx = gfx_explosion game gfx Gfx.GreenStar pow x y ga.(i) in
+         let gfx = gfx_explosion game gfx Gfx.YellowStar pow x y ya.(i) in
+         let gfx = gfx_explosion game gfx Gfx.RedStar pow x y ra.(i) in
+         let gfx = gfx_explosion game gfx Gfx.PurpleStar pow x y pa.(i) in
+         gfx, i + 1)
+      (gfx, 0) puyos
+  in
+  gfx
+
 let think_popping game ps =
   if game.now >= ps.pop_end then
     let offsets =
@@ -515,6 +583,7 @@ let think_popping game ps =
       if screen_cleared then gfx_clear_screen game
       else game.gfx
     in
+    let gfx = gfx_pop game gfx ps.pop_puyos add_score in
     let garbage = ceil_div add_score 120 in
     let garbage, garbage_ready =
       if game.garbage_ready >= garbage then 0, game.garbage_ready - garbage
@@ -593,9 +662,14 @@ let insta_fall game is =
   start_inserting game b x y
 
 let debug game =
+  let gfx = gfx_explosion game game.gfx Gfx.GreenStar 1. 120 300 10 in
+  let gfx = gfx_explosion game gfx Gfx.YellowStar 1.2 120 300 5 in
+  let gfx = gfx_explosion game gfx Gfx.RedStar 1.4 120 300 2 in
+  let gfx = gfx_explosion game gfx Gfx.PurpleStar 1.6 120 300 1 in
   { game with
       offsets = 6;
-      garbage_ready = game.garbage_ready + 1 }
+      garbage_ready = game.garbage_ready + 1;
+      gfx = gfx }
 
 let act_incoming game is = function
   | Quit -> quit ()

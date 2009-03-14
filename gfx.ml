@@ -1,5 +1,24 @@
+type particle_sprite =
+  | GreenStar
+  | YellowStar
+  | RedStar
+  | PurpleStar
+
+type particle = {
+  sprite: particle_sprite;
+  cx: int;
+  cy: int;
+  mutable x: float;
+  mutable y: float;
+  mutable vx: float;
+  mutable vy: float;
+  ax: float;
+  ay: float;
+}
+
 type t =
   | ClearScreen
+  | Particle of particle
 
 (* O(1) concatainable lists *)
 type 'a clist =

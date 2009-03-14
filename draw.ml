@@ -87,6 +87,10 @@ let garbage6 = Sprite.load "data/garbage6.png"
 let garbage30 = Sprite.load "data/garbage30.png"
 let offset = Sprite.load "data/offset.png"
 let offset_fury = Sprite.load "data/offsetfury.png"
+let green_star = Sprite.load ~transparency: `BLACK "data/greenstar.png"
+let yellow_star = Sprite.load ~transparency: `BLACK "data/yellowstar.png"
+let red_star = Sprite.load ~transparency: `BLACK "data/redstar.png"
+let purple_star = Sprite.load ~transparency: `BLACK "data/purplestar.png"
 
 let char_sprite font size width char =
   let sprite = try
@@ -201,6 +205,20 @@ let gfx = function
   | ClearScreen ->
       Text.write font ~align: Center
         (3*cellw) (field_y + 5*cellh) "Clear Screen!"
+  | Particle p ->
+      let x = field_puyo_x p.cx + cellw / 2 in
+      let y = field_puyo_y p.cy + cellh / 2 in
+      let sprite = match p.sprite with
+        | GreenStar -> green_star
+        | YellowStar -> yellow_star
+        | RedStar -> red_star
+        | PurpleStar -> purple_star
+      in
+      Sprite.draw sprite (x + int_of_float p.x) (y + int_of_float p.y);
+      p.x <- p.x +. p.vx;
+      p.y <- p.y +. p.vy;
+      p.vx <- p.vx +. p.ax;
+      p.vy <- p.vy +. p.ay
 
 let draw game =
   let blit = game.now / 2 mod 2 = 0 in
