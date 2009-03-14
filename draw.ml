@@ -47,8 +47,25 @@ let next_block1_x = 280
 let next_block1_y = 60
 let next_block2_x = 280
 let next_block2_y = 160
-let offsets_x = cellw*6+15
+
+let offsets_x = cellw*6+55
 let offsets_y = next_block2_y+3*cellh
+let offset_scale_x = 4
+let offset_scale_y = 25
+let ox7 = offsets_x + offset_scale_x * 1
+let ox6 = offsets_x + offset_scale_x * 4
+let ox5 = offsets_x + offset_scale_x * 5
+let ox4 = offsets_x + offset_scale_x * 4
+let ox3 = offsets_x + offset_scale_x * 2
+let ox2 = offsets_x + offset_scale_x * 0
+let ox1 = offsets_x + offset_scale_x * 1
+let oy7 = offsets_y + offset_scale_y * 0
+let oy6 = offsets_y + offset_scale_y * 1
+let oy5 = offsets_y + offset_scale_y * 2
+let oy4 = offsets_y + offset_scale_y * 3
+let oy3 = offsets_y + offset_scale_y * 4
+let oy2 = offsets_y + offset_scale_y * 5
+let oy1 = offsets_y + offset_scale_y * 6
 
 let () = IO.init 390 600
 
@@ -63,8 +80,8 @@ let background = Sprite.load "data/background.png"
 let garbage1 = load_alpha "data/garbage1.png"
 let garbage6 = load_alpha "data/garbage6.png"
 let garbage30 = load_alpha "data/garbage30.png"
-let offset = load_alpha "data/offset.png"
-let offset_fury = load_alpha "data/offsetfury.png"
+let offset = Sprite.load "data/offset.png"
+let offset_fury = Sprite.load "data/offsetfury.png"
 let font = Text.load "data/pouyou.ttf" 16
 
 let sprite_of_puyo p =
@@ -132,15 +149,15 @@ let draw_garbage count =
 let draw_offsets n fury blit =
   let draw m x y =
     let sprite = if fury && blit then offset_fury else offset in
-    if n >= m then Sprite.draw sprite (offsets_x + x) (offsets_y + y)
+    if n >= m then Sprite.draw sprite x y
   in
-  draw 7 14 0;
-  draw 6 20 15;
-  draw 5 22 30;
-  draw 4 20 45;
-  draw 3 15 60;
-  draw 2 12 75;
-  draw 1 15 90
+  draw 7 ox7 oy7;
+  draw 6 ox6 oy6;
+  draw 5 ox5 oy5;
+  draw 4 ox4 oy4;
+  draw 3 ox3 oy3;
+  draw 2 ox2 oy2;
+  draw 1 ox1 oy1
 
 let gfx = function
   | ClearScreen ->
