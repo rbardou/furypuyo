@@ -30,4 +30,13 @@
 
 (** Player actions *)
 
-type t = Quit | MLeft | MRight | MDown | RLeft | RRight | InstaFall | Debug
+type t =
+  | Quit
+  | MLeft
+  | MRight
+  | MDown
+  | MDownRelease
+  | RLeft
+  | RRight
+  | InstaFall
+  | Debug

@@ -49,6 +49,7 @@ type incoming_state = {
   inc_x: int; (** cells *)
   inc_y: int; (** cells, multiplied by [smooth_factor] *)
   inc_insert_time: int;
+  inc_fast_fall: bool;
 }
 
 type inserting_state = {
@@ -306,6 +307,7 @@ let start_incoming game =
       inc_x = 2;
       inc_y = 0;
       inc_insert_time = game.speed.sp_fall_absorb;
+      inc_fast_fall = false;
     } in
     { game with
         chain = 1;
@@ -418,7 +420,13 @@ let fall game is speed =
     { game with state = Incoming is }
 
 let think_incoming game is =
-  fall game is game.speed.sp_fall
+  let speed =
+    if is.inc_fast_fall then
+      game.speed.sp_fall_fast
+    else
+      game.speed.sp_fall
+  in
+  fall game is speed
 
 let think_inserting game is =
   if game.now >= is.ins_end then check_and_start_chain game
@@ -593,7 +601,12 @@ let act_incoming game is = function
   | Quit -> quit ()
   | MLeft -> move game is (-1)
   | MRight -> move game is 1
-  | MDown -> fall game is game.speed.sp_fall_fast
+  | MDown ->
+      let is = { is with inc_fast_fall = true } in
+      { game with state = Incoming is }
+  | MDownRelease ->
+      let is = { is with inc_fast_fall = false } in
+      { game with state = Incoming is }
   | RLeft -> rotate Block.rotate_left game is
   | RRight -> rotate Block.rotate_right game is
   | InstaFall -> insta_fall game is
