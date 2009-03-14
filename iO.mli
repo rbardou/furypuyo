@@ -78,25 +78,6 @@ val quit: unit -> unit
 
       Should always be called before you exit. *)
 
-(** TTF font loading and writing. *)
-module Text: sig
-  type t
-    (** The type of TTF fonts. *)
-
-  val load: string -> int -> t
-    (** Load a TTF font from a file.
-
-        [load file size]: load a TTF font from file [file]
-        with font size [size]. *)
-
-  val write: t -> ?align: align -> ?color: Sdlvideo.color -> int -> int ->
-    string -> unit
-    (** Write some text.
-
-        [write font x y text]: write [text] at position [(x, y)] using font
-        [font]. *)
-end
-
 (** Image making and drawing. *)
 module Sprite: sig
   type t
@@ -120,6 +101,45 @@ module Sprite: sig
         Return a sprite whose image is the content of the current screen.
         By "screen" we mean "screen buffer", i.e. not the actual content of the
         screen but what would be on the screen after an [update]. *)
+
+  val width: t -> int
+    (** Get the width of a sprite. *)
+
+  val height: t -> int
+    (** Get the height of a sprite. *)
+end
+
+(** Font loading, making and writing. *)
+module Text: sig
+  type t
+    (** The type of fonts. *)
+
+  val load: string -> int -> Sdlvideo.color -> t
+    (** Load a TTF font from a file.
+
+        [load file size color]: load a TTF font from file [file]
+        with font size [size] and color [color]. *)
+
+  val make: (char -> Sprite.t option * int) -> t
+    (** Make a font from sprites.
+
+        The argument [f] returns the sprite for a given chararacter.
+        It may return [None] if no sprite exist for this character.
+        Function [f] also returns an integer that will be added to the width
+        of the character.
+
+        You can make spaces by returning [None, size] where [size] is the size
+        (in pixels) of the space. *)
+
+  val write: t -> ?align: align -> int -> int ->
+    string -> unit
+    (** Write some text.
+
+        [write font x y text]: write [text] at position [(x, y)] using font
+        [font]. *)
+
+  val size: t -> string -> int * int
+    (** Get the width and height of a text in a given font. *)
 end
 
 (** Action descriptor. *)

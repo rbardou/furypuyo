@@ -39,6 +39,11 @@ open Cell
 
 let cellw = 40
 let cellh = 40
+let score_y = 5
+let score_x = 20
+let score_plus_y = 30
+let score_plus_x = 360
+let score_plus_align = TopRight
 let garbage_x = 20
 let garbage_y = 60
 let field_x = 20
@@ -82,7 +87,40 @@ let garbage6 = Sprite.load "data/garbage6.png"
 let garbage30 = Sprite.load "data/garbage30.png"
 let offset = Sprite.load "data/offset.png"
 let offset_fury = Sprite.load "data/offsetfury.png"
-let font = Text.load "data/pouyou.ttf" 16
+
+let char_sprite font size width char =
+  let sprite = try
+    let char = match char with
+      | '0' -> "0"
+      | '1' -> "1"
+      | '2' -> "2"
+      | '3' -> "3"
+      | '4' -> "4"
+      | '5' -> "5"
+      | '6' -> "6"
+      | '7' -> "7"
+      | '8' -> "8"
+      | '9' -> "9"
+      | '+' -> "plus"
+      | 'x' -> "x"
+      | _ -> raise Not_found
+    in
+    let file = Printf.sprintf "%s_%d_%s.png" font size char in
+    if Sys.file_exists file then
+      Some (Sprite.load ~transparency: `ALPHA file)
+    else
+      None
+  with Not_found ->
+    None
+  in
+  let addw = match char with
+    | ' ' -> width
+    | _ -> 0
+  in
+  sprite, addw
+
+let font = Text.make (char_sprite "data/font" 25 19)
+(*let font = Text.load "data/pouyou.ttf" 16 Sdlvideo.red*)
 
 let sprite_of_puyo p =
   match p.color with
@@ -161,7 +199,7 @@ let draw_offsets n fury blit =
 
 let gfx = function
   | ClearScreen ->
-      Text.write font ~align: Center ~color: Sdlvideo.red
+      Text.write font ~align: Center
         (3*cellw) (field_y + 5*cellh) "Clear Screen!"
 
 let draw game =
@@ -197,10 +235,10 @@ let draw game =
   draw_offsets game.offsets (game.fury <> FNone) blit;
   Sprite.draw foreground 0 0;
   draw_garbage (game.garbage_incoming + game.garbage_ready);
-  Text.write font ~color: Sdlvideo.red 5 1 (string_of_int game.score);
+  Text.write font score_x score_y (string_of_int game.score);
   begin match game.state with
     | Popping ps ->
-        Text.write font ~color: Sdlvideo.red 5 14
+        Text.write font ~align: score_plus_align score_plus_x score_plus_y
           (Printf.sprintf "+ %d x %d" ps.pop_score_base ps.pop_score_mult);
     | _ -> ()
   end;

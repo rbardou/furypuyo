@@ -110,26 +110,6 @@ let hotxy w h = function
       int_of_float (float_of_int w *. xf) + xp,
       int_of_float (float_of_int h *. yf) + yp
 
-module Text = struct
-  type t = Sdlttf.font
-
-  let load file size = open_font file size
-
-  let write font ?(align = TopLeft) ?(color = white) x y txt =
-    let (w, h) = Sdlttf.size_text font txt in
-    let txt = Sdlttf.render_text_solid font txt ~fg: color in
-    let hotx, hoty = hotxy w h align in
-    blit_surface
-      ~src: txt
-      ~dst: (screen ())
-      ~dst_rect: {
-        r_x = x - hotx;
-        r_y = y - hoty;
-        r_w = 0;
-        r_h = 0;
-      } ()
-end
-
 let print_format surf =
   let pfi = surface_format surf in
   let bpp = pfi.bits_pp in
@@ -184,6 +164,8 @@ module Sprite = struct
   type t = {
     hotx: int;
     hoty: int;
+    width: int;
+    height: int;
     surface: surface;
   }
 
@@ -194,6 +176,8 @@ module Sprite = struct
       hotx = hotx;
       hoty = hoty;
       surface = surface;
+      width = w;
+      height = h;
     }
 
   let load ?align ?(transparency = `NONE) file =
@@ -221,6 +205,74 @@ module Sprite = struct
     let surface = make_opaque_surface !width !height in
     copy_surface (screen ()) surface;
     of_surface ?align surface
+
+  let width x = x.width
+
+  let height x = x.height
+end
+
+module Text = struct
+  type t =
+    | TTF of Sdlttf.font * Sdlvideo.color
+    | Sprites of (Sprite.t option * int) array
+
+  let load file size color =
+    TTF (open_font file size, color)
+
+  let write_ttf font color ?(align = TopLeft) x y txt =
+    let (w, h) = Sdlttf.size_text font txt in
+    let txt = Sdlttf.render_text_solid font txt ~fg: color in
+    let hotx, hoty = hotxy w h align in
+    blit_surface
+      ~src: txt
+      ~dst: (screen ())
+      ~dst_rect: {
+        r_x = x - hotx;
+        r_y = y - hoty;
+        r_w = 0;
+        r_h = 0;
+      } ()
+
+  let size_sprites font txt =
+    let y1 = ref 0 in
+    let y2 = ref 0 in
+    let w = ref 0 in
+    for i = 0 to String.length txt - 1 do
+      match font.(Char.code txt.[i]) with
+        | None, aw ->
+            w := !w + aw
+        | Some sprite, aw ->
+            w := !w + sprite.Sprite.width + aw;
+            y1 := min !y1 (- sprite.Sprite.hoty);
+            y2 := max !y2 (sprite.Sprite.height - sprite.Sprite.hoty)
+    done;
+    !w, (!y2 - !y1)
+
+  let size = function
+    | TTF (font, _) -> Sdlttf.size_text font
+    | Sprites font -> size_sprites font
+
+  let write_sprites font ?(align = TopLeft) x y txt =
+    let w, h = size_sprites font txt in
+    let hotx, hoty = hotxy w h align in
+    let x = ref (x - hotx) in
+    let y = y - hoty in
+    for i = 0 to String.length txt - 1 do
+      match font.(Char.code txt.[i]) with
+        | None, aw ->
+            x := !x + aw
+        | Some sprite, aw ->
+            Sprite.draw sprite !x y;
+            x := !x + sprite.Sprite.width + aw
+    done
+
+  let write = function
+    | TTF (font, color) -> write_ttf font color
+    | Sprites font -> write_sprites font
+
+  let make font =
+    let a = Array.init 256 (fun i -> font (Char.chr i)) in
+    Sprites a
 end
 
 module type ACTION = sig
