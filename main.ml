@@ -43,12 +43,14 @@ let () = Arg.parse speclist anon_fun usage_msg
 
 module Reader = IO.MakeReader(Action)
 
+let draw = ref true
+
 let rec loop game cpu =
   let game = List.fold_left Game.act game (Reader.read ()) in
   let game = Game.think game in
   let game, cpu = Cpu.think game cpu in
-  Draw.draw game;
-  IO.frame_delay 10;
+  if !draw then Draw.draw game;
+  draw := IO.frame_delay 10;
   loop game cpu
 
 let () =

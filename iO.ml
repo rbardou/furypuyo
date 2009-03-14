@@ -71,7 +71,8 @@ let frame_delay d =
     Sdltimer.delay (d - now + !last_tick)
   else
     incr fdb;
-  last_tick := Sdltimer.get_ticks ()
+  last_tick := Sdltimer.get_ticks ();
+  delay >= 0
 
 let screen () = !screen ()
 

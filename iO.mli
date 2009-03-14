@@ -66,12 +66,15 @@ val update: unit -> unit
       This must be called after you finish drawing a frame. If you don't,
       nothing will change on the screen. *)
 
-val frame_delay: int -> unit
+val frame_delay: int -> bool
   (** Wait a specified number of milliseconds before returning.
 
       If [delay] was last called 5ms ago, and now you call [delay 8], the
       game will actually sleep for 3ms. If you call [delay 3], the system
-      will not sleep at all. This is useful to ensure a fixed frame rate. *)
+      will not sleep at all. This is useful to ensure a fixed frame rate.
+
+      Return [true] is the delay was applied, [false] if the last frame was too
+      long. *)
 
 val quit: unit -> unit
   (** Close the window.
