@@ -52,6 +52,8 @@ let next_block1_x = 280
 let next_block1_y = 60
 let next_block2_x = 280
 let next_block2_y = 160
+let timer_x = 270
+let timer_y = 555
 
 let offsets_x = cellw*6+55
 let offsets_y = next_block2_y+3*cellh
@@ -105,7 +107,34 @@ let char_sprite font size width char =
       | '7' -> "7"
       | '8' -> "8"
       | '9' -> "9"
+      | 'A' -> "am"
+      | 'B' -> "bm"
+      | 'C' -> "cm"
+      | 'D' -> "dm"
+      | 'E' -> "em"
+      | 'F' -> "fm"
+      | 'G' -> "gm"
+      | 'H' -> "hm"
+      | 'I' -> "im"
+      | 'J' -> "jm"
+      | 'K' -> "km"
+      | 'L' -> "lm"
+      | 'M' -> "mm"
+      | 'N' -> "nm"
+      | 'O' -> "om"
+      | 'P' -> "pm"
+      | 'Q' -> "qm"
+      | 'R' -> "rm"
+      | 'S' -> "sm"
+      | 'T' -> "tm"
+      | 'U' -> "um"
+      | 'V' -> "vm"
+      | 'W' -> "wm"
+      | 'X' -> "xm"
+      | 'Y' -> "ym"
+      | 'Z' -> "zm"
       | '+' -> "plus"
+      | ':' -> "colon"
       | 'x' -> "x"
       | _ -> raise Not_found
     in
@@ -220,6 +249,12 @@ let gfx = function
       p.vx <- p.vx +. p.ax;
       p.vy <- p.vy +. p.ay
 
+let draw_timer now =
+  let s = now / 100 in
+  let m = s / 60 in
+  let s = s mod 60 in
+  Text.write font timer_x timer_y (Printf.sprintf "%02d:%02d" m s)
+
 let draw game =
   let blit = game.now / 2 mod 2 = 0 in
   Sprite.draw background 0 0;
@@ -260,5 +295,6 @@ let draw game =
           (Printf.sprintf "+ %d x %d" ps.pop_score_base ps.pop_score_mult);
     | _ -> ()
   end;
+  draw_timer game.now;
   Gfx.iter gfx game.gfx;
   update ()
