@@ -295,6 +295,10 @@ let draw game =
           (Printf.sprintf "+ %d x %d" ps.pop_score_base ps.pop_score_mult);
     | _ -> ()
   end;
-  draw_timer game.now;
+  let now = match game.state with
+    | GameOver s -> s.go_end
+    | _ -> game.now
+  in
+  draw_timer now;
   Gfx.iter gfx game.gfx;
   update ()
