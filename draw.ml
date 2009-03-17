@@ -36,6 +36,7 @@ open Game
 open IO
 open Puyo
 open Cell
+open Sprites
 
 let cellw = 40
 let cellh = 40
@@ -73,87 +74,6 @@ let oy4 = offsets_y + offset_scale_y * 3
 let oy3 = offsets_y + offset_scale_y * 4
 let oy2 = offsets_y + offset_scale_y * 5
 let oy1 = offsets_y + offset_scale_y * 6
-
-let () = IO.init 390 600
-
-let load_alpha = Sprite.load ~transparency: `ALPHA
-let sprite_puyo_red = load_alpha "data/red40.png"
-let sprite_puyo_green = load_alpha "data/green40.png"
-let sprite_puyo_blue = load_alpha "data/blue40.png"
-let sprite_puyo_yellow = load_alpha "data/yellow40.png"
-let sprite_puyo_gray = load_alpha "data/gray40.png"
-let foreground = Sprite.load "data/foreground.png"
-let background = Sprite.load "data/background.png"
-let garbage1 = Sprite.load "data/garbage1.png"
-let garbage6 = Sprite.load "data/garbage6.png"
-let garbage30 = Sprite.load "data/garbage30.png"
-let offset = Sprite.load "data/offset.png"
-let offset_fury = Sprite.load "data/offsetfury.png"
-let green_star = Sprite.load ~transparency: `BLACK "data/greenstar.png"
-let yellow_star = Sprite.load ~transparency: `BLACK "data/yellowstar.png"
-let red_star = Sprite.load ~transparency: `BLACK "data/redstar.png"
-let purple_star = Sprite.load ~transparency: `BLACK "data/purplestar.png"
-
-let char_sprite font size width char =
-  let sprite = try
-    let char = match char with
-      | '0' -> "0"
-      | '1' -> "1"
-      | '2' -> "2"
-      | '3' -> "3"
-      | '4' -> "4"
-      | '5' -> "5"
-      | '6' -> "6"
-      | '7' -> "7"
-      | '8' -> "8"
-      | '9' -> "9"
-      | 'A' -> "am"
-      | 'B' -> "bm"
-      | 'C' -> "cm"
-      | 'D' -> "dm"
-      | 'E' -> "em"
-      | 'F' -> "fm"
-      | 'G' -> "gm"
-      | 'H' -> "hm"
-      | 'I' -> "im"
-      | 'J' -> "jm"
-      | 'K' -> "km"
-      | 'L' -> "lm"
-      | 'M' -> "mm"
-      | 'N' -> "nm"
-      | 'O' -> "om"
-      | 'P' -> "pm"
-      | 'Q' -> "qm"
-      | 'R' -> "rm"
-      | 'S' -> "sm"
-      | 'T' -> "tm"
-      | 'U' -> "um"
-      | 'V' -> "vm"
-      | 'W' -> "wm"
-      | 'X' -> "xm"
-      | 'Y' -> "ym"
-      | 'Z' -> "zm"
-      | '+' -> "plus"
-      | ':' -> "colon"
-      | 'x' -> "x"
-      | _ -> raise Not_found
-    in
-    let file = Printf.sprintf "%s_%d_%s.png" font size char in
-    if Sys.file_exists file then
-      Some (Sprite.load ~transparency: `ALPHA file)
-    else
-      None
-  with Not_found ->
-    None
-  in
-  let addw = match char with
-    | ' ' -> width
-    | _ -> 0
-  in
-  sprite, addw
-
-let font = Text.make (char_sprite "data/font" 25 19)
-(*let font = Text.load "data/pouyou.ttf" 16 Sdlvideo.red*)
 
 let sprite_of_puyo p =
   match p.color with
@@ -254,6 +174,10 @@ let draw_timer now =
   let m = s / 60 in
   let s = s mod 60 in
   Text.write font timer_x timer_y (Printf.sprintf "%02d:%02d" m s)
+
+let draw_empty () =
+  Sprite.draw background 0 0;
+  Sprite.draw foreground 0 0
 
 let draw game =
   let blit = game.now / 2 mod 2 = 0 in

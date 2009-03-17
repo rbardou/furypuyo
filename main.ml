@@ -55,6 +55,12 @@ let rec loop game cpu =
 
 let () =
   Config.init ~var: "FURYPUYOCONF" "~/.furypuyo";
+  Draw.draw_empty ();
+  Menu.string_choices [
+    "SINGLE PLAYER", (fun () -> ());
+    "MULTIPLAYER", (fun () -> ());
+    "QUIT", (fun () -> IO.quit (); exit 0);
+  ] ();
   let game = Game.start () in
   let cpu = Cpu.start in
   Reader.key_down Sdlkey.KEY_ESCAPE Action.Quit;
@@ -69,4 +75,5 @@ let () =
   Reader.key_down Sdlkey.KEY_d Action.Debug;
   Reader.key_down Sdlkey.KEY_DOWN Action.MDown;
   Reader.key_up Sdlkey.KEY_DOWN Action.MDownRelease;
+  IO.timer_start ();
   loop game cpu

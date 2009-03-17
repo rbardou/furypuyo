@@ -62,17 +62,24 @@ let fdc = ref 0
 let fdb = ref 0
 
 let frame_delay d =
-  let now = Sdltimer.get_ticks () in
-  let delay = d - now + !last_tick in
-  incr fdc;
-  fdt := !fdt + delay;
-  fdp := !fdp + d;
-  if delay > 0 then
-    Sdltimer.delay (d - now + !last_tick)
-  else
-    incr fdb;
-  last_tick := !last_tick + d;
-  delay >= 0
+  if !last_tick = 0 then begin
+    Sdltimer.delay d;
+    last_tick := Sdltimer.get_ticks ();
+    true
+  end else
+    let now = Sdltimer.get_ticks () in
+    let delay = d - now + !last_tick in
+    incr fdc;
+    fdt := !fdt + delay;
+    fdp := !fdp + d;
+    if delay > 0 then
+      Sdltimer.delay (d - now + !last_tick)
+    else
+      incr fdb;
+    last_tick := !last_tick + d;
+    delay >= 0
+
+let timer_start () = last_tick := 0
 
 let screen () = !screen ()
 
@@ -210,6 +217,10 @@ module Sprite = struct
   let width x = x.width
 
   let height x = x.height
+
+  let align x a =
+    let hx, hy = hotxy x.width x.height a in
+    { x with hotx = hx; hoty = hy }
 end
 
 module Text = struct
@@ -280,20 +291,19 @@ module type ACTION = sig
   type t
 end
 
-module MakeReader(A: ACTION) = struct
-  module Key = struct
-    type t = Sdlkey.t
-    let compare = compare
-  end
-  module KeyMap = Map.Make(Key)
+module Key = struct
+  type t = Sdlkey.t
+  let compare = compare
+end
+module KeyMap = Map.Make(Key)
 
+module MakeReader(A: ACTION) = struct
   type one_more = Zero | One of int | More of int
 
   let continuous = ref KeyMap.empty
   let up = ref KeyMap.empty
   let down = ref KeyMap.empty
   let auto = ref KeyMap.empty
-
   let pressed_keys = ref KeyMap.empty
 
   let action mapref key acc =
@@ -345,4 +355,6 @@ module MakeReader(A: ACTION) = struct
   let key_up k a = up := KeyMap.add k a !up
   let key_down k a = down := KeyMap.add k a !down
   let key_auto ini rep k a = auto := KeyMap.add k (a, ini, rep) !auto
+
+  let reset () = pressed_keys := KeyMap.empty
 end

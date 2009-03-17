@@ -76,6 +76,16 @@ val frame_delay: int -> bool
       Return [true] is the delay was applied, [false] if the last frame was too
       long. *)
 
+val timer_start: unit -> unit
+  (** Start or restart the timer.
+
+      Should be called at the beginning of the first frame.
+      If you do not call [timer_start], [frame_delay] will not be precise
+      for the first frame. Worst, if you let your process run for a while
+      without calling [frame_delay] (for example if the process is paused)
+      then the next time you call [frame_delay], a huge jump in time will
+      happen. You do not want that. *)
+
 val quit: unit -> unit
   (** Close the window.
 
@@ -110,6 +120,11 @@ module Sprite: sig
 
   val height: t -> int
     (** Get the height of a sprite. *)
+
+  val align: t -> align -> t
+    (** Change the alignment of a sprite.
+
+        This is persistent and efficient. *)
 end
 
 (** Font loading, making and writing. *)
@@ -183,4 +198,10 @@ module MakeReader(A: ACTION): sig
         [ini] initial milliseconds, the action is repeated. Then the action
         will be repeated every [rep] milliseconds as long as [k] stays
         pressed. *)
+
+  val reset: unit -> unit
+    (** Reset all pressed keys.
+
+        Call this when you switch from a reader to another, from a screen
+        to another, and so on. *)
 end
