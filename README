@@ -30,7 +30,7 @@
 
 More information can be found on:
 
-        http://melt.forge.ocamlcore.org/
+        http://furypuyo.forge.ocamlcore.org/
 
 Pre-requisites
 ==============
@@ -45,7 +45,6 @@ To compile Fury Puyo, you also need:
 
 Debian or Ubuntu packages are:
 
-        libsdl1.2-dev
         ocaml
         libsdl-ocaml-dev
         ocaml-findlib
@@ -55,7 +54,14 @@ If you prefer, you can use Godi:
         http://godi.camlcity.org
 
 You  will need  to install  the SDL  library development  files before
-installing the OCamlSDL library from Godi.
+installing the OCamlSDL library from Godi. Corresponding packages are:
+
+        libsdl-image1.2-dev
+        libsdl-mixer1.2-dev
+        libsdl-ttf2.0-dev
+        libsdl1.2-dev (automatically added by the above packages)
+
+Of course you can try with other versions of OCaml or SDL.
 
 Compile
 =======
