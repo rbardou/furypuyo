@@ -58,7 +58,6 @@ let () =
   Draw.draw_empty ();
   Menu.string_choices [
     "SINGLE PLAYER", (fun () -> ());
-    "MULTIPLAYER", (fun () -> ());
     "QUIT", (fun () -> IO.quit (); exit 0);
   ] ();
   let game = Game.start () in
