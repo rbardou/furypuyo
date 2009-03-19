@@ -30,6 +30,8 @@
 
 (** Entry point *)
 
+open Misc
+
 let show_version () =
   print_endline Version.string;
   exit 0
@@ -66,9 +68,22 @@ let () =
   Reader.key_down Sdlkey.KEY_DOWN Action.MDown;
   Reader.key_up Sdlkey.KEY_DOWN Action.MDownRelease
 
+let config =
+  Config.load "furypuyo.cfg" "Fury Puyo configuration file"
+
+let player_name =
+  Config.string config "PLAYERNAME" "Player name"
+    (try Sys.getenv "USER" with Not_found ->
+       try Sys.getenv "LOGNAME" with Not_found ->
+         "Fury Puyo")
+
+let high_scores = ref (HighScores.load 10 "single_player.scores")
+
 let draw = ref true
 
-let quit = IO.quit
+let quit () =
+  Config.save config;
+  IO.quit ()
 
 let game_finished game =
   match game.Game.state with
@@ -80,12 +95,12 @@ let game_over game =
     | Game.GameOver _ -> true
     | _ -> false
 
-let rec loop game cpu =
+let rec loop game cpu: unit =
   let actions = Reader.read () in
   if not (game_over game) && List.mem Action.Quit actions then
     pause game cpu
   else if game_finished game then
-    game_over_menu ()
+    enter_score game.Game.score
   else
     let game = List.fold_left Game.act game actions in
     let game = Game.think game in
@@ -94,7 +109,7 @@ let rec loop game cpu =
     draw := IO.frame_delay 10;
     loop game cpu
 
-and pause game cpu =
+and pause game cpu: unit =
   Draw.draw_empty ();
   let choice =
     Menu.string_choices ~default: `Continue [
@@ -115,27 +130,31 @@ and pause game cpu =
     | `Quit ->
         quit ()
 
-and single_player_game () =
+and single_player_game (): unit =
   let game = Game.start () in
   let cpu = Cpu.start in
   IO.timer_start ();
   loop game cpu
 
-and main_menu () =
+and main_menu (): unit =
   Draw.draw_empty ();
   let choice =
     Menu.string_choices [
       "SINGLE PLAYER", `Single;
+      "HIGH SCORES", `HighScores;
       "QUIT", `Quit;
     ]
   in
   match choice with
     | `Single ->
         single_player_game ()
+    | `HighScores ->
+        show_high_scores ();
+        main_menu ()
     | `Quit ->
         quit ()
 
-and game_over_menu () =
+and game_over_menu (): unit =
   let choice =
     Menu.string_choices [
       "PLAY AGAIN", `Again;
@@ -150,6 +169,54 @@ and game_over_menu () =
         main_menu ()
     | `Quit ->
         quit ()
+
+and show_high_scores ?focus (): unit =
+  let top = HighScores.top ~plimit: 2 ~size: 10 !high_scores in
+  let top =
+    list_mapi
+      (fun i (name, score) -> Printf.sprintf "%2d%9d  %s" (i + 1) score name)
+      top
+  in
+  let all = HighScores.all_players !high_scores in
+  let all =
+    List.map
+      (fun (name, scores) ->
+         let scores =
+           list_mapi
+             (fun i score -> Printf.sprintf "%2d%9d" (i + 1) score)
+             scores
+         in
+         name, scores)
+      all
+  in
+  let before, after =
+    match focus with
+      | None -> [], all
+      | Some focus ->
+          try
+            let before, focus, after =
+              split_when (fun (name, _) -> name = focus) all in
+            focus :: after, before
+          with Not_found ->
+            [], all
+  in
+  let pages = before @ [ "TOP PLAYERS", top ] @ after in
+  Draw.draw_empty ();
+  Menu.show_high_scores pages
+
+and enter_score score: unit =
+  let background = IO.Sprite.screenshot () in
+  let name =
+    Menu.input_string
+      ~default: (Config.get player_name)
+      "ENTER YOUR NAME:"
+  in
+  let scores, changed = HighScores.add !high_scores name score in
+  high_scores := scores;
+  HighScores.save !high_scores;
+  if changed then show_high_scores ~focus: name ();
+  IO.Sprite.draw background 0 0;
+  game_over_menu ()
 
 let () =
   main_menu ()

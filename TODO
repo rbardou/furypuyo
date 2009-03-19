@@ -5,11 +5,11 @@ Features
 * clear screen GFX
 * puyo with different shapes
 * puyo connection images
-* best scores
 * print chain count during combos
 * rotation animation
 * multiplayer
 * replays
+* limit player name size in high scores (and allocate the string only once)
 
 Other
 =====

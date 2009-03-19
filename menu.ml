@@ -28,10 +28,11 @@
 (* OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.   *)
 (**************************************************************************)
 
+open Misc
 open Sprites
 
 module MenuAction = struct
-  type t = Up | Down | Return | Escape
+  type t = Up | Down | Return | Escape | Left | Right
 end
 module MenuReader = IO.MakeReader(MenuAction)
 
@@ -40,6 +41,8 @@ open MenuAction
 let () =
   MenuReader.key_auto 500 100 Sdlkey.KEY_UP Up;
   MenuReader.key_auto 500 100 Sdlkey.KEY_DOWN Down;
+  MenuReader.key_auto 500 100 Sdlkey.KEY_LEFT Left;
+  MenuReader.key_auto 500 100 Sdlkey.KEY_RIGHT Right;
   MenuReader.key_down Sdlkey.KEY_RETURN Return;
   MenuReader.key_down Sdlkey.KEY_ESCAPE Escape
 
@@ -87,10 +90,10 @@ let string_choices ?default choices =
 
       List.iter
         (function
-           | Up ->
+           | Up | Left ->
                decr choice;
                if !choice < 0 then choice := count - 1
-           | Down ->
+           | Down | Right ->
                incr choice;
                if !choice >= count then choice := 0
            | Return ->
@@ -165,7 +168,7 @@ let input_string ?(default = "") query =
   for i = 0 to String.length default - 1 do
     result := default.[i] :: !result;
   done;
-  let resultstr = ref default in
+  let resultstr = ref "" in
   let update_resultstr () =
     let len = List.length !result in
     let res = String.create len in
@@ -179,6 +182,7 @@ let input_string ?(default = "") query =
     fill len !result;
     resultstr := res
   in
+  update_resultstr ();
   let background = IO.Sprite.screenshot () in
   let query_x = screen_width / 2 in
   let query_y = screen_height / 2 - 50 in
@@ -187,6 +191,7 @@ let input_string ?(default = "") query =
   let input_align =
     IO.Custom (0.5, IO.Sprite.width sprite_puyo / 2, 0.5, 0) in
   let now = ref 0 in
+  InputStringReader.reset ();
   try
     while true do
       if IO.frame_delay 10 then begin
@@ -194,8 +199,9 @@ let input_string ?(default = "") query =
 
         IO.Text.write font ~align: IO.Center query_x query_y query;
 
-        let w, _ = IO.Text.size font !resultstr in
-        IO.Text.write font ~align: input_align input_x input_y !resultstr;
+        let w, _ = IO.Text.size font (String.uppercase !resultstr) in
+        IO.Text.write font ~align: input_align input_x input_y
+          (String.uppercase !resultstr);
 
         if !now / 50 mod 2 = 0 then
           IO.Sprite.draw sprite_puyo (input_x + w / 2) input_y;
@@ -206,7 +212,7 @@ let input_string ?(default = "") query =
       List.iter
         (function
            | Char c ->
-               result := Char.uppercase c :: !result;
+               result := c :: !result;
                update_resultstr ()
            | BackSpace ->
                begin match !result with
@@ -223,3 +229,57 @@ let input_string ?(default = "") query =
     assert false
   with Exit ->
     !resultstr
+
+open MenuAction
+
+let show_high_scores pages =
+  let pages = Array.of_list pages in
+  let count = Array.length pages in
+  let page = ref 0 in
+  let background = IO.Sprite.screenshot () in
+  let title_x = screen_width / 2 in
+  let title_y = 50 in
+  let scores_x = 20 in
+  let scores_y = 150 in
+  let scores_d = 35 in
+  let nothing_x = screen_width / 2 in
+  let nothing_y = screen_height / 2 in
+  MenuReader.reset ();
+  try
+    while true do
+      let title, lines = pages.(!page) in
+
+      if IO.frame_delay 10 then begin
+        IO.Sprite.draw background 0 0;
+
+        let title = String.uppercase title in
+        IO.Text.write font ~align: IO.Top title_x title_y title;
+
+        if lines = [] then
+          IO.Text.write font ~align: IO.Center nothing_x nothing_y
+            "NO SCORE YET"
+        else
+          list_iteri
+            (fun i line ->
+               let line = String.uppercase line in
+               IO.Text.write font scores_x (scores_y + scores_d * i) line)
+            lines;
+
+        IO.update ()
+      end;
+
+      List.iter
+        (function
+           | Up | Left ->
+               decr page;
+               if !page < 0 then page := count - 1
+           | Down | Right ->
+               incr page;
+               if !page >= count then page := 0
+           | Return | Escape ->
+               raise Exit)
+        (MenuReader.read ());
+    done;
+    assert false
+  with Exit ->
+    ()

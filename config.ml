@@ -67,6 +67,21 @@ let filename file =
   else
     file
 
+let open_in file =
+  open_in (filename file)
+
+let rec create_directory dir =
+  if not (Sys.file_exists dir) then
+    let parent = Filename.dirname dir in
+    create_directory parent;
+    Unix.mkdir dir 0o755
+
+let open_out file =
+  let file = filename file in
+  let dir = Filename.dirname file in
+  create_directory dir;
+  open_out (filename file)
+
 type var_contents = {
   mutable vc_already_exists: bool;
     (* only used by save *)
@@ -115,7 +130,8 @@ let load file desc =
       done
     with End_of_file ->
       ()
-    end
+    end;
+    close_in i
   end;
   {
     tf_name = file;

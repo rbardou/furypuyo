@@ -48,11 +48,13 @@ module type HIGHSCORES = sig
   val save: t -> unit
     (** Save high scores. *)
 
-  val add: t -> string -> score -> t
+  val add: t -> string -> score -> t * bool
     (** Add a new score.
 
         [add h player score]: add score [score] for player [player] in high
-        score record [h]. *)
+        scores record [h]. Return [h2, changed] where [h2] is the new high
+        scores table and [changed] is [true] if the table actually changed
+        (i.e. the score was a good one). *)
 
   val player: t -> string -> score list
     (** Get the high scores of a player.
@@ -61,8 +63,13 @@ module type HIGHSCORES = sig
         length is at most the size given to [load]. The list is sorted from
         the highest score to the lowest. *)
 
-  val all: ?plimit: int -> ?size: int -> t -> (string * score) list
+  val all_players: t -> (string * score list) list
     (** Get the high scores of all players.
+
+        Same as [player] but return the high scores of all players. *)
+
+  val top: ?plimit: int -> ?size: int -> t -> (string * score) list
+    (** Get the high scores of all players, merged together.
 
         The list is sorted from the highest score to the lowest.
 

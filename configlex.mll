@@ -48,7 +48,7 @@
 
 let blank = [' ' '\t' '\r']
 let id = ['a'-'z' 'A'-'Z' '0'-'9' '_' '-']*
-let value_char = [^' ' '\t' '\r' '\n' '#']
+let value_char = [^' ' '\t' '\r' '\n' '#' '"']
 let comment = '#' [^'\n']*
 
 rule line = parse

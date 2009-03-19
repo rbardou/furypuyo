@@ -28,14 +28,17 @@
 (* OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.   *)
 (**************************************************************************)
 
+open Misc
+
 module type HIGHSCORES = sig
   type score
   type t
   val load: int -> string -> t
   val save: t -> unit
-  val add: t -> string -> score -> t
+  val add: t -> string -> score -> t * bool
   val player: t -> string -> score list
-  val all: ?plimit: int -> ?size: int -> t -> (string * score) list
+  val all_players: t -> (string * score list) list
+  val top: ?plimit: int -> ?size: int -> t -> (string * score) list
 end
 
 module type SCORE = sig
@@ -44,15 +47,6 @@ module type SCORE = sig
 end
 
 module StringMap = Map.Make(String)
-
-let rec list_trunc acc l = function
-  | 0 -> List.rev acc
-  | n ->
-      match l with
-        | [] -> List.rev acc
-        | x :: rem ->
-            list_trunc (x :: acc) rem (n - 1)
-let list_trunc x = list_trunc [] x
 
 module Make(C: SCORE) = struct
   type score = C.t
@@ -64,9 +58,8 @@ module Make(C: SCORE) = struct
   }
 
   let load size file =
-    let cfile = Config.filename file in
-    if Sys.file_exists cfile then begin
-      let ch = open_in cfile in
+    if Sys.file_exists (Config.filename file) then begin
+      let ch = Config.open_in file in
       let res = (Marshal.from_channel ch: t) in
       close_in ch;
       res
@@ -77,8 +70,7 @@ module Make(C: SCORE) = struct
     }
 
   let save (h: t) =
-    let cfile = Config.filename h.file in
-    let ch = open_out cfile in
+    let ch = Config.open_out h.file in
     Marshal.to_channel ch h [];
     close_out ch
 
@@ -89,10 +81,14 @@ module Make(C: SCORE) = struct
       with Not_found ->
         []
     in
-    let scores = score :: scores in
-    let scores = List.sort (fun x y -> - C.compare x y) scores in
-    let scores = list_trunc scores h.size in
-    { h with players = StringMap.add name scores h.players }
+    if List.length scores >= h.size &&
+      C.compare (list_last scores) score > 0 then
+        h, false
+    else
+      let scores = score :: scores in
+      let scores = List.sort (fun x y -> - C.compare x y) scores in
+      let scores = list_trunc scores h.size in
+      { h with players = StringMap.add name scores h.players }, true
 
   let player h name =
     try
@@ -100,7 +96,13 @@ module Make(C: SCORE) = struct
     with Not_found ->
       []
 
-  let all ?plimit ?size h =
+  let all_players h =
+    StringMap.fold
+      (fun name scores acc -> (name, scores) :: acc)
+      h.players
+      []
+
+  let top ?plimit ?size h =
     let scores =
       StringMap.fold
         (fun name pscores scores ->

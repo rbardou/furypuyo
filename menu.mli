@@ -41,3 +41,9 @@ val input_string: ?default: string -> string -> string
       @param default default value
 
       The other parameter is the input query. *)
+
+val show_high_scores: (string * (string list)) list -> unit
+  (** Show high scores.
+
+      The argument is a list of high score pages, with a title and a list
+      of lines to be printed. The user can switch between pages. *)

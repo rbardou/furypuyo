@@ -53,6 +53,24 @@ Otherwise, it is left as is.
 Use this function to load files which sit in the configuration directory
 but that are not really text configuration files. Otherwise, use [load]. *)
 
+val open_in: string -> in_channel
+  (** Open a configuration file for reading.
+
+      [open_in file]: open [filename file] for reading.
+      Exception [Sys_error] is called if the file does not exist.
+
+      Remember to close the file with [close_in] when you're finished. *)
+
+val open_out: string -> out_channel
+  (** Open a configuration file for writing.
+
+      [open_in file]: open [filename file] for writing.
+      Create parent directories if necessary.
+      If the file does not exist, it is created. Else, it is truncated to
+      length [0].
+
+      Remember to close the file with [close_out] when you're finished. *)
+
 (** {2 Text Configuration Files} *)
 
 (** A text configuration file is a list of variables of the form
@@ -89,8 +107,7 @@ is to be created.
 If you give an implicit file name, such as ["toto/tata.cfg"], it will be
 looked for in the configuration directory given to [init].
 
-If the file does not exist, it is not created unless you write a new variable
-to it and [save] it. *)
+If the file does not exist, it is not created unless you [save] it. *)
 
 val save: text_file -> unit
   (** Save a configuration file.
