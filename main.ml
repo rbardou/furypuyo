@@ -47,10 +47,17 @@ let draw = ref true
 
 let quit = IO.quit
 
+let game_finished game =
+  match game.Game.state with
+    | Game.GameOver s -> s.Game.go_end <= game.Game.now
+    | _ -> false
+
 let rec loop game cpu =
   let actions = Reader.read () in
   if List.mem Action.Quit actions then
     pause game cpu
+  else if game_finished game then
+    game_over_menu ()
   else
     let game = List.fold_left Game.act game actions in
     let game = Game.think game in
@@ -77,6 +84,12 @@ and pause game cpu =
     | `Quit ->
         quit ()
 
+and single_player_game () =
+  let game = Game.start () in
+  let cpu = Cpu.start in
+  IO.timer_start ();
+  loop game cpu
+
 and main_menu () =
   Draw.draw_empty ();
   let choice =
@@ -87,10 +100,23 @@ and main_menu () =
   in
   match choice with
     | `Single ->
-        let game = Game.start () in
-        let cpu = Cpu.start in
-        IO.timer_start ();
-        loop game cpu
+        single_player_game ()
+    | `Quit ->
+        quit ()
+
+and game_over_menu () =
+  let choice =
+    Menu.string_choices [
+      "PLAY AGAIN", `Again;
+      "MAIN MENU", `MainMenu;
+      "QUIT", `Quit;
+    ]
+  in
+  match choice with
+    | `Again ->
+        single_player_game ()
+    | `MainMenu ->
+        main_menu ()
     | `Quit ->
         quit ()
 

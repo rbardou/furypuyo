@@ -1,11 +1,13 @@
 Features
 ========
 
-* pause
+* bottom foreground for game over
+* clear screen GFX
+* puyo with different shapes
+* puyo connection images
 * best scores
 * print chain count during combos
 * rotation animation
-* more, bigger puyo images
 * multiplayer
 * replays
 

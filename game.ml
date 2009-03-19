@@ -248,7 +248,7 @@ let start_game_over game =
   let go = {
     go_speed = 0;
     go_y = 0;
-    go_end = game.now + 200;
+    go_end = game.now + 100;
   } in
   { game with state = GameOver go }
 
