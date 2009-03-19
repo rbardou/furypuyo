@@ -129,6 +129,7 @@ and game_over_menu () =
         quit ()
 
 let () =
+  Sdlwm.set_caption ~title: "Fury Puyo" ~icon: "Fury Puyo";
   Config.init ~var: "FURYPUYOCONF" "~/.furypuyo";
   Reader.key_down Sdlkey.KEY_ESCAPE Action.Quit;
   Reader.key_auto 100 30 Sdlkey.KEY_LEFT Action.MLeft;
