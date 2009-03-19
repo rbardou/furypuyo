@@ -10,6 +10,7 @@ Features
 * multiplayer
 * replays
 * limit player name size in high scores (and allocate the string only once)
+* Ready Set Go at the beginning of the game
 
 Other
 =====

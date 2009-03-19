@@ -171,7 +171,7 @@ and game_over_menu (): unit =
         quit ()
 
 and show_high_scores ?focus (): unit =
-  let top = HighScores.top ~plimit: 2 ~size: 10 !high_scores in
+  let top = HighScores.top ~plimit: 1 ~size: 10 !high_scores in
   let top =
     list_mapi
       (fun i (name, score) -> Printf.sprintf "%2d%9d  %s" (i + 1) score name)
