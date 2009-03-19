@@ -43,6 +43,29 @@ let () = Arg.parse speclist anon_fun usage_msg
 
 module Reader = IO.MakeReader(Action)
 
+module Score = struct
+  type t = int
+  let compare = compare
+end
+
+module HighScores = Highscores.Make(Score)
+
+let () =
+  Sdlwm.set_caption ~title: "Fury Puyo" ~icon: "Fury Puyo";
+  Config.init ~var: "FURYPUYOCONF" "~/.furypuyo";
+  Reader.key_down Sdlkey.KEY_ESCAPE Action.Quit;
+  Reader.key_auto 100 30 Sdlkey.KEY_LEFT Action.MLeft;
+  Reader.key_auto 100 30 Sdlkey.KEY_RIGHT Action.MRight;
+  Reader.key_down Sdlkey.KEY_UP Action.RRight;
+  Reader.key_down Sdlkey.KEY_RCTRL Action.RLeft;
+  Reader.key_down Sdlkey.KEY_LCTRL Action.RLeft;
+  Reader.key_down Sdlkey.KEY_LALT Action.RRight;
+  Reader.key_down Sdlkey.KEY_KP0 Action.RRight;
+  Reader.key_down Sdlkey.KEY_SPACE Action.InstaFall;
+  Reader.key_down Sdlkey.KEY_d Action.Debug;
+  Reader.key_down Sdlkey.KEY_DOWN Action.MDown;
+  Reader.key_up Sdlkey.KEY_DOWN Action.MDownRelease
+
 let draw = ref true
 
 let quit = IO.quit
@@ -129,18 +152,4 @@ and game_over_menu () =
         quit ()
 
 let () =
-  Sdlwm.set_caption ~title: "Fury Puyo" ~icon: "Fury Puyo";
-  Config.init ~var: "FURYPUYOCONF" "~/.furypuyo";
-  Reader.key_down Sdlkey.KEY_ESCAPE Action.Quit;
-  Reader.key_auto 100 30 Sdlkey.KEY_LEFT Action.MLeft;
-  Reader.key_auto 100 30 Sdlkey.KEY_RIGHT Action.MRight;
-  Reader.key_down Sdlkey.KEY_UP Action.RRight;
-  Reader.key_down Sdlkey.KEY_RCTRL Action.RLeft;
-  Reader.key_down Sdlkey.KEY_LCTRL Action.RLeft;
-  Reader.key_down Sdlkey.KEY_LALT Action.RRight;
-  Reader.key_down Sdlkey.KEY_KP0 Action.RRight;
-  Reader.key_down Sdlkey.KEY_SPACE Action.InstaFall;
-  Reader.key_down Sdlkey.KEY_d Action.Debug;
-  Reader.key_down Sdlkey.KEY_DOWN Action.MDown;
-  Reader.key_up Sdlkey.KEY_DOWN Action.MDownRelease;
   main_menu ()
