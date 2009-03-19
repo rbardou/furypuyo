@@ -34,3 +34,10 @@ val string_choices: ?default: 'a -> (string * 'a) list -> 'a
   (** The user chooses from a vertical, centered list of strings.
 
       @param default value to return if the escape key is pressed *)
+
+val input_string: ?default: string -> string -> string
+  (** The user inputs a string.
+
+      @param default default value
+
+      The other parameter is the input query. *)
