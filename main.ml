@@ -52,9 +52,14 @@ let game_finished game =
     | Game.GameOver s -> s.Game.go_end <= game.Game.now
     | _ -> false
 
+let game_over game =
+  match game.Game.state with
+    | Game.GameOver _ -> true
+    | _ -> false
+
 let rec loop game cpu =
   let actions = Reader.read () in
-  if List.mem Action.Quit actions then
+  if not (game_over game) && List.mem Action.Quit actions then
     pause game cpu
   else if game_finished game then
     game_over_menu ()
