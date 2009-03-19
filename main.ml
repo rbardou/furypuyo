@@ -76,6 +76,7 @@ and pause game cpu =
   let choice =
     Menu.string_choices ~default: `Continue [
       "CONTINUE", `Continue;
+      "RESTART", `Restart;
       "MAIN MENU", `MainMenu;
       "QUIT", `Quit;
     ]
@@ -84,6 +85,8 @@ and pause game cpu =
     | `Continue ->
         IO.timer_start ();
         loop game cpu
+    | `Restart ->
+        single_player_game ()
     | `MainMenu ->
         main_menu ()
     | `Quit ->
