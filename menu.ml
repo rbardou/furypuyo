@@ -31,7 +31,7 @@
 open Sprites
 
 module MenuAction = struct
-  type t = Up | Down | Return
+  type t = Up | Down | Return | Escape
 end
 module MenuReader = IO.MakeReader(MenuAction)
 
@@ -40,11 +40,12 @@ open MenuAction
 let () =
   MenuReader.key_auto 500 100 Sdlkey.KEY_UP Up;
   MenuReader.key_auto 500 100 Sdlkey.KEY_DOWN Down;
-  MenuReader.key_down Sdlkey.KEY_RETURN Return
+  MenuReader.key_down Sdlkey.KEY_RETURN Return;
+  MenuReader.key_down Sdlkey.KEY_ESCAPE Escape
 
 let sprite_puyo = IO.Sprite.align sprite_puyo_red IO.Center
 
-let string_choices choices =
+let string_choices ?default choices =
   let choices = Array.of_list choices in
   MenuReader.reset ();
   let result = ref (fun () -> assert false) in
@@ -93,7 +94,11 @@ let string_choices choices =
                incr choice;
                if !choice >= count then choice := 0
            | Return ->
-               return (snd (choices.(!choice))))
+               return (snd (choices.(!choice)))
+           | Escape ->
+               match default with
+                 | None -> ()
+                 | Some d -> return d)
         (MenuReader.read ());
 
       puyo_y := !puyo_y +. (float_of_int (choice_y !choice) -. !puyo_y) /. 10.;

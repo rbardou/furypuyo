@@ -616,10 +616,6 @@ let think_game_over game gos =
   else
     game
 
-let quit () =
-  IO.quit ();
-  exit 0
-
 let move game is delta =
   let new_x = is.inc_x + delta in
   let real_y = unsmooth_y is.inc_y in
@@ -672,7 +668,6 @@ let debug game =
       gfx = gfx }
 
 let act_incoming game is = function
-  | Quit -> quit ()
   | MLeft -> move game is (-1)
   | MRight -> move game is 1
   | MDown ->
@@ -685,9 +680,6 @@ let act_incoming game is = function
   | RRight -> rotate Block.rotate_right game is
   | InstaFall -> insta_fall game is
   | Debug -> debug game
-
-let act_quit game = function
-  | Quit -> quit ()
   | _ -> game
 
 let act game input =
@@ -696,7 +688,7 @@ let act game input =
     | Inserting _
     | Falling _
     | Popping _
-    | GameOver _ -> act_quit game input
+    | GameOver _ -> game
     | Incoming is -> act_incoming game is input
 
 let think_fury game =

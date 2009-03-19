@@ -30,5 +30,7 @@
 
 (** In-game menus. *)
 
-val string_choices: (string * 'a) list -> 'a
-  (** The user chooses from a vertical, centered list of strings. *)
+val string_choices: ?default: 'a -> (string * 'a) list -> 'a
+  (** The user chooses from a vertical, centered list of strings.
+
+      @param default value to return if the escape key is pressed *)

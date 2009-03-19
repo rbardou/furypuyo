@@ -45,23 +45,57 @@ module Reader = IO.MakeReader(Action)
 
 let draw = ref true
 
+let quit = IO.quit
+
 let rec loop game cpu =
-  let game = List.fold_left Game.act game (Reader.read ()) in
-  let game = Game.think game in
-  let game, cpu = Cpu.think game cpu in
-  if !draw then Draw.draw game;
-  draw := IO.frame_delay 10;
-  loop game cpu
+  let actions = Reader.read () in
+  if List.mem Action.Quit actions then
+    pause game cpu
+  else
+    let game = List.fold_left Game.act game actions in
+    let game = Game.think game in
+    let game, cpu = Cpu.think game cpu in
+    if !draw then Draw.draw game;
+    draw := IO.frame_delay 10;
+    loop game cpu
+
+and pause game cpu =
+  Draw.draw_empty ();
+  let choice =
+    Menu.string_choices ~default: `Continue [
+      "CONTINUE", `Continue;
+      "MAIN MENU", `MainMenu;
+      "QUIT", `Quit;
+    ]
+  in
+  match choice with
+    | `Continue ->
+        IO.timer_start ();
+        loop game cpu
+    | `MainMenu ->
+        main_menu ()
+    | `Quit ->
+        quit ()
+
+and main_menu () =
+  Draw.draw_empty ();
+  let choice =
+    Menu.string_choices [
+      "SINGLE PLAYER", `Single;
+      "QUIT", `Quit;
+    ]
+  in
+  match choice with
+    | `Single ->
+        let game = Game.start () in
+        let cpu = Cpu.start in
+        IO.timer_start ();
+        loop game cpu
+    | `Quit ->
+        quit ()
 
 let () =
   Config.init ~var: "FURYPUYOCONF" "~/.furypuyo";
-  Draw.draw_empty ();
-  Menu.string_choices [
-    "SINGLE PLAYER", (fun () -> ());
-    "QUIT", (fun () -> IO.quit (); exit 0);
-  ] ();
-  let game = Game.start () in
-  let cpu = Cpu.start in
   Reader.key_down Sdlkey.KEY_ESCAPE Action.Quit;
   Reader.key_auto 100 30 Sdlkey.KEY_LEFT Action.MLeft;
   Reader.key_auto 100 30 Sdlkey.KEY_RIGHT Action.MRight;
@@ -74,5 +108,4 @@ let () =
   Reader.key_down Sdlkey.KEY_d Action.Debug;
   Reader.key_down Sdlkey.KEY_DOWN Action.MDown;
   Reader.key_up Sdlkey.KEY_DOWN Action.MDownRelease;
-  IO.timer_start ();
-  loop game cpu
+  main_menu ()

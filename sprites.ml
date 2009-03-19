@@ -28,6 +28,8 @@
 (* OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.   *)
 (**************************************************************************)
 
+(** Sprites of the game *)
+
 open IO
 
 let screen_width = 390
