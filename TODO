@@ -2,7 +2,6 @@ Features
 ========
 
 * bottom foreground for game over
-* clear screen GFX
 * puyo with different shapes
 * puyo connection images
 * print chain count during combos
@@ -11,6 +10,9 @@ Features
 * replays
 * limit player name size in high scores (and allocate the string only once)
 * Ready Set Go at the beginning of the game
+* less random generator
+* background image(s)
+* sound
 
 Other
 =====

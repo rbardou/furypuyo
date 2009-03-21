@@ -54,6 +54,8 @@ let green_star = Sprite.load ~transparency: `BLACK "data/greenstar.png"
 let yellow_star = Sprite.load ~transparency: `BLACK "data/yellowstar.png"
 let red_star = Sprite.load ~transparency: `BLACK "data/redstar.png"
 let purple_star = Sprite.load ~transparency: `BLACK "data/purplestar.png"
+let all_clear =
+  Sprite.load ~align: IO.Center ~transparency: `BLACK "data/allclear.png"
 
 let char_sprite font size width char =
   let sprite = try

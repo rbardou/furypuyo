@@ -3,7 +3,9 @@ ifeq ($(TERM), dumb)
 	OCAMLBUILD := $(OCAMLBUILD) -classic-display
 endif
 
-default all world: furypuyo doc
+default: furypuyo
+
+all world: furypuyo doc
 
 furypuyo:
 	$(OCAMLBUILD) main.native

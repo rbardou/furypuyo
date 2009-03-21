@@ -152,8 +152,7 @@ let draw_offsets n fury blit =
 
 let gfx = function
   | ClearScreen ->
-      Text.write font ~align: Center
-        (3*cellw) (field_y + 5*cellh) "Clear Screen!"
+      Sprite.draw all_clear (field_x + 3 * cellw) (field_y + 5 * cellh)
   | Particle p ->
       let x = field_puyo_x p.cx + cellw / 2 in
       let y = field_puyo_y p.cy + cellh / 2 in
