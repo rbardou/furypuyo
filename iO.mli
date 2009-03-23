@@ -86,10 +86,19 @@ val timer_start: unit -> unit
       then the next time you call [frame_delay], a huge jump in time will
       happen. You do not want that. *)
 
-val quit: unit -> unit
+val close: unit -> unit
   (** Close the window.
 
       Should always be called before you exit. *)
+
+val on_quit: (unit -> bool) -> unit
+  (** Call a function when the user tries to close the window.
+
+      By default, [close ()] and [exit 0] are called. You can use [on_exit]
+      to change this behavior. The function you give may never return
+      (if you want to exit yourself) or return a boolean. If this boolean is
+      [true], the default behavior (closing and exiting) is then executed.
+      Else, nothing happens. *)
 
 (** Image making and drawing. *)
 module Sprite: sig

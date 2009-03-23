@@ -31,7 +31,7 @@
 (** Player actions *)
 
 type t =
-  | Quit
+  | Escape (** escape key (pause menu) *)
   | MLeft
   | MRight
   | MDown

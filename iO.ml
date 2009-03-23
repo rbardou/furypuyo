@@ -49,6 +49,7 @@ let init w h =
        KEYDOWN_EVENT;
        KEYUP_EVENT;
        MOUSEBUTTONDOWN_EVENT;
+       QUIT_EVENT;
      ]);
   width := w;
   height := h;
@@ -86,11 +87,21 @@ let screen () = !screen ()
 let update () =
   flip (screen ())
 
-let quit () =
+let close () =
   if !fdc > 0 then
     Printf.printf "CPU usage: %d%% (%d/%d frame overflows)\n%!"
       (100 * (!fdp - !fdt) / !fdp) !fdb !fdc;
   Sdl.quit ()
+
+let on_quit = ref (fun () -> true)
+
+let execute_on_quit () =
+  if !on_quit () then begin
+    close ();
+    exit 0
+  end
+
+let on_quit f = on_quit := f
 
 type align =
   | Center
@@ -329,6 +340,7 @@ module MakeReader(A: ACTION) = struct
 
   let read () =
     let now = Sdltimer.get_ticks () in
+    let instant = ref [] in
     let rec read_events acc =
       match poll () with
         | None -> acc
@@ -340,6 +352,9 @@ module MakeReader(A: ACTION) = struct
               | KEYUP ke ->
                   pressed_keys := KeyMap.remove ke.keysym !pressed_keys;
                   action up ke.keysym acc
+              | QUIT ->
+                  execute_on_quit ();
+                  acc
               | _ -> acc
             end in
             read_events acc
@@ -349,7 +364,7 @@ module MakeReader(A: ACTION) = struct
       KeyMap.fold (fun k _ -> action continuous k) !pressed_keys actions in
     let actions =
       KeyMap.fold (action_auto now) !pressed_keys actions in
-    List.rev actions
+    List.rev actions @ !instant
 
   let key_continuous k a = continuous := KeyMap.add k a !continuous
   let key_up k a = up := KeyMap.add k a !up

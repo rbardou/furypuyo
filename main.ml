@@ -55,7 +55,7 @@ module HighScores = Highscores.Make(Score)
 let () =
   Sdlwm.set_caption ~title: "Fury Puyo" ~icon: "Fury Puyo";
   Config.init ~var: "FURYPUYOCONF" "~/.furypuyo";
-  Reader.key_down Sdlkey.KEY_ESCAPE Action.Quit;
+  Reader.key_down Sdlkey.KEY_ESCAPE Action.Escape;
   Reader.key_auto 100 30 Sdlkey.KEY_LEFT Action.MLeft;
   Reader.key_auto 100 30 Sdlkey.KEY_RIGHT Action.MRight;
   Reader.key_down Sdlkey.KEY_UP Action.RRight;
@@ -83,7 +83,7 @@ let draw = ref true
 
 let quit () =
   Config.save config;
-  IO.quit ()
+  IO.close ()
 
 let game_finished game =
   match game.Game.state with
@@ -97,7 +97,7 @@ let game_over game =
 
 let rec loop game cpu: unit =
   let actions = Reader.read () in
-  if not (game_over game) && List.mem Action.Quit actions then
+  if not (game_over game) && List.mem Action.Escape actions then
     pause game cpu
   else if game_finished game then
     enter_score game.Game.score
