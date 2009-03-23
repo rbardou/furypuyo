@@ -52,9 +52,16 @@ end
 
 module HighScores = Highscores.Make(Score)
 
+let config =
+  Config.init ~var: "FURYPUYOCONF" "~/.furypuyo";
+  Config.load "furypuyo.cfg" "Fury Puyo configuration file"
+
+let on_quit () =
+  Config.save config;
+  true
+
 let () =
   Sdlwm.set_caption ~title: "Fury Puyo" ~icon: "Fury Puyo";
-  Config.init ~var: "FURYPUYOCONF" "~/.furypuyo";
   Reader.key_down Sdlkey.KEY_ESCAPE Action.Escape;
   Reader.key_auto 100 30 Sdlkey.KEY_LEFT Action.MLeft;
   Reader.key_auto 100 30 Sdlkey.KEY_RIGHT Action.MRight;
@@ -66,10 +73,8 @@ let () =
   Reader.key_down Sdlkey.KEY_SPACE Action.InstaFall;
   Reader.key_down Sdlkey.KEY_d Action.Debug;
   Reader.key_down Sdlkey.KEY_DOWN Action.MDown;
-  Reader.key_up Sdlkey.KEY_DOWN Action.MDownRelease
-
-let config =
-  Config.load "furypuyo.cfg" "Fury Puyo configuration file"
+  Reader.key_up Sdlkey.KEY_DOWN Action.MDownRelease;
+  IO.on_quit on_quit
 
 let player_name =
   Config.string config "PLAYERNAME" "Player name"
@@ -82,7 +87,7 @@ let high_scores = ref (HighScores.load 10 "single_player.scores")
 let draw = ref true
 
 let quit () =
-  Config.save config;
+  ignore (on_quit ());
   IO.close ()
 
 let game_finished game =

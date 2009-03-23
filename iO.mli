@@ -98,7 +98,10 @@ val on_quit: (unit -> bool) -> unit
       to change this behavior. The function you give may never return
       (if you want to exit yourself) or return a boolean. If this boolean is
       [true], the default behavior (closing and exiting) is then executed.
-      Else, nothing happens. *)
+      Else, nothing happens.
+
+      Note that this only works if you have at least one reader made with
+      [MakeReader] and that you call its [read] function regularly. *)
 
 (** Image making and drawing. *)
 module Sprite: sig
