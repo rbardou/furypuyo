@@ -78,9 +78,12 @@ let () =
 
 let player_name =
   Config.string config "PLAYERNAME" "Player name"
-    (try Sys.getenv "USER" with Not_found ->
-       try Sys.getenv "LOGNAME" with Not_found ->
-         "Fury Puyo")
+    (try Unix.getlogin () with Unix.Unix_error _ ->
+       try (Unix.getpwuid (Unix.getuid ())).Unix.pw_name
+       with Unix.Unix_error _ ->
+         try Sys.getenv "USER" with Not_found ->
+           try Sys.getenv "LOGNAME" with Not_found ->
+             "Fury Puyo")
 
 let high_scores = ref (HighScores.load 10 "single_player.scores")
 
