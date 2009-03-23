@@ -216,6 +216,7 @@ and enter_score score: unit =
       ~default: (Config.get player_name)
       "ENTER YOUR NAME:"
   in
+  Config.set player_name name;
   let scores, changed = HighScores.add !high_scores name score in
   high_scores := scores;
   HighScores.save !high_scores;
