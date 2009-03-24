@@ -29,8 +29,19 @@ module type NET = sig
   val connections: server -> connection list
 end
 
-(* Ordered Reception Buffers *)
-module ORB = struct
+module RBuf: sig
+  type 'a t
+  val make: int -> 'a t
+  val arrival:
+    important: bool ->
+    order: (int * int) option -> (* order, num *)
+    id: int ->
+    buffer: 'a t ->
+    message: 'a ->
+    acknowledge: (int -> unit) -> (* only important are acknowledged *)
+    unit
+  val take: ?max: int -> 'a t -> 'a list
+end = struct
   type 'a info = {
     important: bool;
     order: int;
@@ -44,12 +55,15 @@ module ORB = struct
       (* next expected non important ordered messages *)
     mutable waiting: 'a info list;
       (* important ordered messages which are younger than expected *)
+    ready: 'a Queue.t;
+      (* in the order it should be processed *)
   }
 
   let make order_count = {
     count = order_count;
     orders = Array.make order_count 0;
     waiting = [];
+    ready = Queue.create ();
   }
 
   let one_arrival buf info =
@@ -82,7 +96,7 @@ module ORB = struct
       | [] -> acc
       | news -> waiting_arrival (acc @ news) buf
 
-  let arrival buf important order num message =
+  let ordered_arrival buf important order num message =
     let info = {
       important = important;
       order = order;
@@ -96,6 +110,69 @@ module ORB = struct
           List.sort
             (fun a b -> if a.order = b.order then a.num - b.num else 0)
             (info :: waiting_arrival [] buf)
+
+  let arrival ~important ~order ~id ~buffer ~message ~acknowledge =
+    (* TODO: check that id was not already received *)
+    if important then acknowledge id;
+    match order with
+      | Some (order, num) ->
+          let new_ready = ordered_arrival buffer important order num message in
+          let new_ready = List.map (fun i -> i.message) new_ready in
+          List.iter (fun m -> Queue.add m buffer.ready) new_ready
+      | None ->
+          Queue.add message buffer.ready
+
+  let rec take_aux acc buf max =
+    if max <= 0 then
+      List.rev acc
+    else try
+      take_aux (Queue.take buf.ready :: acc) buf (max - 1)
+    with Queue.Empty ->
+      List.rev acc
+
+  let take ?(max = max_int) buf =
+    take_aux [] buf max
+end
+
+module SBuf: sig
+  type 'a t
+  val send:
+    important: bool ->
+    order: int option ->
+    message: 'a ->
+    buffer: 'a t ->
+    int * int (* id, order num (if any) *)
+  val acknowledge: 'a t -> int -> unit
+  val make: int -> 'a t
+end = struct
+  type 'a t = {
+    count: int;
+    orders: int array;
+    mutable next: int;
+  }
+
+  let make count = {
+    count = count;
+    orders = Array.make count 0;
+    next = 0;
+  }
+
+  let acknowledge buf id =
+    () (* TODO *)
+
+  let send ~important ~order ~message ~buffer =
+    let id = buffer.next in
+    buffer.next <- buffer.next + 1;
+    let num = match order with
+      | None -> 0
+      | Some order ->
+          if order >= 0 && order < buffer.count then begin
+            let num = buffer.orders.(order) in
+            buffer.orders.(order) <- num + 1;
+            num
+          end else 0
+    in
+    id, num
 end
 
 module Make(P: PROTOCOL): NET with type message = P.message = struct
@@ -105,6 +182,7 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
     | Hello
     | Accept
     | Message of int * int * message (* id, order channel (if any), message *)
+    | Acknowledge of int
     | Bye
 
   type server = {
@@ -118,7 +196,8 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
     sc_server: server;
     mutable sc_active: bool;
     sc_remote_addr: sockaddr;
-    sc_reception_buffer: message ORB.t;
+    sc_send_buffer: message SBuf.t;
+    sc_reception_buffer: message RBuf.t;
   }
 
   let add_server_connection set connection =
@@ -135,7 +214,8 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
     mutable cc_active: bool;
     cc_socket: file_descr;
     cc_remote_addr: sockaddr;
-    cc_reception_buffer: message ORB.t;
+    cc_send_buffer: message SBuf.t;
+    cc_reception_buffer: message RBuf.t;
   }
 
   type connection =
@@ -175,19 +255,6 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
       | Unix_error ((EAGAIN | EWOULDBLOCK), _, _) ->
           None
 
-  let arrival id num message buf acknowledge =
-    match P.important message, P.order message with
-      | false, None ->
-          [ message ]
-      | true, None ->
-          acknowledge id;
-          [ message ]
-      | false, Some order ->
-          ORB.arrival buf false order num message
-      | true, Some order ->
-          acknowledge id;
-          ORB.arrival buf true order num message
-
   let handle_server_msg server addr = function
     | Hello ->
         Queue.add addr server.s_hellos
@@ -201,8 +268,24 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
           ()
         end
     | Message (id, num, message) ->
-        (* TODO: check that we did not receive id yet *)
-        
+        begin try
+          let connection = find_server_connection server.s_connections addr in
+          let order =
+            match P.ordered message with
+              | None -> None
+              | Some order -> Some (order, num)
+          in
+          let acknowledge id = send_msg server.s_socket addr (Acknowledge id) in
+          RBuf.arrival
+            ~important: (P.important message)
+            ~order
+            ~id
+            ~buffer: connection.sc_reception_buffer
+            ~message
+            ~acknowledge
+        with Not_found ->
+          ()
+        end
     | _ ->
         ()
 
@@ -248,7 +331,8 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
       sc_server = server;
       sc_active = true;
       sc_remote_addr = addr;
-      sc_reception_buffer = ORB.make P.order_count;
+      sc_send_buffer = SBuf.make P.order_count;
+      sc_reception_buffer = RBuf.make P.order_count;
     } in
     server.s_connections <-
       add_server_connection server.s_connections connection;
@@ -278,7 +362,8 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
       cc_active = true;
       cc_socket = sock;
       cc_remote_addr = addr;
-      cc_reception_buffer = ORB.make P.order_count;
+      cc_send_buffer = SBuf.make P.order_count;
+      cc_reception_buffer = RBuf.make P.order_count;
     } in
     Client connection
 
@@ -321,15 +406,34 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
       | Client c -> c.cc_ready
       | Server c -> true
 
+  let sbuf = function
+    | Client c -> c.cc_send_buffer
+    | Server c -> c.sc_send_buffer
+
+  let send_msg_c c msg =
+    match c with
+      | Client c -> send_msg c.cc_socket c.cc_remote_addr msg
+      | Server c -> send_msg c.sc_server.s_socket c.sc_remote_addr msg
+
   let send connection message =
     if not (active connection) then raise Connection_is_closed;
     update_connection connection;
-    assert false
+    let id, num = SBuf.send
+      ~important: (P.important message)
+      ~order: (P.ordered message)
+      ~message
+      ~buffer: (sbuf connection)
+    in
+    send_msg_c connection (Message (id, num, message))
+
+  let rbuf = function
+    | Client c -> c.cc_reception_buffer
+    | Server c -> c.sc_reception_buffer
 
   let receive ?max connection =
     if not (active connection) then raise Connection_is_closed;
     update_connection connection;
-    assert false
+    RBuf.take ?max (rbuf connection)
 
   let get_address = function
     | ADDR_UNIX _ ->
