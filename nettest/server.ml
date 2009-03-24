@@ -1,8 +1,5 @@
 open Common
 
-let message msg =
-  echo "Received: %s" (string_of_msg msg)
-
 let main () =
   echo "Starting server on port 4269...";
   let serv = Net.listen 4269 in
@@ -13,7 +10,9 @@ let main () =
     List.iter
       (fun con ->
          echo "New client: %s, port %d"
-           (Net.remote_address con) (Net.remote_port con))
+           (Net.remote_address con) (Net.remote_port con);
+         send con (String "Hello, new client!");
+         send con Unit)
       new_cons;
     cons := !cons @ new_cons;
     let keep, remove = List.partition Net.active !cons in

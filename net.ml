@@ -286,6 +286,13 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
         with Not_found ->
           ()
         end
+    | Acknowledge id ->
+        begin try
+          let connection = find_server_connection server.s_connections addr in
+          SBuf.acknowledge connection.sc_send_buffer id
+        with Not_found ->
+          ()
+        end
     | _ ->
         ()
 
@@ -294,6 +301,23 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
         client.cc_ready <- true
     | Bye ->
         client.cc_active <- false
+    | Message (id, num, message) ->
+        let order =
+          match P.ordered message with
+            | None -> None
+            | Some order -> Some (order, num)
+        in
+        let acknowledge id =
+          send_msg client.cc_socket client.cc_remote_addr (Acknowledge id) in
+        RBuf.arrival
+          ~important: (P.important message)
+          ~order
+          ~id
+          ~buffer: client.cc_reception_buffer
+          ~message
+          ~acknowledge
+    | Acknowledge id ->
+        SBuf.acknowledge client.cc_send_buffer id
     | _ ->
         ()
 

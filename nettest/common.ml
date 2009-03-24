@@ -23,3 +23,6 @@ let send con msg =
   echo "Sending %s to %s, port %d"
     (string_of_msg msg) (Net.remote_address con) (Net.remote_port con);
   Net.send con msg
+
+let message msg =
+  echo "Received: %s" (string_of_msg msg)
