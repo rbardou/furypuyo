@@ -2,7 +2,6 @@ open Unix
 
 exception Network_error of string * string
 exception Server_is_stopped
-exception Connection_is_closed
 
 module type PROTOCOL = sig
   type message
@@ -440,24 +439,26 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
       | Server c -> send_msg c.sc_server.s_socket c.sc_remote_addr msg
 
   let send connection message =
-    if not (active connection) then raise Connection_is_closed;
-    update_connection connection;
-    let id, num = SBuf.send
-      ~important: (P.important message)
-      ~order: (P.ordered message)
-      ~message
-      ~buffer: (sbuf connection)
-    in
-    send_msg_c connection (Message (id, num, message))
+    if active connection then begin
+      update_connection connection;
+      let id, num = SBuf.send
+        ~important: (P.important message)
+        ~order: (P.ordered message)
+        ~message
+        ~buffer: (sbuf connection)
+      in
+      send_msg_c connection (Message (id, num, message))
+    end
 
   let rbuf = function
     | Client c -> c.cc_reception_buffer
     | Server c -> c.sc_reception_buffer
 
   let receive ?max connection =
-    if not (active connection) then raise Connection_is_closed;
-    update_connection connection;
-    RBuf.take ?max (rbuf connection)
+    if active connection then begin
+      update_connection connection;
+      RBuf.take ?max (rbuf connection)
+    end else []
 
   let get_address = function
     | ADDR_UNIX _ ->

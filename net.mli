@@ -9,9 +9,6 @@ exception Network_error of string * string
 exception Server_is_stopped
   (** Server has been stopped. *)
 
-exception Connection_is_closed
-  (** Connection has been closed by one of the peers. *)
-
 (** Network protocol description *)
 module type PROTOCOL = sig
   type message
@@ -88,7 +85,7 @@ module type NET = sig
   val send: connection -> message -> unit
     (** Send a message.
 
-        May raise [Connection_is_closed]. *)
+        If connection is closed, do nothing. *)
 
   val receive: ?max: int -> connection -> message list
     (** Receive a message.
