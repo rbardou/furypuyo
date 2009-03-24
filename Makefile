@@ -25,4 +25,9 @@ distclean dist-clean: clean
 dist: furypuyo
 	darcs dist -d furypuyo-`./furypuyo -version`
 
-.PHONY: furypuyo doc clean distclean dist-clean dist all world
+nettest:
+	$(OCAMLBUILD) -I nettest client.native server.native
+	ln -f -s ../_build/nettest/client.native nettest/client
+	ln -f -s ../_build/nettest/server.native nettest/server
+
+.PHONY: furypuyo doc clean distclean dist-clean dist all world nettest
