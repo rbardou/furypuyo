@@ -257,7 +257,7 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
   let handle_server_msg server addr = function
     | Hello ->
         begin try
-          let connection = find_server_connection server.s_connections addr in
+          let _ = find_server_connection server.s_connections addr in
           send_msg server.s_socket addr Accept
         with Not_found ->
           Queue.add addr server.s_hellos

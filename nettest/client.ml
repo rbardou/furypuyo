@@ -1,8 +1,12 @@
+open Arg
+let servaddr = ref "127.0.0.1"
+let () = parse [] (fun x -> servaddr := x) "Usage: client [host]"
+
 open Common
 
 let main () =
-  echo "Connecting to 127.0.0.1, port 4269...";
-  let con = Net.connect "127.0.0.1" 4269 in
+  echo "Connecting to %s, port 4269..." !servaddr;
+  let con = Net.connect !servaddr 4269 in
   echo "Waiting for server acknowledgement...";
   while not (Net.ready con) do
     ()
