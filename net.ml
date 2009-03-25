@@ -14,7 +14,7 @@ module type NET = sig
   type message
   type server
   type connection
-  val listen: int -> server
+  val listen: ?addr: string list -> int -> server
   val accept: ?max: int -> server -> connection list
   val connect: string -> int -> connection
   val send: connection -> message -> unit
@@ -186,13 +186,14 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
 
   type server = {
     mutable s_active: bool;
-    s_socket: file_descr;
-    s_hellos: sockaddr Queue.t;
+    s_sockets: file_descr list;
+    s_hellos: (file_descr * sockaddr) Queue.t;
     mutable s_connections: server_connection list;
   }
 
   and server_connection = {
     sc_server: server;
+    sc_socket: file_descr;
     mutable sc_active: bool;
     sc_remote_addr: sockaddr;
     sc_send_buffer: message SBuf.t;
@@ -221,14 +222,21 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
     | Client of client_connection
     | Server of server_connection
 
-  let listen port =
-    let addr = ADDR_INET (inet_addr_of_string "127.0.0.1", port) in
+  let server_bind addr port =
+    let addr = ADDR_INET (addr, port) in
     let sock = socket (domain_of_sockaddr addr) SOCK_DGRAM 0 in
     set_nonblock sock;
     bind sock addr;
+    sock
+
+  let listen ?(addr = []) port =
+    let sockets = match addr with
+      | [] -> [ server_bind Unix.inet_addr_any port ]
+      | _ -> List.map (fun a -> server_bind (inet_addr_of_string a) port) addr
+    in
     {
       s_active = true;
-      s_socket = sock;
+      s_sockets = sockets;
       s_hellos = Queue.create ();
       s_connections = [];
     }
@@ -243,6 +251,17 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
       sendto socket buf 0 len [] remote_addr in
     assert (sent = len)
 
+  let send_msg_sc c msg =
+    send_msg c.sc_socket c.sc_remote_addr msg
+
+  let send_msg_cc c msg =
+    send_msg c.cc_socket c.cc_remote_addr msg
+
+  let send_msg_c c msg =
+    match c with
+      | Client c -> send_msg_cc c msg
+      | Server c -> send_msg_sc c msg
+
   let receive_msg socket =
     let len = maximum_packet_size in
     let buf = String.create len in
@@ -254,13 +273,13 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
       | Unix_error ((EAGAIN | EWOULDBLOCK), _, _) ->
           None
 
-  let handle_server_msg server addr = function
+  let handle_server_msg server socket addr = function
     | Hello ->
         begin try
-          let _ = find_server_connection server.s_connections addr in
-          send_msg server.s_socket addr Accept
+          let connection = find_server_connection server.s_connections addr in
+          send_msg_sc connection Accept
         with Not_found ->
-          Queue.add addr server.s_hellos
+          Queue.add (socket, addr) server.s_hellos
         end
     | Bye ->
         begin try
@@ -279,7 +298,7 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
               | None -> None
               | Some order -> Some (order, num)
           in
-          let acknowledge id = send_msg server.s_socket addr (Acknowledge id) in
+          let acknowledge id = send_msg_sc connection (Acknowledge id) in
           RBuf.arrival
             ~important: (P.important message)
             ~order
@@ -325,17 +344,20 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
     | _ ->
         ()
 
-  let update_server server =
+  let update_server_on_socket server socket =
     try
       while true do
-        match receive_msg server.s_socket with
+        match receive_msg socket with
           | Some (msg, addr) ->
-              handle_server_msg server addr msg
+              handle_server_msg server socket addr msg
           | None ->
               raise Exit
       done
     with Exit ->
       ()
+
+  let update_server server =
+    List.iter (update_server_on_socket server) server.s_sockets
 
   let update_client client =
     try
@@ -353,10 +375,11 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
     | Client c -> update_client c
     | Server c -> update_server c.sc_server
 
-  let accept server addr =
-    send_msg server.s_socket addr Accept;
+  let accept server socket addr =
+    send_msg socket addr Accept;
     let connection = {
       sc_server = server;
+      sc_socket = socket;
       sc_active = true;
       sc_remote_addr = addr;
       sc_send_buffer = SBuf.make P.order_count;
@@ -370,8 +393,8 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
     if max <= 0 || Queue.is_empty server.s_hellos then
       List.rev acc
     else
-      let addr = Queue.take server.s_hellos in
-      let sc = accept server addr in
+      let socket, addr = Queue.take server.s_hellos in
+      let sc = accept server socket addr in
       accept_aux (Server sc :: acc) (max - 1) server
 
   let accept ?(max = max_int) server =
@@ -397,11 +420,11 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
 
   let stop server =
     if server.s_active then begin
-      close server.s_socket;
+      List.iter close server.s_sockets;
       server.s_active <- false;
       List.iter
         (fun sc ->
-           send_msg server.s_socket sc.sc_remote_addr Bye;
+           send_msg_sc sc Bye;
            sc.sc_active <- false)
         server.s_connections;
       server.s_connections <- [];
@@ -416,7 +439,7 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
         end
     | Server c ->
         if c.sc_active then begin
-          send_msg c.sc_server.s_socket c.sc_remote_addr Bye;
+          send_msg_sc c Bye;
           c.sc_active <- false;
           c.sc_server.s_connections <-
             remove_server_connection c.sc_server.s_connections c
@@ -437,11 +460,6 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
   let sbuf = function
     | Client c -> c.cc_send_buffer
     | Server c -> c.sc_send_buffer
-
-  let send_msg_c c msg =
-    match c with
-      | Client c -> send_msg c.cc_socket c.cc_remote_addr msg
-      | Server c -> send_msg c.sc_server.s_socket c.sc_remote_addr msg
 
   let send connection message =
     if active connection then begin

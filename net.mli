@@ -57,8 +57,16 @@ module type NET = sig
   type connection
     (** The type of network connections. *)
 
-  val listen: int -> server
-    (** Establish a server on a given port. *)
+  val listen: ?addr: string list -> int -> server
+    (** Establish a server on a given port.
+
+        @param addr list of local addresses to listen. In practice, this limits
+        the interfaces clients may connect from. For example, if you only give
+        localhost (["127.0.0.1"]), only programs from the same computer will
+        be able to connect to the server. If you add the internet IP address
+        of the computer, all clients from the internet will be able to connect
+        to the server. If the list is empty (default value), the server listens
+        to all addresses at the same time. *)
 
   val accept: ?max: int -> server -> connection list
     (** Accept a connexion.
