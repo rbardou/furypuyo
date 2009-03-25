@@ -38,6 +38,8 @@ let screen_height = 600
 let () = IO.init screen_width screen_height
 
 let load_alpha = Sprite.load ~transparency: `ALPHA
+let load_black = Sprite.load ~transparency: `BLACK
+
 let sprite_puyo_red = load_alpha "data/red40.png"
 let sprite_puyo_green = load_alpha "data/green40.png"
 let sprite_puyo_blue = load_alpha "data/blue40.png"
@@ -50,12 +52,11 @@ let garbage6 = Sprite.load "data/garbage6.png"
 let garbage30 = Sprite.load "data/garbage30.png"
 let offset = Sprite.load "data/offset.png"
 let offset_fury = Sprite.load "data/offsetfury.png"
-let green_star = Sprite.load ~transparency: `BLACK "data/greenstar.png"
-let yellow_star = Sprite.load ~transparency: `BLACK "data/yellowstar.png"
-let red_star = Sprite.load ~transparency: `BLACK "data/redstar.png"
-let purple_star = Sprite.load ~transparency: `BLACK "data/purplestar.png"
-let all_clear =
-  Sprite.load ~align: IO.Center ~transparency: `BLACK "data/allclear.png"
+let green_star = load_black "data/greenstar.png"
+let yellow_star = load_black "data/yellowstar.png"
+let red_star = load_black "data/redstar.png"
+let purple_star = load_black "data/purplestar.png"
+let all_clear = load_black ~align: IO.Center "data/allclear.png"
 
 let char_sprite font size width char =
   let sprite = try
@@ -103,7 +104,7 @@ let char_sprite font size width char =
     in
     let file = Printf.sprintf "%s_%d_%s.png" font size char in
     if Sys.file_exists file then
-      Some (Sprite.load ~transparency: `ALPHA file)
+      Some (load_alpha file)
     else
       None
   with Not_found ->
@@ -116,3 +117,11 @@ let char_sprite font size width char =
   sprite, addw
 
 let font = Text.make (char_sprite "data/font" 25 19)
+
+let chain =
+  let load_chain i =
+    load_alpha ~align: IO.Center (Printf.sprintf "data/chain%d.png" i) in
+  let chain2 = load_chain 2 in
+  function
+    | 2 -> chain2
+    | _ -> chain2

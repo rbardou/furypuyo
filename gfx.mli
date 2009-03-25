@@ -51,6 +51,7 @@ type particle = {
 type t =
   | ClearScreen (** Player cleared screen. *)
   | Particle of particle (** Particle effect. *)
+  | Chain of int * float * float (** Chain count (count, cell x, cell y). *)
   (** Graphic effect kinds. *)
 
 type set

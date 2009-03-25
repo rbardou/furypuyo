@@ -49,6 +49,7 @@ type particle = {
 type t =
   | ClearScreen
   | Particle of particle
+  | Chain of int * float * float
 
 (* O(1) concatainable lists *)
 type 'a clist =

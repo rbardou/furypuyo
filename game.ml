@@ -67,6 +67,7 @@ type popping_state = {
   pop_puyos: (int * int) list;
   pop_score_base: int;
   pop_score_mult: int;
+  pop_chain: int;
 }
 
 type gameover_state = {
@@ -397,6 +398,7 @@ let start_popping game puyos groups =
     pop_puyos = puyos;
     pop_score_base = score_base;
     pop_score_mult = score_mult;
+    pop_chain = game.chain;
   } in
   { game with
       state = Popping ps;
@@ -562,6 +564,21 @@ let gfx_pop game gfx puyos score =
   in
   gfx
 
+let gfx_chain game gfx count puyos =
+  if count > 1 then begin
+    let x, y =
+      List.fold_left
+        (fun (ax, ay) (x, y) -> ax + x, ay + y)
+        (0, 0)
+        puyos
+    in
+    let len = float_of_int (List.length puyos) in
+    let x = float_of_int x /. len in
+    let y = float_of_int y /. len in
+    Gfx.add gfx (Gfx.Chain (count, x, y)) (game.now + 80)
+  end else
+    gfx
+
 let think_popping game ps =
   if game.now >= ps.pop_end then
     let offsets =
@@ -584,6 +601,7 @@ let think_popping game ps =
       else game.gfx
     in
     let gfx = gfx_pop game gfx ps.pop_puyos add_score in
+    let gfx = gfx_chain game gfx ps.pop_chain ps.pop_puyos in
     let garbage = ceil_div add_score 120 in
     let garbage, garbage_ready =
       if game.garbage_ready >= garbage then 0, game.garbage_ready - garbage
