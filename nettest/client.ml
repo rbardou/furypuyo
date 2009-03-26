@@ -17,8 +17,11 @@ let main () =
   send con (Int 42);
   send con (Bool true);
   send con (String "Hello, world!");
-  echo "Receiving...";
-  List.iter message (Net.receive con);
+  echo "Receiving for 1s...";
+  let now = Unix.gettimeofday () in
+  while Unix.gettimeofday () < now +. 1. do
+    List.iter message (Net.receive con)
+  done;
   echo "Closing...";
   Net.close con;
   echo "Closed."

@@ -2,8 +2,8 @@ open Unix
 
 type time = float
 let now = gettimeofday
-let initial_resend_delay = 0.1
-let resend_delay_rate = 1.1
+let initial_resend_delay = 0.01
+let resend_delay_rate = 2.
 
 exception Network_error of string * string
 exception Server_is_stopped
@@ -156,11 +156,18 @@ module SBuf: sig
   val make: int -> t
   val update: t -> unit (* resend old non-acknowledged packets *)
 end = struct
+  type message_info = {
+    send: unit -> unit;
+    mutable last: time;
+    mutable delay: time;
+  }
+
   type t = {
     count: int;
     orders: int array;
     mutable next: int;
-    buffer: (int, (unit -> unit)) Hashtbl.t; (* id -> send *)
+    buffer: (int, message_info) Hashtbl.t; (* id -> message info *)
+    mutable global_delay: time;
   }
 
   let make count = {
@@ -168,6 +175,7 @@ end = struct
     orders = Array.make count 0;
     next = 0;
     buffer = Hashtbl.create 17;
+    global_delay = initial_resend_delay;
   }
 
   let acknowledge buf id =
@@ -186,11 +194,26 @@ end = struct
           end else 0
     in
     let send () = send id num in
-    Hashtbl.add buffer.buffer id send;
+    if important then begin
+      let info = {
+        send = send;
+        last = now ();
+        delay = buffer.global_delay;
+      } in
+      Hashtbl.add buffer.buffer id info;
+    end;
     send ()
 
   let update buf =
-    () (* TODO *)
+    let now = now () in
+    Hashtbl.iter
+      (fun id mi ->
+         if now >= mi.last +. mi.delay then begin
+           mi.send ();
+           mi.last <- now;
+           mi.delay <- mi.delay *. resend_delay_rate;
+         end)
+      buf.buffer
 end
 
 module Make(P: PROTOCOL): NET with type message = P.message = struct

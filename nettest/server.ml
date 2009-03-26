@@ -23,6 +23,11 @@ let main () =
            (Net.remote_address con) (Net.remote_port con))
       remove;
     List.iter (fun con -> List.iter message (Net.receive con)) !cons;
+
+    let now = Unix.gettimeofday () in
+    while Unix.gettimeofday () < now +. 0.2 do
+      ()
+    done;
   done;
   Net.stop serv
 

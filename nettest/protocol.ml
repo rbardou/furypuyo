@@ -9,7 +9,7 @@ let ordered = function
   | Unit | String _ -> None
 
 let important = function
-  | Unit | Int _ -> true
-  | String _ | Bool _ -> false
+  | String _ | Bool _ -> true
+  | Unit | Int _ -> false
 
 let order_count = 1
