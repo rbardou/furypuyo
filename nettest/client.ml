@@ -1,3 +1,4 @@
+open Net
 open Arg
 let servaddr = ref "127.0.0.1"
 let () = parse [] (fun x -> servaddr := x) "Usage: client [host]"
@@ -23,4 +24,7 @@ let main () =
   echo "Closed."
 
 let () =
-  Unix.handle_unix_error main ()
+  try
+    Unix.handle_unix_error main ()
+  with Network_error (_, e) ->
+    echo "Network error: %s" e

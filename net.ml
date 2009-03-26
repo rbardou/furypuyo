@@ -272,6 +272,8 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
     with
       | Unix_error ((EAGAIN | EWOULDBLOCK), _, _) ->
           None
+      | Unix_error (ECONNREFUSED, _, _) ->
+          raise (Network_error ("Net.receive_msg", "Connection refused"))
 
   let handle_server_msg server socket addr = function
     | Hello ->
@@ -416,6 +418,7 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
       cc_send_buffer = SBuf.make P.order_count;
       cc_reception_buffer = RBuf.make P.order_count;
     } in
+    update_client connection;
     Client connection
 
   let stop server =
