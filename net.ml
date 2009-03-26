@@ -1,5 +1,10 @@
 open Unix
 
+type time = float
+let now = gettimeofday
+let initial_resend_delay = 0.1
+let resend_delay_rate = 1.1
+
 exception Network_error of string * string
 exception Server_is_stopped
 
@@ -216,6 +221,8 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
     List.find (fun c -> c.sc_remote_addr = addr) set
 
   type client_connection = {
+    mutable cc_hello_last: time;
+    mutable cc_hello_delay: time;
     mutable cc_ready: bool;
     mutable cc_active: bool;
     cc_socket: file_descr;
@@ -287,7 +294,13 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
           let connection = find_server_connection server.s_connections addr in
           send_msg_sc connection Accept
         with Not_found ->
-          Queue.add (socket, addr) server.s_hellos
+          try
+            Queue.iter
+              (fun (_, a) -> if a = addr then raise Exit)
+              server.s_hellos;
+            Queue.add (socket, addr) server.s_hellos
+          with Exit ->
+            ()
         end
     | Bye ->
         begin try
@@ -367,6 +380,18 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
   let update_server server =
     List.iter (update_server_on_socket server) server.s_sockets
 
+  let resend_client client =
+    let now = now () in
+    let shall_resend_hello =
+      not client.cc_ready
+      && now >= client.cc_hello_last +. client.cc_hello_delay
+    in
+    if shall_resend_hello then begin
+      client.cc_hello_last <- now;
+      client.cc_hello_delay <- client.cc_hello_delay *. resend_delay_rate;
+      send_msg_cc client Hello;
+    end
+
   let update_client client =
     try
       while true do
@@ -377,7 +402,7 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
               raise Exit
       done
     with Exit ->
-      ()
+      resend_client client
 
   let update_connection = function
     | Client c -> update_client c
@@ -417,6 +442,8 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
     connect sock addr;
     send_msg sock addr Hello;
     let connection = {
+      cc_hello_last = now ();
+      cc_hello_delay = initial_resend_delay;
       cc_ready = false;
       cc_active = true;
       cc_socket = sock;
