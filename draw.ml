@@ -168,11 +168,14 @@ let gfx = function
       p.vx <- p.vx +. p.ax;
       p.vy <- p.vy +. p.ay
   | Chain (c, x, y) ->
+      let s = chain c in
       let x =
         field_puyo_x 0 + int_of_float ((x +. 0.5) *. float_of_int cellw) in
       let y =
         field_puyo_y 0 + int_of_float ((y +. 0.5) *. float_of_int cellh) in
-      Sprite.draw (chain c) x y
+      let x = max x (field_x + Sprite.width s / 2) in
+      let x = min x (field_x + 6 * cellw - Sprite.width s / 2) in
+      Sprite.draw s x y
 
 let draw_timer now =
   let s = now / 100 in

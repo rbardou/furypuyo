@@ -122,6 +122,20 @@ let chain =
   let load_chain i =
     load_alpha ~align: IO.Center (Printf.sprintf "data/chain%d.png" i) in
   let chain2 = load_chain 2 in
+  let chain3 = load_chain 3 in
+  let chain4 = load_chain 4 in
+  let chain5 = load_chain 5 in
+  let chain6 = load_chain 6 in
+  let chain7 = load_chain 7 in
+  let chain8 = load_chain 8 in
+  let chain9 = load_chain 9 in
   function
     | 2 -> chain2
-    | _ -> chain2
+    | 3 -> chain3
+    | 4 -> chain4
+    | 5 -> chain5
+    | 6 -> chain6
+    | 7 -> chain7
+    | 8 -> chain8
+    | 9 -> chain9
+    | _ -> purple_star
