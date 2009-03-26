@@ -145,32 +145,35 @@ end = struct
 end
 
 module SBuf: sig
-  type 'a t
+  type t
   val send:
     important: bool ->
     order: int option ->
-    message: 'a ->
-    buffer: 'a t ->
-    int * int (* id, order num (if any) *)
-  val acknowledge: 'a t -> int -> unit
-  val make: int -> 'a t
+    buffer: t ->
+    send: (int -> int -> unit) -> (* id, order num (if any) *)
+    unit
+  val acknowledge: t -> int -> unit
+  val make: int -> t
+  val update: t -> unit (* resend old non-acknowledged packets *)
 end = struct
-  type 'a t = {
+  type t = {
     count: int;
     orders: int array;
     mutable next: int;
+    buffer: (int, (unit -> unit)) Hashtbl.t; (* id -> send *)
   }
 
   let make count = {
     count = count;
     orders = Array.make count 0;
     next = 0;
+    buffer = Hashtbl.create 17;
   }
 
   let acknowledge buf id =
-    () (* TODO *)
+    Hashtbl.remove buf.buffer id
 
-  let send ~important ~order ~message ~buffer =
+  let send ~important ~order ~buffer ~send =
     let id = buffer.next in
     buffer.next <- buffer.next + 1;
     let num = match order with
@@ -182,7 +185,12 @@ end = struct
             num
           end else 0
     in
-    id, num
+    let send () = send id num in
+    Hashtbl.add buffer.buffer id send;
+    send ()
+
+  let update buf =
+    () (* TODO *)
 end
 
 module Make(P: PROTOCOL): NET with type message = P.message = struct
@@ -207,7 +215,7 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
     sc_socket: file_descr;
     mutable sc_active: bool;
     sc_remote_addr: sockaddr;
-    sc_send_buffer: message SBuf.t;
+    sc_send_buffer: SBuf.t;
     sc_reception_buffer: message RBuf.t;
   }
 
@@ -227,7 +235,7 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
     mutable cc_active: bool;
     cc_socket: file_descr;
     cc_remote_addr: sockaddr;
-    cc_send_buffer: message SBuf.t;
+    cc_send_buffer: SBuf.t;
     cc_reception_buffer: message RBuf.t;
   }
 
@@ -378,7 +386,8 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
       ()
 
   let update_server server =
-    List.iter (update_server_on_socket server) server.s_sockets
+    List.iter (update_server_on_socket server) server.s_sockets;
+    List.iter (fun sc -> SBuf.update sc.sc_send_buffer) server.s_connections
 
   let resend_client client =
     let now = now () in
@@ -390,7 +399,8 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
       client.cc_hello_last <- now;
       client.cc_hello_delay <- client.cc_hello_delay *. resend_delay_rate;
       send_msg_cc client Hello;
-    end
+    end;
+    SBuf.update client.cc_send_buffer
 
   let update_client client =
     try
@@ -500,13 +510,12 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
   let send connection message =
     if active connection then begin
       update_connection connection;
-      let id, num = SBuf.send
+      let send id num = send_msg_c connection (Message (id, num, message)) in
+      SBuf.send
         ~important: (P.important message)
         ~order: (P.ordered message)
-        ~message
         ~buffer: (sbuf connection)
-      in
-      send_msg_c connection (Message (id, num, message))
+        ~send
     end
 
   let rbuf = function
