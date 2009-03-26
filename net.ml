@@ -28,6 +28,12 @@ module type NET = sig
   val connections: server -> connection list
 end
 
+let address_of_string s =
+  try
+    (Unix.gethostbyname s).h_addr_list.(0)
+  with Not_found ->
+    raise (Network_error ("address_of_string", "Host not found: "^s))
+
 module RBuf: sig
   type 'a t
   val make: int -> 'a t
@@ -232,7 +238,7 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
   let listen ?(addr = []) port =
     let sockets = match addr with
       | [] -> [ server_bind Unix.inet_addr_any port ]
-      | _ -> List.map (fun a -> server_bind (inet_addr_of_string a) port) addr
+      | _ -> List.map (fun a -> server_bind (address_of_string a) port) addr
     in
     {
       s_active = true;
@@ -405,7 +411,7 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
     accept_aux [] max server
 
   let connect address port =
-    let addr = ADDR_INET (inet_addr_of_string address, port) in
+    let addr = ADDR_INET (address_of_string address, port) in
     let sock = socket (domain_of_sockaddr addr) SOCK_DGRAM 0 in
     set_nonblock sock;
     connect sock addr;

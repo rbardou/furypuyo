@@ -60,6 +60,9 @@ module type NET = sig
   val listen: ?addr: string list -> int -> server
     (** Establish a server on a given port.
 
+        Addresses can be IPv4 (ex: ["127.0.0.1"]) or DNS addresses
+        (ex: ["localhost"]).
+
         @param addr list of local addresses to listen. In practice, this limits
         the interfaces clients may connect from. For example, if you only give
         localhost (["127.0.0.1"]), only programs from the same computer will
@@ -85,6 +88,9 @@ module type NET = sig
 
         [connect address port]: connect to the server at [address], which
         may be an IP address or a DNS address, at the given [port].
+
+        Addresses can be IPv4 (ex: ["127.0.0.1"]) or DNS addresses
+        (ex: ["localhost"]).
 
         This is non-blocking. If you send data to an unconnected connection,
         it will be buffered and send when the connection is ready. You have
