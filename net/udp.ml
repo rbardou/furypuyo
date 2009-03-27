@@ -61,3 +61,15 @@ let rec receive acc sock =
     | Some x -> receive (x :: acc) sock
 
 let receive x = receive [] x
+
+let string_of_addr = function
+  | ADDR_UNIX _ ->
+      assert false
+  | ADDR_INET (addr, _) ->
+      string_of_inet_addr addr
+
+let port_of_addr = function
+  | ADDR_UNIX _ ->
+      assert false
+  | ADDR_INET (_, port) ->
+      port

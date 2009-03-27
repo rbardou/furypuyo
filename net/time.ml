@@ -1,6 +1,6 @@
-type date = float
+type t = float
 
-type delay = float
+type d = float
 
 let now () = Unix.gettimeofday ()
 

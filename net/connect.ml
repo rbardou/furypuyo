@@ -248,3 +248,11 @@ let receive_filter f c =
   let ok, ko = List.partition f (get_buf c) in
   set_buf c ko;
   List.rev ok
+
+let remote_address = function
+  | Client c -> Udp.string_of_addr c.cc_remote_addr
+  | Server c -> Udp.string_of_addr c.sc_remote_addr
+
+let remote_port = function
+  | Client c -> Udp.port_of_addr c.cc_remote_addr
+  | Server c -> Udp.port_of_addr c.sc_remote_addr

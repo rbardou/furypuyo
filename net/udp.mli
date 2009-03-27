@@ -42,3 +42,9 @@ val close: 'a socket -> unit
   (** Close an UDP socket.
 
       The socket is no longer usable after this. *)
+
+val string_of_addr: addr -> string
+  (** Get the string part of an address. *)
+
+val port_of_addr: addr -> int
+  (** Get the port of an address. *)

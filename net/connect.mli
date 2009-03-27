@@ -55,3 +55,9 @@ val receive_filter: ('a -> bool) -> 'a connection -> 'a list
       [receive p c]: same as [receive c] but only receive data matching
       predicate [p]. Other messages are not discarded, they can still
       be received. *)
+
+val remote_address: 'a connection -> string
+  (** Get the remote address of a connection. *)
+
+val remote_port: 'a connection -> int
+  (** Get the remote port of a connection. *)

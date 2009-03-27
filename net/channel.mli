@@ -16,3 +16,6 @@ val send: 'a channel -> 'a -> unit
 
 val receive: 'a channel -> 'a list
   (** Receive data over a channel. *)
+
+val receive_all: 'a m connection -> ('a channel * 'a) list
+  (** Receive data of all channels. *)
