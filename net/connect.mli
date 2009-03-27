@@ -49,9 +49,9 @@ val send: 'a connection -> 'a -> unit
 val receive: 'a connection -> 'a list
   (** Receive data over a connection. *)
 
-val receive_filter: 'a connection -> ('a -> bool) -> 'a list
+val receive_filter: ('a -> bool) -> 'a connection -> 'a list
   (** Receive data matching a predicate.
 
-      [receive c p]: same as [receive c] but only receive data matching
+      [receive p c]: same as [receive c] but only receive data matching
       predicate [p]. Other messages are not discarded, they can still
       be received. *)

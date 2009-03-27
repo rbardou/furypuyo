@@ -1,4 +1,4 @@
-(** Channels over client /server connections *)
+(** Channels over client / server connections *)
 
 open Connect
 

@@ -1,6 +1,10 @@
 (** UDP sockets *)
 
-(** Nothing is blocking. *)
+(** Abstraction of UNIX UDP sockets. Data are automatically marshaled.
+    Addresses may be IP or DNS addresses. *)
+
+exception Network_error of string * string
+  (** Parameters are function name and error explaination. *)
 
 type 'a socket
   (** The type of UDP sockets. *)
