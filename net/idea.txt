@@ -1,0 +1,86 @@
+Layer 1: UDP
+============
+
+Socket creation.
+Sending and receiving packets.
+Packets are marshalled OCaml values.
+
+Layer 2: Connection
+===================
+
+Establish a connection.
+Send and receive packets when connection is established.
+
+Send HELLO to ask for a connection.
+Repeat HELLO if needed.
+Bufferize HELLO packets.
+Accept connection by sending ACCEPT.
+Close a connection by sending BYE.
+
+Layer 3: Channels
+=================
+
+Send and receive packets on a channel.
+Each channel can transmit a particular OCaml type.
+
+Layer 4: Framing, Avoiding Duplicates, Flux Control, Acknowledgement
+====================================================================
+
+Callback for message acknowledgement.
+Message IDs.
+Framing.
+
+Each message has an ID, incremented by exactly 1 for each message.
+Acknowledge all received messages with ACKNOWLEDGE of ID.
+
+Sending frame:
+  Size NS and position PS.
+  Do not send messages that are too young (ID >= PS + NS), put them in a buffer.
+  Shift operation to change P, typically used by the acknowledgement callblack.
+  Shift sending frame after ACKNOWLEDGED if ID = PS, to next unacknowledged.
+
+Reception frame:
+  Size NR and position PR.
+  Ignore messages which are too old (ID < PR).
+  Shift frame when receiving a message.
+  Remember all received message IDs in the frame (PR <= ID < PR + NR).
+  Ignore a message if its ID has been remembered.
+  When receiving a young message (ID >= PR + NR) shift frame (PR = ID - NR + 1).
+
+Layer 5A: Resending
+===================
+
+Can be used for important, unordered messages.
+
+Remember all sent messages in a buffer.
+Regularly resend unacknowledged messages.
+Delete acknowledged messages from the buffer.
+
+Layer 5B: Ordering
+==================
+
+Can be used for important, ordered messages.
+
+Next ID to be received is stored in NEXT.
+Remember all received but undelivered messages.
+Only deliver a message if its ID is NEXT, then increment NEXT by 1.
+
+Improvement:
+  Only remember SIZE messages.
+  With framing, the sender says that old messages do not matter. So, if
+    SIZE is the size of the frame, all important messages are received.
+
+Layer 5A: Forgetful Ordering
+============================
+
+Can be used for unimportant, ordered messages.
+
+Remember the ID of the last received message in LAST.
+Ignore a message if it is too old (ID < LAST).
+When receiving acknowledgement of ID, shift PS to ID.
+
+Layer 7: Abstraction
+====================
+
+Abstract everything: only a single message type.
+Functions describing if a message is important and its order channel number.
