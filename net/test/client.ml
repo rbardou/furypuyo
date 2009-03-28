@@ -18,6 +18,8 @@ let main () =
   send con (Int 42);
   send con (Bool true);
   send con (String "Hello, world!");
+  send con (Int 69);
+  send con (Int 666);
   echo "Receiving for 1s...";
   let now = Unix.gettimeofday () in
   while Unix.gettimeofday () < now +. 1. do

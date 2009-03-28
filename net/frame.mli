@@ -3,7 +3,7 @@
 (** Allows to send and receive important messages, or unimportant ones if you
     call the [shift] function. Messages are not necessarily received in the
     same order they were sent, but they are identified by a unique incrementing
-    integer. *)
+    integer. Messages are not resent. *)
 
 open Channel
 
@@ -18,9 +18,9 @@ val start: ?size: int -> 'a m channel -> 'a frame
 
       @param size the maximum number of messages in the frame. Bigger sizes
       mean we have to keep more information to avoid duplicates but will reduce
-      latency. *)
+      latency. Default is 100. *)
 
-val send: ?ack: (unit -> unit) -> 'a frame -> 'a -> unit
+val send: ?ack: (unit -> unit) -> ?id: int -> 'a frame -> 'a -> int
   (** Send data over a framed channel.
 
       Return the identifier of the message.
@@ -28,28 +28,14 @@ val send: ?ack: (unit -> unit) -> 'a frame -> 'a -> unit
       next have identifier [2], and so on.
 
       @param ack function to call if an acknowledgement is received for the
-      message. *)
+      message.
+      @param id if present, force the identifier of the message. Useful to
+      resend a packet. *)
 
-val send_id: ?ack: (unit -> unit) -> 'a frame -> 'a -> int
-  (** Send data and get packet identifier.
+val receive: 'a frame -> (int * 'a) list
+  (** Receive data over a framed channel.
 
-      Same as [send] but return the identifier of the message.
-      First message have identifier [0], next message have identifier [1],
-      next have identifier [2], and so on. *)
-
-val send_as: 'a frame -> 'a -> int -> unit
-  (** Send data using a forced identifier.
-
-      Useful to resend a packet. *)
-
-val receive: 'a frame -> 'a list
-  (** Receive data over a framed channel. *)
-
-val receive_id: 'a frame -> (int * 'a) list
-  (** Receive data and packet identifiers.
-
-      Same as [receive] but return message identifiers along with their
-      contents. *)
+      Also return the identifier of messages. *)
 
 val shift: 'a frame -> int -> unit
   (** Shift sending frame.
@@ -65,6 +51,3 @@ val position: 'a frame -> int
 
       [position frame]: return the current position of the sending frame.
       All messages before this position are assumed received or unimportant. *)
-
-val channel_of_frame: 'a frame -> 'a channel
-  (** Get the channel of a framed channel. *)

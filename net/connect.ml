@@ -240,11 +240,13 @@ let set_buf c v =
     | Server sc -> sc.sc_buffer <- v
 
 let receive c =
+  update_connection c;
   let r = get_buf c in
   set_buf c [];
   List.rev r
 
 let receive_filter f c =
+  update_connection c;
   let ok, ko = List.partition f (get_buf c) in
   set_buf c ko;
   List.rev ok

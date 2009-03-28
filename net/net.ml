@@ -35,33 +35,54 @@ end
 module Make(P: PROTOCOL): NET with type message = P.message = struct
   type message = P.message
 
-  type connection = message Channel.m Connect.connection
+  type connection = {
+    connection: message Frame.m Channel.m Connect.connection;
+    frames: (int * message Frame.frame) list;
+  }
 
-  type server = message Channel.m Connect.server
+  type server = message Frame.m Channel.m Connect.server
 
   let listen ?addr port = Connect.listen ?addr port
 
-  let accept ?max serv = Connect.accept ?max serv
+  let make_connection cx =
+    let frames =
+      List.map
+        (fun (ch, kind) ->
+           let frame = Frame.start (Channel.channel cx ch) in
+           ch, frame)
+        P.channels
+    in
+    {
+      connection = cx;
+      frames = frames;
+    }
 
-  let connect addr port = Connect.connect addr port
+  let accept ?max (serv: server) =
+    List.map make_connection (Connect.accept ?max serv)
 
-  let close cx = Connect.close cx
+  let connect addr port = make_connection (Connect.connect addr port)
+
+  let close cx = Connect.close cx.connection
 
   let stop serv = Connect.stop serv
 
-  let ready cx = Connect.ready cx
+  let ready cx = Connect.ready cx.connection
 
-  let active cx = Connect.active cx
+  let active cx = Connect.active cx.connection
 
-  let channel cx msg = Channel.channel cx (P.channel msg)
+  let remote_address cx = Connect.remote_address cx.connection
 
-  let send cx msg = Channel.send (channel cx msg) msg
+  let remote_port cx = Connect.remote_port cx.connection
 
-  let receive cx = List.map snd (Channel.receive_all cx)
+  let frame cx msg = List.assoc (P.channel msg) cx.frames
 
-  let remote_address cx = Connect.remote_address cx
+  let send cx msg = ignore (Frame.send (frame cx msg) msg)
 
-  let remote_port cx = Connect.remote_port cx
+  let receive cx =
+    List.map
+      snd
+      (List.flatten
+         (List.map (fun (_, frame) -> Frame.receive frame) cx.frames))
 end
 
 module SimpleDef(P: SIMPLEPROTOCOL): PROTOCOL with type message = P.message =
