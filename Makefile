@@ -13,7 +13,9 @@ furypuyo:
 
 doc:
 	$(OCAMLBUILD) furypuyo.docdir/index.html
+	$(OCAMLBUILD) -I net net/network.docdir/index.html
 	ln -f -s _build/furypuyo.docdir doc
+	ln -f -s _build/net/network.docdir docnet
 
 clean:
 	rm -rf _build
