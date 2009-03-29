@@ -1,5 +1,4 @@
 open Ocamlbuild_plugin
-open Command
 
 (* these functions are not really officially exported *)
 let run_and_read = Ocamlbuild_pack.My_unix.run_and_read
