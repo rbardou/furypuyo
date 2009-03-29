@@ -4,8 +4,6 @@ type message =
   | Int of int
   | Bool of bool
 
-type channel = int
-
 let channels = [
   0, Net.Fast;
   1, Net.FastOrdered;
