@@ -35,9 +35,15 @@ end
 module Make(P: PROTOCOL): NET with type message = P.message = struct
   type message = P.message
 
+  type frame =
+    | FFast of message Frame.frame
+    | FFastOrdered of message Frame.frame
+    | FImportant of message Frame.frame * message Resend.sender
+    | FOrdered of message Frame.frame * message Resend.sender
+
   type connection = {
     connection: message Frame.m Channel.m Connect.connection;
-    frames: (int * message Frame.frame) list;
+    frames: (int * frame) list;
   }
 
   type server = message Frame.m Channel.m Connect.server
@@ -49,6 +55,19 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
       List.map
         (fun (ch, kind) ->
            let frame = Frame.start (Channel.channel cx ch) in
+           let frame =
+             match kind with
+               | Fast ->
+                   FFast frame
+               | FastOrdered ->
+                   FFastOrdered frame
+               | Important ->
+                   let sender = Resend.start frame in
+                   FImportant (frame, sender)
+               | Ordered ->
+                   let sender = Resend.start frame in
+                   FOrdered (frame, sender)
+           in
            ch, frame)
         P.channels
     in
@@ -76,13 +95,40 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
 
   let frame cx msg = List.assoc (P.channel msg) cx.frames
 
-  let send cx msg = ignore (Frame.send (frame cx msg) msg)
+  let update_frame = function
+    | FFast _
+    | FFastOrdered _ ->
+        ()
+    | FImportant (_, sender)
+    | FOrdered (_, sender) ->
+        Resend.update sender
+
+  let update cx =
+    List.iter (fun (_, frame) -> update_frame frame) cx.frames
+
+  let send cx msg =
+    update cx;
+    match frame cx msg with
+      | FFast frame
+      | FFastOrdered frame ->
+          Frame.send frame msg
+      | FImportant (_, sender)
+      | FOrdered (_, sender) ->
+          Resend.send sender msg
+
+  let receive_on = function
+    | FFast frame
+    | FFastOrdered frame
+    | FImportant (frame, _)
+    | FOrdered (frame, _) ->
+        Frame.receive frame
 
   let receive cx =
+    update cx;
     List.map
       snd
       (List.flatten
-         (List.map (fun (_, frame) -> Frame.receive frame) cx.frames))
+         (List.map (fun (_, frame) -> receive_on frame) cx.frames))
 end
 
 module SimpleDef(P: SIMPLEPROTOCOL): PROTOCOL with type message = P.message =

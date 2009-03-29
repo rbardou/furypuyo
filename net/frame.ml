@@ -142,22 +142,20 @@ let update frame =
   List.iter (handle_message frame) (Channel.receive frame.channel);
   update_send_buffer frame
 
-let send ?(ack = fun () -> ()) ?id frame msg =
-  let id =
-    match id with
-      | None ->
-          let id = frame.next in
-          frame.next <- frame.next + 1;
-          id
-      | Some id ->
-          id
-  in
+let send ?(ack = fun () -> ()) frame msg =
+  let id = frame.next in
+  frame.next <- frame.next + 1;
   frame.send_buffer <- (id, msg, ack) :: frame.send_buffer;
-  update frame;
-  id
+  update frame
+
+let resend frame id msg =
+  Channel.send frame.channel (Message (id, msg))
 
 let receive frame =
   update frame;
   let list = frame.recv_buffer in
   frame.recv_buffer <- [];
   List.sort (fun (a, _) (b, _) -> compare a b) list
+
+let next frame =
+  frame.next
