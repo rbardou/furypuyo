@@ -57,3 +57,8 @@ val position: 'a frame -> int
 
 val next: 'a frame -> int
   (** Return the identifier of the next message that will be sent. *)
+
+val size: 'a frame -> int
+  (** Return the size of the frame.
+
+      This is the [size] parameter given to [start]. *)

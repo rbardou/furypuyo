@@ -8,18 +8,18 @@ type 'a orderer
 val start: ?size: int -> 'a frame -> 'a orderer
   (** Make a reordering reception buffer from a frame.
 
-      @param size the maximum number of buffered messages. If the last delivered
-      message has identifier [id], the buffer may only contain messages with
-      identifiers [id + 1], ..., [id + size]. For instance, with a size of [1],
-      if [id] has not been received,
-      [id + 1] is waiting, and [id + 3] is received, [id] will never be ignored
-      and [id + 1] will be delivered. Now we wait for [id + 2]. With a size
-      of [0], messages are instantly delivered, missing messages being ignored.
-      If [size] is bigger than the size of the frame, it is adjusted to this
-      size. Default size is infinite, i.e. the size of the frame, to ensure
-      that all packets are received if a resending protocol is used.
-      Bigger sizes not only require bigger buffers,
-      they also increase latency. *)
+      The ordered ensures that if [id] is delivered, a message before [id] can
+      no longer be delivered. Thus, messages are delivered in the order they
+      are sent.
+
+      Before [id] is delivered, we wait so that [id - 1], ..., [id - size] are
+      delivered.
+
+      If [size] is [0], messages are instantly delivered, and previous
+      messages are lost. A [size] greater or equal to the size of the
+      frame minus one (default value) suffice to ensure that all packets are
+      received if the sending frame is never shifted by remote peer unless
+      messages are acknowledged (default behavior). *)
 
 val receive: 'a orderer -> 'a list
   (** Receive data in the same order it has been sent. *)
