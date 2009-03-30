@@ -43,8 +43,8 @@ val receive: 'a frame -> (int * 'a) list
 val shift: 'a frame -> int -> unit
   (** Shift sending frame.
 
-      [shift f id]: assume that all messages before [id] have been received
-      by peer, even if they have not been acknowledged.
+      [shift f id]: assume that all messages (stricly) before [id] have been
+      received by peer, even if they have not been acknowledged.
 
       You may typically call this function in the acknowledgement callback
       if some messages you sent were not important. *)

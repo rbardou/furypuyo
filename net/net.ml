@@ -111,7 +111,8 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
     match frame cx msg with
       | FFast frame
       | FFastOrdered frame ->
-          Frame.send frame msg
+          Frame.send frame msg;
+          Frame.shift frame (Frame.next frame)
       | FImportant (_, sender)
       | FOrdered (_, sender) ->
           Resend.send sender msg
