@@ -81,6 +81,7 @@ end
 module type SCORE = sig
   type t
   val compare: t -> t -> int
+  val bin: t Bin.t
 end
 
 module Make(C: SCORE): HIGHSCORES with type score = C.t

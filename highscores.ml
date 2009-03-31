@@ -44,6 +44,7 @@ end
 module type SCORE = sig
   type t
   val compare: t -> t -> int
+  val bin: t Bin.t
 end
 
 module StringMap = Map.Make(String)
@@ -56,6 +57,24 @@ module Make(C: SCORE) = struct
     file: string;
     players: (score list) StringMap.t;
   }
+
+  type file_contents =
+    | F1 of (string * score list) list
+
+  let codec1 =
+    Bin.list (Bin.couple Bin.string (Bin.list C.bin))
+
+  let encode1 h =
+    StringMap.fold
+      (fun player scores acc -> (player, scores) :: acc)
+      h []
+
+  let decode1 list =
+    List.fold_left
+      (fun acc (player, scores) -> StringMap.add player scores acc)
+      StringMap.empty list
+
+  let codec1 = Bin.convert encode1 decode1 codec1
 
   let load size file =
     if Sys.file_exists (Config.filename file) then begin

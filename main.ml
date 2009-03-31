@@ -48,6 +48,7 @@ module Reader = IO.MakeReader(Action)
 module Score = struct
   type t = int
   let compare = compare
+  let bin = Bin.int
 end
 
 module HighScores = Highscores.Make(Score)
