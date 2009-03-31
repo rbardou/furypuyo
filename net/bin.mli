@@ -1,6 +1,12 @@
 (** Encoding and decoding data in a stream *)
 
-(** Cannot be used on a less-than-8-bits system. *)
+(** The only assumptions this module makes is that system is at least 8-bits,
+    and that the [char] type is represented using 8-bits integers.
+
+    In particular, it is compatible between:
+    - 32-bits and 64-bits,
+    - little endiand and big endian,
+    - negative integers with or without two's complement. *)
 
 exception End_of_string
   (** The end of the input or output string has been reached. *)
@@ -15,6 +21,11 @@ type input
 
 type output
   (** The type of binary stream outputs. *)
+
+type ('a, 'b) either =
+  | This of 'a
+  | That of 'b
+  (** Either this or that. *)
 
 (** {2 Input / Output} *)
 
@@ -125,6 +136,10 @@ val bool: bool t
 val couple: 'a t -> 'b t -> ('a * 'b) t
 
 val list: 'a t -> 'a list t
+
+val option: 'a t -> 'a option t
+
+val either: 'a t -> 'b t -> (('a, 'b) either) t
 
 val custom: ('b -> 'a) -> ('a -> 'b) -> 'a t -> 'b t
   (** Make a custom type descriptor.

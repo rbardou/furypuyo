@@ -12,6 +12,11 @@ type output = {
   out_finish: unit -> unit;
 }
 
+type ('a, 'b) either =
+  | This of 'a
+  | That of 'b
+  (** The ``either this or that'' type. *)
+
 let nothing () = ()
 
 let from_channel ch =
@@ -222,6 +227,47 @@ let list a =
       | n -> read (a.dec buf :: acc) (n - 1)
     in
     read [] len
+  in
+  {
+    enc = enc;
+    dec = dec;
+  }
+
+let option a =
+  let enc buf = function
+    | Some x ->
+        bool.enc buf true;
+        a.enc buf x
+    | None ->
+        bool.enc buf false
+  in
+  let dec buf =
+    match bool.dec buf with
+      | true ->
+          Some (a.dec buf)
+      | false ->
+          None
+  in
+  {
+    enc = enc;
+    dec = dec;
+  }
+
+let either a b =
+  let enc buf = function
+    | This x ->
+        bool.enc buf false;
+        a.enc buf x
+    | That y ->
+        bool.enc buf true;
+        b.enc buf y
+  in
+  let dec buf =
+    match bool.dec buf with
+      | false ->
+          This (a.dec buf)
+      | true ->
+          That (b.dec buf)
   in
   {
     enc = enc;
