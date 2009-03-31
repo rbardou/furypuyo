@@ -125,7 +125,7 @@ let decode_int buf =
 
 (******************************************************************************)
 
-let custom enc dec a =
+let convert enc dec a =
   {
     enc = (fun buf x -> a.enc buf (enc x));
     dec = (fun buf -> dec (a.dec buf));
@@ -150,7 +150,7 @@ let int =
   }
 
 let bool =
-  custom (function true -> '\001' | false -> '\000') ((<>) '\000') char
+  convert (function true -> '\001' | false -> '\000') ((<>) '\000') char
 
 let string =
   let enc buf s =
@@ -228,6 +228,12 @@ let either a b =
       | true ->
           That (b.dec buf)
   in
+  {
+    enc = enc;
+    dec = dec;
+  }
+
+let custom enc dec =
   {
     enc = enc;
     dec = dec;

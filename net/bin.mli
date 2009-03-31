@@ -106,8 +106,20 @@ val option: 'a t -> 'a option t
 
 val either: 'a t -> 'b t -> (('a, 'b) either) t
 
-val custom: ('b -> 'a) -> ('a -> 'b) -> 'a t -> 'b t
-  (** Make a custom type descriptor.
+val convert: ('b -> 'a) -> ('a -> 'b) -> 'a t -> 'b t
+  (** Make a custom type descriptor from conversion functions.
 
       [custom enc dec t]: encode value using [enc] to the type described by
-      [t], and decode value using [dec]. *)
+      [t], and decode value using [dec].
+
+      You should ensure that [dec (enc x) = x] if you want to read the same
+      values that you write. *)
+
+val custom: (output -> 'a -> unit) -> (input -> 'a) -> 'a t
+  (** Make a custom type descriptor.
+
+      [custom enc dec]: values will be written using [enc] and read using [dec].
+      These functions should respectively call [write] and [read],
+      in the same order, to write and read their values.
+
+      It is less safe than [convert], as you must be careful with the order. *)
