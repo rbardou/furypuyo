@@ -1,5 +1,10 @@
 (** Encoding and decoding data in a stream *)
 
+exception End_of_buffer
+  (** The end of the buffer has been reached.
+
+      May be raised by decoding functions. *)
+
 type 'a t
   (** The type of encoder / decoders.
 
@@ -31,11 +36,10 @@ val string: string t
 
 val int: int t
 
-val couple: 'a t -> 'b t -> ('a, 'b) t
+val bool: bool t
 
-val triple: 'a t -> 'b t -> 'c t -> ('a, 'b, 'c) t
-
-val quad: 'a t -> 'b t -> 'c t -> 'd t -> ('a, 'b, 'c, 'd) t
+val couple: 'a t -> 'b t -> ('a * 'b) t
 
 val list: ?min: int -> ?max: int -> 'a t -> 'a list t
 
+val custom: ('b -> 'a) -> ('a -> 'b) -> 'a t -> 'b t
