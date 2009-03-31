@@ -1,34 +1,118 @@
 (** Encoding and decoding data in a stream *)
 
-exception End_of_buffer
-  (** The end of the buffer has been reached.
+(** Cannot be used on a less-than-8-bits system. *)
 
-      May be raised by decoding functions. *)
+exception End_of_string
+  (** The end of the input or output string has been reached. *)
 
 type 'a t
-  (** The type of encoder / decoders.
+  (** The type of type descriptors.
 
       An ['a t] can be used to encode or decode data of type ['a]. *)
 
-(** {2 Encoding} *)
+type input
+  (** The type of binary stream inputs. *)
 
-val to_buffer: 'a t -> Buffer.t -> 'a -> unit
+type output
+  (** The type of binary stream outputs. *)
 
-val to_channel: 'a t -> out_channel -> 'a -> unit
+(** {2 Input / Output} *)
 
-val to_string: 'a t -> 'a -> string
+val from_channel: in_channel -> input
+  (** Make an input that will read from a channel. *)
 
-val to_my_string: 'a t -> string -> ?pos: int -> 'a -> unit
+val from_string: ?pos: int -> string -> input
+  (** Make an input that will read from a string.
 
-(** {2 Decoding} *)
+      When reading from such an input, if the end of the string is reached,
+      exception [End_of_string] is raised.
 
-val of_buffer: 'a t -> Buffer.t -> 'a
+      If you read several values from the same string input, they will be
+      read in a sequence (the position is not reset).
 
-val of_channel: 'a t -> in_channel -> 'a
+      @param pos the position of the first character to be read from the string.
+      Default is [0]. *)
 
-val of_string: 'a t -> ?pos: int -> string -> 'a
+val from_file: string -> input
+  (** Make an input that will read from a file.
 
-(** {2 Constructors} *)
+      The file is opened when a value has to be read and closed when the value
+      has been read. The value will always be read from the same position in
+      the file.
+
+      When reading from such an input, if the end of the string is reached,
+      exception [End_of_string] is raised.
+
+      Reading from a file may raise [Sys_error] or [End_of_file].
+
+      @param pos the position of the first character to be read from the file.
+      Default is [0]. *)
+
+val from_custom:
+  ?start: (unit -> unit) -> ?finish: (unit -> unit) -> (unit -> char) -> input
+  (** Make an custom input.
+
+      The given function will be called when a character has to be read.
+
+      @param start this function will be called when a value starts being
+      read.
+      @param finish this functino will be called when a value has been
+      fully read. *)
+
+val to_channel: out_channel -> output
+  (** Make an output that will write to a channel. *)
+
+val to_string: ?pos: int -> string -> output
+  (** Make an output that will write to a string.
+
+      When writing to such an output, if the end of the string is reached,
+      exception [End_of_string] is raised.
+
+      If you write several values to the same string output, they will be
+      written in a sequence (the position is not reset).
+
+      @param pos the position of the first character to be written to the
+      string. Default is [0]. *)
+
+val to_buffer: Buffer.t -> output
+  (** Make an output that will write to a buffer.
+
+      If you write several values to the same buffer, they will be
+      written in a sequence (the buffer is not reset). *)
+
+val to_file: string -> output
+  (** Make an output that will write from a file.
+
+      Writing to a file may raise [Sys_error].
+
+      When a value is written to such an output, if the file already exists,
+      it is truncated to length [0]. Else, it is created. *)
+
+val to_custom:
+  ?start: (unit -> unit) -> ?finish: (unit -> unit) -> (char -> unit) -> output
+  (** Make an custom output.
+
+      The given function will be called when a character has to be written.
+
+      @param start this function will be called when a value starts being
+      written.
+      @param finish this functino will be called when a value has been
+      fully written. *)
+
+(** {2 High-level Encoding and Decoding} *)
+
+val write: 'a t -> output -> 'a -> unit
+  (** Write a value to an output.
+
+      [write t out v]: write value [v] on output [out] using type descriptor
+      [t]. *)
+
+val read: 'a t -> input -> 'a
+  (** Read a value from an output.
+
+      [read t out]: read a value from output [out] using type descriptor [t]. *)
+
+(** {3 Constructors} *)
 
 val char: char t
 
@@ -40,6 +124,10 @@ val bool: bool t
 
 val couple: 'a t -> 'b t -> ('a * 'b) t
 
-val list: ?min: int -> ?max: int -> 'a t -> 'a list t
+val list: 'a t -> 'a list t
 
 val custom: ('b -> 'a) -> ('a -> 'b) -> 'a t -> 'b t
+  (** Make a custom type descriptor.
+
+      [custom enc dec t]: encode value using [enc] to the type described by
+      [t], and decode value using [dec]. *)
