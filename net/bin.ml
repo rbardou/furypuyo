@@ -2,14 +2,10 @@ exception End_of_string
 
 type input = {
   in_char: unit -> char;
-  in_start: unit -> unit;
-  in_finish: unit -> unit;
 }
 
 type output = {
   out_char: char -> unit;
-  out_start: unit -> unit;
-  out_finish: unit -> unit;
 }
 
 type ('a, 'b) either =
@@ -22,8 +18,6 @@ let nothing () = ()
 let from_channel ch =
   {
     in_char = (fun () -> input_char ch);
-    in_start = nothing;
-    in_finish = nothing;
   }
 
 let from_string ?(pos = 0) s =
@@ -39,40 +33,23 @@ let from_string ?(pos = 0) s =
   in
   {
     in_char = char;
-    in_start = nothing;
-    in_finish = nothing;
   }
 
-let from_custom ?(start = nothing) ?(finish = nothing) char =
+let from_custom char =
   {
     in_char = char;
-    in_start = start;
-    in_finish = nothing;
   }
 
 let fail s _ = failwith s
 
-let from_file file =
-  let fail = fail ("file input ("^file^")") in
-  let ch = ref fail in
-  {
-    in_char = (fun () -> input_char (!ch ()));
-    in_start = (fun () -> ch := let ch = open_in file in fun () -> ch);
-    in_finish = (fun () -> close_in (!ch ()); ch := fail);
-  }
-
 let to_channel ch =
   {
     out_char = output_char ch;
-    out_start = nothing;
-    out_finish = nothing;
   }
 
 let to_buffer buf =
   {
     out_char = Buffer.add_char buf;
-    out_start = nothing;
-    out_finish = nothing;
   }
 
 let to_string ?(pos = 0) s =
@@ -87,24 +64,11 @@ let to_string ?(pos = 0) s =
   in
   {
     out_char = char;
-    out_start = nothing;
-    out_finish = nothing;
   }
 
-let to_custom ?(start = nothing) ?(finish = nothing) char =
+let to_custom char =
   {
     out_char = char;
-    out_start = start;
-    out_finish = nothing;
-  }
-
-let to_file file =
-  let fail = fail ("file output ("^file^")") in
-  let ch = ref fail in
-  {
-    out_char = (fun c -> output_char (!ch ()) c);
-    out_start = (fun () -> ch := let ch = open_out file in fun () -> ch);
-    out_finish = (fun () -> close_out (!ch ()); ch := fail);
   }
 
 (******************************************************************************)
@@ -115,15 +79,10 @@ type 'a t = {
 }
 
 let write how buf v =
-  buf.out_start ();
-  how.enc buf v;
-  buf.out_finish ()
+  how.enc buf v
 
 let read how buf =
-  buf.in_start ();
-  let v = how.dec buf in
-  buf.in_finish ();
-  v
+  how.dec buf
 
 (******************************************************************************)
 

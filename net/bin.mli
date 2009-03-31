@@ -44,31 +44,10 @@ val from_string: ?pos: int -> string -> input
       @param pos the position of the first character to be read from the string.
       Default is [0]. *)
 
-val from_file: string -> input
-  (** Make an input that will read from a file.
-
-      The file is opened when a value has to be read and closed when the value
-      has been read. The value will always be read from the same position in
-      the file.
-
-      When reading from such an input, if the end of the string is reached,
-      exception [End_of_string] is raised.
-
-      Reading from a file may raise [Sys_error] or [End_of_file].
-
-      @param pos the position of the first character to be read from the file.
-      Default is [0]. *)
-
-val from_custom:
-  ?start: (unit -> unit) -> ?finish: (unit -> unit) -> (unit -> char) -> input
+val from_custom: (unit -> char) -> input
   (** Make an custom input.
 
-      The given function will be called when a character has to be read.
-
-      @param start this function will be called when a value starts being
-      read.
-      @param finish this functino will be called when a value has been
-      fully read. *)
+      The given function will be called when a character has to be read. *)
 
 val to_channel: out_channel -> output
   (** Make an output that will write to a channel. *)
@@ -91,24 +70,10 @@ val to_buffer: Buffer.t -> output
       If you write several values to the same buffer, they will be
       written in a sequence (the buffer is not reset). *)
 
-val to_file: string -> output
-  (** Make an output that will write from a file.
-
-      Writing to a file may raise [Sys_error].
-
-      When a value is written to such an output, if the file already exists,
-      it is truncated to length [0]. Else, it is created. *)
-
-val to_custom:
-  ?start: (unit -> unit) -> ?finish: (unit -> unit) -> (char -> unit) -> output
+val to_custom: (char -> unit) -> output
   (** Make an custom output.
 
-      The given function will be called when a character has to be written.
-
-      @param start this function will be called when a value starts being
-      written.
-      @param finish this functino will be called when a value has been
-      fully written. *)
+      The given function will be called when a character has to be written. *)
 
 (** {2 High-level Encoding and Decoding} *)
 
