@@ -1,5 +1,7 @@
 exception End_of_string
 
+exception Bad_identifier of string
+
 type input = {
   in_char: unit -> char;
 }
@@ -234,6 +236,28 @@ let either a b =
   }
 
 let custom enc dec =
+  {
+    enc = enc;
+    dec = dec;
+  }
+
+let identifier id =
+  let id = String.copy id in
+  let len = String.length id in
+  let enc buf () =
+    for i = 0 to len - 1 do
+      buf.out_char id.[i]
+    done
+  in
+  let dec buf =
+    try
+      for i = 0 to len - 1 do
+        let c = buf.in_char () in
+        if id.[i] <> c then raise Exit
+      done
+    with Exit ->
+      raise (Bad_identifier (String.copy id))
+  in
   {
     enc = enc;
     dec = dec;

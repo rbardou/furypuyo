@@ -11,6 +11,9 @@
 exception End_of_string
   (** The end of the input or output string has been reached. *)
 
+exception Bad_identifier of string
+  (** The identifier given in argument is not present. *)
+
 type 'a t
   (** The type of type descriptors.
 
@@ -105,6 +108,16 @@ val list: 'a t -> 'a list t
 val option: 'a t -> 'a option t
 
 val either: 'a t -> 'b t -> (('a, 'b) either) t
+
+val identifier: string -> unit t
+  (** Check that some identifier is present.
+
+      [identifier id]: write [id] when encoding. When decoding, check that
+      [id] is present. The string [id] is copied, you may modify it later
+      without disturbing the behavior.
+
+      Exception [Bad_identifier id] is raised when decoding if the identifier
+      is not present. *)
 
 val convert: ('b -> 'a) -> ('a -> 'b) -> 'a t -> 'b t
   (** Make a custom type descriptor from conversion functions.
