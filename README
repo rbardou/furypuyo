@@ -43,11 +43,9 @@ To compile Fury Puyo, you also need:
 - the OCamlSDL library version 0.7.2.
 - Findlib
 
-Debian or Ubuntu packages are:
+On Debian or Ubuntu, you can install these with:
 
-        ocaml
-        libsdl-ocaml-dev
-        ocaml-findlib
+        sudo aptitude install libsdl-ocaml-dev ocaml-findlib
 
 If you prefer, you can use Godi:
 
