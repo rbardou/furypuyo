@@ -1,1 +1,1 @@
-<main.*> or <menu.*> or <iO.*>: pkg_unix, pkg_sdl, pkg_sdl.sdlimage, pkg_sdl.sdlttf
+<main.*> or <menu.*> or <iO.*> or <convert.*>: pkg_unix, pkg_sdl, pkg_sdl.sdlimage, pkg_sdl.sdlttf

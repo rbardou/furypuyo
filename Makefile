@@ -11,6 +11,10 @@ furypuyo:
 	$(OCAMLBUILD) main.native
 	ln -f -s _build/main.native furypuyo
 
+convert:
+	$(OCAMLBUILD) convert.native
+	ln -f -s _build/convert.native convert
+
 doc:
 	$(OCAMLBUILD) furypuyo.docdir/index.html
 	$(OCAMLBUILD) -I net net/network.docdir/index.html
