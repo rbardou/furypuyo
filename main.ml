@@ -45,12 +45,6 @@ let () = Arg.parse speclist anon_fun usage_msg
 
 module Reader = IO.MakeReader(Action)
 
-module Score = struct
-  type t = int
-  let compare = compare
-  let codec = Bin.int
-end
-
 module HighScores = Highscores.Make(Score)
 
 let config =
