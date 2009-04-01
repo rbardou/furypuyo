@@ -31,12 +31,15 @@
 open Misc
 
 exception Cannot_read_scores of string
+exception Cannot_write_scores of string
 
 module type HIGHSCORES = sig
   type score
   type t
-  val load: int -> string -> t
-  val save: t -> unit
+  val codec: t Bin.t
+  val empty: int -> t
+  val load: string -> int -> t
+  val save: t -> string -> unit
   val add: t -> string -> score -> t * bool
   val player: t -> string -> score list
   val all_players: t -> (string * score list) list
@@ -56,7 +59,7 @@ module Make(C: SCORE) = struct
 
   type scores1 = int * (score list) StringMap.t
 
-  type scores =
+  type t =
     | V1 of scores1
 
   let codec_string_map a =
@@ -70,6 +73,9 @@ module Make(C: SCORE) = struct
 
   let identifier = Bin.identifier "HSCO"
 
+  let renew = function
+    | V1 scores -> V1 scores
+
   let encode buf scores =
     Bin.write identifier buf ();
     match scores with
@@ -79,70 +85,82 @@ module Make(C: SCORE) = struct
 
   let decode buf =
     Bin.read identifier buf;
-    match Bin.read Bin.int buf with
-      | 1 -> V1 (Bin.read codec_scores1 buf)
-      | n -> raise (Cannot_read_scores ("unknown version: " ^ string_of_int n))
+    let scores =
+      match Bin.read Bin.int buf with
+        | 1 -> V1 (Bin.read codec_scores1 buf)
+        | n -> raise (Cannot_read_scores ("unknown version: "^string_of_int n))
+    in
+    renew scores
 
   let codec =
     Bin.custom encode decode
 
-  (*type t = {
-    size: int;
-    scores: scores1;
-  }*)
+  let save scores file =
+    let file = Config.filename file in
+    try
+      let ch = open_out file in
+      let buf = Bin.to_channel ch in
+      Bin.write codec buf scores;
+      close_out ch;
+    with Sys_error s ->
+      raise (Cannot_write_scores ("system error: "^s))
 
+  let empty size =
+    V1 (size, StringMap.empty)
 
+  let load file size =
+    let file = Config.filename file in
+    if Sys.file_exists file then
+      try
+        let ch = open_in file in
+        let buf = Bin.from_channel ch in
+        Bin.read codec buf
+      with
+        | Sys_error s ->
+            raise (Cannot_read_scores ("system error: "^s))
+        | Bin.Bad_identifier _ ->
+            raise (Cannot_read_scores (file ^ ": not a high score file"))
+    else
+      empty size
 
+  let size = function
+    | V1 (size, players) -> size
 
-  type t = {
-    size: int;
-    file: string;
-    players: score list StringMap.t;
-  }
+  let players = function
+    | V1 (size, players) -> players
 
-  let load size file =
-    if Sys.file_exists (Config.filename file) then begin
-      let ch = Config.open_in file in
-      let res = (Marshal.from_channel ch: t) in
-      close_in ch;
-      res
-    end else {
-      size = size;
-      file = file;
-      players = StringMap.empty;
-    }
+  let set_size h s = match h with
+    | V1 (_, players) -> V1 (s, players)
 
-  let save (h: t) =
-    let ch = Config.open_out h.file in
-    Marshal.to_channel ch h [];
-    close_out ch
+  let set_players h p = match h with
+    | V1 (size, _) -> V1 (size, p)
 
   let add h name score =
     let scores =
       try
-        StringMap.find name h.players
+        StringMap.find name (players h)
       with Not_found ->
         []
     in
-    if List.length scores >= h.size &&
+    if List.length scores >= (size h) &&
       C.compare (list_last scores) score > 0 then
         h, false
     else
       let scores = score :: scores in
       let scores = List.sort (fun x y -> - C.compare x y) scores in
-      let scores = list_trunc scores h.size in
-      { h with players = StringMap.add name scores h.players }, true
+      let scores = list_trunc scores (size h) in
+      set_players h (StringMap.add name scores (players h)), true
 
   let player h name =
     try
-      StringMap.find name h.players
+      StringMap.find name (players h)
     with Not_found ->
       []
 
   let all_players h =
     StringMap.fold
       (fun name scores acc -> (name, scores) :: acc)
-      h.players
+      (players h)
       []
 
   let top ?plimit ?size h =
@@ -154,7 +172,7 @@ module Make(C: SCORE) = struct
              | Some plimit -> list_trunc pscores plimit
            in
            List.map (fun x -> name, x) pscores @ scores)
-        h.players
+        (players h)
         []
     in
     let scores = List.sort (fun (_, x) (_, y) -> - C.compare x y) scores in

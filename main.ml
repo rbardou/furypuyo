@@ -80,7 +80,8 @@ let player_name =
            try Sys.getenv "LOGNAME" with Not_found ->
              "Fury Puyo")
 
-let high_scores = ref (HighScores.load 10 "single_player.scores")
+let high_scores_file = "single_player.scores"
+let high_scores = ref (HighScores.load high_scores_file 10)
 
 let draw = ref true
 
@@ -177,7 +178,8 @@ and show_high_scores ?focus (): unit =
   let top = HighScores.top ~plimit: 1 ~size: 10 !high_scores in
   let top =
     list_mapi
-      (fun i (name, score) -> Printf.sprintf "%2d%9d  %s" (i + 1) score name)
+      (fun i (name, score) ->
+         Printf.sprintf "%2d%9d  %s" (i + 1) (Score.score score) name)
       top
   in
   let all = HighScores.all_players !high_scores in
@@ -186,7 +188,8 @@ and show_high_scores ?focus (): unit =
       (fun (name, scores) ->
          let scores =
            list_mapi
-             (fun i score -> Printf.sprintf "%2d%9d" (i + 1) score)
+             (fun i score ->
+                Printf.sprintf "%2d%9d" (i + 1) (Score.score score))
              scores
          in
          name, scores)
@@ -215,9 +218,9 @@ and enter_score score: unit =
       "ENTER YOUR NAME:"
   in
   Config.set player_name name;
-  let scores, changed = HighScores.add !high_scores name score in
+  let scores, changed = HighScores.add !high_scores name (Score.make score) in
   high_scores := scores;
-  HighScores.save !high_scores;
+  HighScores.save !high_scores high_scores_file;
   if changed then show_high_scores ~focus: name ();
   IO.Sprite.draw background 0 0;
   game_over_menu ()

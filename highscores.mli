@@ -33,6 +33,9 @@
 exception Cannot_read_scores of string
   (** The argument is the reason. *)
 
+exception Cannot_write_scores of string
+  (** The argument is the reason. *)
+
 module type HIGHSCORES = sig
   type score
     (** Score associated to a player. *)
@@ -40,16 +43,28 @@ module type HIGHSCORES = sig
   type t
     (** The persistent type of high score records. *)
 
-  val load: int -> string -> t
-    (** Load high scores from a file of the configuration directory.
+  val codec: t Bin.t
 
-        [load size file]: if file [file] does not exist,
-        create a new high scores table. The file is not created
-        until you [save] it. The maximum number of records for one player is
+  val empty: int -> t
+    (** Make an empty high scores table.
+
+        [empty size]: make an empty high scores table.
+        The maximum number of records for one player is
         [size], but any number of players can be recorded. *)
 
-  val save: t -> unit
-    (** Save high scores. *)
+  val load: string -> int -> t
+    (** Load a high scores table from a file.
+
+        [load file size]: if [file] exists, read an high scores table from it.
+        May raise [Cannot_read_scores]. Else, return an empty table of size
+        [size]. *)
+
+  val save: t -> string -> unit
+    (** Save a high scores table to a file.
+
+        [save table file]: save [table] to [file].
+
+        May raise [Cannot_write_scores]. *)
 
   val add: t -> string -> score -> t * bool
     (** Add a new score.
