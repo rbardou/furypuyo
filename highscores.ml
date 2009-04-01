@@ -30,6 +30,8 @@
 
 open Misc
 
+exception Cannot_read_scores of string
+
 module type HIGHSCORES = sig
   type score
   type t
@@ -44,7 +46,7 @@ end
 module type SCORE = sig
   type t
   val compare: t -> t -> int
-  val bin: t Bin.t
+  val codec: t Bin.t
 end
 
 module StringMap = Map.Make(String)
@@ -52,29 +54,51 @@ module StringMap = Map.Make(String)
 module Make(C: SCORE) = struct
   type score = C.t
 
+  type scores1 = int * (score list) StringMap.t
+
+  type scores =
+    | V1 of scores1
+
+  let codec_string_map a =
+    Bin.convert
+      (fun map -> StringMap.fold (fun k v a -> (k, v) :: a) map [])
+      (List.fold_left (fun a (k, v) -> StringMap.add k v a) StringMap.empty)
+      (Bin.list (Bin.couple Bin.string a))
+
+  let codec_scores1 =
+    Bin.couple Bin.int (codec_string_map (Bin.list C.codec))
+
+  let identifier = Bin.identifier "HSCO"
+
+  let encode buf scores =
+    Bin.write identifier buf ();
+    match scores with
+      | V1 scores ->
+          Bin.write Bin.int buf 1;
+          Bin.write codec_scores1 buf scores
+
+  let decode buf =
+    Bin.read identifier buf;
+    match Bin.read Bin.int buf with
+      | 1 -> V1 (Bin.read codec_scores1 buf)
+      | n -> raise (Cannot_read_scores ("unknown version: " ^ string_of_int n))
+
+  let codec =
+    Bin.custom encode decode
+
+  (*type t = {
+    size: int;
+    scores: scores1;
+  }*)
+
+
+
+
   type t = {
     size: int;
     file: string;
-    players: (score list) StringMap.t;
+    players: score list StringMap.t;
   }
-
-  type file_contents =
-    | F1 of (string * score list) list
-
-  let codec1 =
-    Bin.list (Bin.couple Bin.string (Bin.list C.bin))
-
-  let encode1 h =
-    StringMap.fold
-      (fun player scores acc -> (player, scores) :: acc)
-      h []
-
-  let decode1 list =
-    List.fold_left
-      (fun acc (player, scores) -> StringMap.add player scores acc)
-      StringMap.empty list
-
-  let codec1 = Bin.convert encode1 decode1 codec1
 
   let load size file =
     if Sys.file_exists (Config.filename file) then begin

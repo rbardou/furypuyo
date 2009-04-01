@@ -30,6 +30,9 @@
 
 (** High scores loading, updating, and saving *)
 
+exception Cannot_read_scores of string
+  (** The argument is the reason. *)
+
 module type HIGHSCORES = sig
   type score
     (** Score associated to a player. *)
@@ -81,7 +84,7 @@ end
 module type SCORE = sig
   type t
   val compare: t -> t -> int
-  val bin: t Bin.t
+  val codec: t Bin.t
 end
 
 module Make(C: SCORE): HIGHSCORES with type score = C.t
