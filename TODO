@@ -18,7 +18,6 @@ Network
 =======
 
 * find out ping to change initial resend delay
-* flux control
 * split packets which are too big
 * finish sending important packets before closing
 
