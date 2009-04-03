@@ -314,3 +314,9 @@ let identifier id =
     enc = enc;
     dec = dec;
   }
+
+let triple a b c =
+  convert
+    (fun (a, b, c) -> (a, b), c)
+    (fun ((a, b), c) -> a, b, c)
+    (couple (couple a b) c)
