@@ -34,6 +34,8 @@ open Action
 open Puyo
 open Cell
 
+let ready_set_go_delay = 75
+
 let invisible_lines = 2
 
 let smooth_factor = 1024
@@ -76,8 +78,13 @@ type gameover_state = {
   go_end: int;
 }
 
+type starting_state = {
+  s_countdown: int;
+  s_next: int;
+}
+
 type state =
-  | Starting
+  | Starting of starting_state
   | Incoming of incoming_state
   | Inserting of inserting_state
   | Falling of falling_state
@@ -702,7 +709,7 @@ let act_incoming game is = function
 
 let act game input =
   match game.state with
-    | Starting
+    | Starting _
     | Inserting _
     | Falling _
     | Popping _
@@ -733,6 +740,20 @@ let think_fury game =
         else
           game
 
+let think_starting game ss =
+  if game.now >= ss.s_next then begin
+    let cd = ss.s_countdown - 1 in
+    if cd <= 0 then
+      start_incoming game
+    else
+      let ss = {
+        s_countdown = cd;
+        s_next = ss.s_next + ready_set_go_delay;
+      } in
+      { game with state = Starting ss }
+  end else
+    game
+
 let think game =
   let game =
     { game with
@@ -741,7 +762,7 @@ let think game =
   in
   let game = think_fury game in
   match game.state with
-    | Starting -> start_incoming game
+    | Starting ss -> think_starting game ss
     | Incoming is -> think_incoming game is
     | Inserting is -> think_inserting game is
     | Falling fs -> think_falling game fs
@@ -754,11 +775,14 @@ let start () =
   let rand, generator, block1 = Generator.next generator rand in
   let rand, generator, block2 = Generator.next generator rand in
   {
-    now = 0;
+    now = -ready_set_go_delay * 2;
     field = Matrix.make 6 14 Cell.empty;
     rand = rand;
     generator = generator;
-    state = Starting;
+    state = Starting {
+      s_countdown = 2;
+      s_next = -ready_set_go_delay;
+    };
     score = 0;
     chain = 1;
     speed = {

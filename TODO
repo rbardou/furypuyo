@@ -9,10 +9,11 @@ Features
 * multiplayer
 * replays
 * limit player name size in high scores (and allocate the string only once)
-* Ready Set Go at the beginning of the game
+* Ready Set Go sprites
 * less random generator
 * background image(s)
 * sound
+* better rotations to insert in the rightmost column
 
 Network
 =======

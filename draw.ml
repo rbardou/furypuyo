@@ -55,6 +55,8 @@ let next_block2_x = 280
 let next_block2_y = 160
 let timer_x = 270
 let timer_y = 555
+let ready_set_go_x = field_x + cellw * 3
+let ready_set_go_y = field_y + cellh * 4
 
 let offsets_x = cellw*6+55
 let offsets_y = next_block2_y+3*cellh
@@ -178,10 +180,20 @@ let gfx = function
       Sprite.draw s x y
 
 let draw_timer now =
+  let now = max 0 now in
   let s = now / 100 in
   let m = s / 60 in
   let s = s mod 60 in
   Text.write font timer_x timer_y (Printf.sprintf "%02d:%02d" m s)
+
+let draw_ready_set_go now =
+  let write = Text.write font ~align: IO.Center ready_set_go_x ready_set_go_y in
+  if now < -Game.ready_set_go_delay then
+    write "READY"
+  else if now < 0 then
+    write "SET"
+  else if now < Game.ready_set_go_delay then
+    write "GO"
 
 let draw_empty () =
   Sprite.draw background 0 0;
@@ -231,6 +243,7 @@ let draw game =
     | GameOver s -> s.go_end
     | _ -> game.now
   in
+  draw_ready_set_go now;
   draw_timer now;
   Gfx.iter gfx game.gfx;
   update ()
