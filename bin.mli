@@ -99,6 +99,10 @@ val string: string t
 
 val int: int t
 
+val int32: Int32.t t
+
+val int64: Int64.t t
+
 val bool: bool t
 
 val couple: 'a t -> 'b t -> ('a * 'b) t

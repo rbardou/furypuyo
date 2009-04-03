@@ -88,42 +88,82 @@ let read buf how =
 
 (******************************************************************************)
 
-(* little endian representation of a positive integer *)
-let rec repr_of_pint acc i =
-  if i > 0 then
-    let low = i land 255 in
-    let high = i lsr 8 in
-    repr_of_pint (low :: acc) high
-  else
-    acc
-let repr_of_pint i = repr_of_pint [] i
+module type INT = sig
+  type t
+  val zero: t
+  val compare: t -> t -> int
+  val neg: t -> t
+  val div256: t -> t * int (* (quo, rem) i.e. (lsr 8, land 255) *)
+  val mul256or: t -> int -> t (* a b -> a lsl 8 lor b *)
+end
 
-(* result is modulo and thus may be negative if the represented integer is
-   bigger than representable positive integers *)
-let rec pint_of_repr acc = function
-  | [] -> acc
-  | x :: rem -> pint_of_repr (acc lsl 8 lor x) rem
-let pint_of_repr r = pint_of_repr 0 r
+module MakeI(I: INT) = struct
+  (* little endian representation of a positive integer *)
+  let rec repr_of_pint acc i =
+    if I.compare i I.zero > 0 then
+      let high, low = I.div256 i in
+      repr_of_pint (low :: acc) high
+    else
+      acc
+  let repr_of_pint i = repr_of_pint [] i
 
-let encode_int buf i =
-  let pi = if i >= 0 then i else -i in
-  let r = repr_of_pint pi in
-  let len = List.length r in
-  let h = if i >= 0 then len else len lor 128 in
-  buf.out_char (Char.chr h);
-  List.iter (fun i -> buf.out_char (Char.chr i)) (List.rev r)
+  (* result is modulo and thus may be negative if the represented integer is
+     bigger than representable positive integers *)
+  let rec pint_of_repr acc = function
+    | [] -> acc
+    | x :: rem -> pint_of_repr (I.mul256or acc x) rem
+  let pint_of_repr r = pint_of_repr I.zero r
 
-let decode_int buf =
-  let h = Char.code (buf.in_char ()) in
-  let len = h land 127 in
-  let neg = h land 128 > 0 in
-  let rec read acc = function
-    | 0 -> acc
-    | n -> read (Char.code (buf.in_char ()) :: acc) (n - 1)
-  in
-  let r = read [] len in
-  let i = pint_of_repr r in
-  if neg then -i else i
+  let encode_int buf i =
+    let pos = I.compare i I.zero >= 0 in
+    let pi = if pos then i else I.neg i in
+    let r = repr_of_pint pi in
+    let len = List.length r in
+    let h = if pos then len else len lor 128 in
+    buf.out_char (Char.chr h);
+    List.iter (fun i -> buf.out_char (Char.chr i)) (List.rev r)
+
+  let decode_int buf =
+    let h = Char.code (buf.in_char ()) in
+    let len = h land 127 in
+    let neg = h land 128 > 0 in
+    let rec read acc = function
+      | 0 -> acc
+      | n -> read (Char.code (buf.in_char ()) :: acc) (n - 1)
+    in
+    let r = read [] len in
+    let i = pint_of_repr r in
+    if neg then I.neg i else i
+end
+
+module IntCodec = MakeI(struct
+  type t = int
+  let zero = 0
+  let compare = compare
+  let neg = (~-)
+  let div256 x = x lsr 8, x land 255
+  let mul256or x y = x lsl 8 lor y
+end)
+
+module Int32Codec = MakeI(struct
+  type t = Int32.t
+  let zero = 0l
+  let compare = Int32.compare
+  let neg = Int32.neg
+  let div256 x = Int32.shift_right x 8, Int32.to_int (Int32.logand x 255l)
+  let mul256or x y = Int32.logor (Int32.shift_left x 8) (Int32.of_int y)
+end)
+
+module Int64Codec = MakeI(struct
+  type t = Int64.t
+  let zero = 0L
+  let compare = Int64.compare
+  let neg = Int64.neg
+  let div256 x = Int64.shift_right x 8, Int64.to_int (Int64.logand x 255L)
+  let mul256or x y = Int64.logor (Int64.shift_left x 8) (Int64.of_int y)
+end)
+
+open IntCodec
 
 (******************************************************************************)
 
@@ -149,6 +189,18 @@ let int =
   {
     enc = encode_int;
     dec = decode_int;
+  }
+
+let int32 =
+  {
+    enc = Int32Codec.encode_int;
+    dec = Int32Codec.decode_int;
+  }
+
+let int64 =
+  {
+    enc = Int64Codec.encode_int;
+    dec = Int64Codec.decode_int;
   }
 
 let bool =
