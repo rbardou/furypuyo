@@ -80,10 +80,10 @@ type 'a t = {
   dec: input -> 'a;
 }
 
-let write how buf v =
+let write buf how v =
   how.enc buf v
 
-let read how buf =
+let read buf how =
   how.dec buf
 
 (******************************************************************************)

@@ -11,13 +11,13 @@ let renew = function
 let encode buf scores =
   match scores with
     | V1 scores ->
-        Bin.write Bin.int buf 1;
-        Bin.write Bin.int buf scores
+        Bin.write buf Bin.int 1;
+        Bin.write buf Bin.int scores
 
 let decode buf =
   let scores =
-    match Bin.read Bin.int buf with
-      | 1 -> V1 (Bin.read Bin.int buf)
+    match Bin.read buf Bin.int with
+      | 1 -> V1 (Bin.read buf Bin.int)
       | n ->
           raise (Highscores.Cannot_read_scores
                    ("unknown version: "^string_of_int n))

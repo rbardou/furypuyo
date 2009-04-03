@@ -80,16 +80,16 @@ val to_custom: (char -> unit) -> output
 
 (** {2 High-level Encoding and Decoding} *)
 
-val write: 'a t -> output -> 'a -> unit
+val write: output -> 'a t -> 'a -> unit
   (** Write a value to an output.
 
-      [write t out v]: write value [v] on output [out] using type descriptor
+      [write out t v]: write value [v] on output [out] using type descriptor
       [t]. *)
 
-val read: 'a t -> input -> 'a
+val read: input -> 'a t -> 'a
   (** Read a value from an output.
 
-      [read t out]: read a value from output [out] using type descriptor [t]. *)
+      [read out t]: read a value from output [out] using type descriptor [t]. *)
 
 (** {3 Constructors} *)
 

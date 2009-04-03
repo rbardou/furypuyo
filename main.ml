@@ -106,8 +106,7 @@ let rec loop game cpu: unit =
   else if game_finished game then
     enter_score game.Game.score
   else
-    let game = List.fold_left Game.act game actions in
-    let game = Game.think game in
+    let game = Game.think_frame game actions in
     let game, cpu = Cpu.think game cpu in
     if !draw then Draw.draw game;
     draw := IO.frame_delay 10;

@@ -55,3 +55,30 @@ let width f = f.width
 let height f = f.height
 
 let inside f x y = x >= 0 && y >= 0 && x < f.width && y < f.height
+
+let codec_data a =
+  Bin.convert
+    (fun m -> PosMap.fold (fun a b acc -> (a, b) :: acc) m [])
+    (List.fold_left (fun acc (a, b) -> PosMap.add a b acc) PosMap.empty)
+    (Bin.list (Bin.couple (Bin.couple Bin.int Bin.int) a))
+
+let encode a buf m =
+  Bin.write buf Bin.int m.width;
+  Bin.write buf Bin.int m.height;
+  Bin.write buf a m.default;
+  Bin.write buf (codec_data a) m.data
+
+let decode a buf =
+  let width = Bin.read buf Bin.int in
+  let height = Bin.read buf Bin.int in
+  let default = Bin.read buf a in
+  let data = Bin.read buf (codec_data a) in
+  {
+    width = width;
+    height = height;
+    default = default;
+    data = data;
+  }
+
+let codec a =
+  Bin.custom (encode a) (decode a)

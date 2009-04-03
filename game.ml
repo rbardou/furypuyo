@@ -769,6 +769,10 @@ let think game =
     | Popping ps -> think_popping game ps
     | GameOver gos -> think_game_over game gos
 
+let think_frame game actions =
+  let game = List.fold_left act game actions in
+  think game
+
 let start () =
   let generator = Generator.nice [ Red; Green; Blue; Yellow ] in
   let rand = Rand.self_init () in

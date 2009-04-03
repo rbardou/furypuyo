@@ -40,3 +40,28 @@ type t =
   | RRight
   | InstaFall
   | Debug
+
+let encode = function
+  | Escape -> 0
+  | MLeft -> 1
+  | MRight -> 2
+  | MDown -> 3
+  | MDownRelease -> 4
+  | RLeft -> 5
+  | RRight -> 6
+  | InstaFall -> 7
+  | Debug -> 8
+
+let decode = function
+  | 0 -> Escape
+  | 1 -> MLeft
+  | 2 -> MRight
+  | 3 -> MDown
+  | 4 -> MDownRelease
+  | 5 -> RLeft
+  | 6 -> RRight
+  | 7 -> InstaFall
+  | 8 -> Debug
+  | _ -> failwith "Action.decode"
+
+let codec = Bin.convert encode decode Bin.int

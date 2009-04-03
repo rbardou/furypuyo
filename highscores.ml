@@ -77,17 +77,17 @@ module Make(C: SCORE) = struct
     | V1 scores -> V1 scores
 
   let encode buf scores =
-    Bin.write identifier buf ();
+    Bin.write buf identifier ();
     match scores with
       | V1 scores ->
-          Bin.write Bin.int buf 1;
-          Bin.write codec_scores1 buf scores
+          Bin.write buf Bin.int 1;
+          Bin.write buf codec_scores1 scores
 
   let decode buf =
-    Bin.read identifier buf;
+    Bin.read buf identifier;
     let scores =
-      match Bin.read Bin.int buf with
-        | 1 -> V1 (Bin.read codec_scores1 buf)
+      match Bin.read buf Bin.int with
+        | 1 -> V1 (Bin.read buf codec_scores1)
         | n -> raise (Cannot_read_scores ("unknown version: "^string_of_int n))
     in
     renew scores
@@ -100,7 +100,7 @@ module Make(C: SCORE) = struct
     try
       let ch = open_out file in
       let buf = Bin.to_channel ch in
-      Bin.write codec buf scores;
+      Bin.write buf codec scores;
       close_out ch;
     with Sys_error s ->
       raise (Cannot_write_scores ("system error: "^s))
@@ -114,7 +114,7 @@ module Make(C: SCORE) = struct
       try
         let ch = open_in file in
         let buf = Bin.from_channel ch in
-        Bin.read codec buf
+        Bin.read buf codec
       with
         | Sys_error s ->
             raise (Cannot_read_scores ("system error: "^s))
