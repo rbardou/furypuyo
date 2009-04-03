@@ -91,3 +91,32 @@ let insert block x y matrix =
     | Quad (c, _) ->
         let p = Puyo.make c in
         insert_list matrix x y [ 0, 0, p; 0, 1, p; 1, 0, p; 1, 1, p ]
+
+let codec_xyp = Bin.list (Bin.triple Bin.int Bin.int Puyo.codec)
+
+let codec_quad = Bin.couple Puyo.codec_color (Bin.list Puyo.codec_color)
+
+let encode buf = function
+  | List0 l ->
+      Bin.write buf Bin.int 0;
+      Bin.write buf codec_xyp l
+  | List1 l ->
+      Bin.write buf Bin.int 1;
+      Bin.write buf codec_xyp l
+  | List2 l ->
+      Bin.write buf Bin.int 2;
+      Bin.write buf codec_xyp l
+  | Quad (c, l) ->
+      Bin.write buf Bin.int 3;
+      Bin.write buf codec_quad (c, l)
+
+let decode buf =
+  match Bin.read buf Bin.int with
+    | 0 -> List0 (Bin.read buf codec_xyp)
+    | 1 -> List1 (Bin.read buf codec_xyp)
+    | 2 -> List2 (Bin.read buf codec_xyp)
+    | 3 -> let c, l = Bin.read buf codec_quad in Quad (c, l)
+    | _ -> failwith "Block.decode"
+
+let codec =
+  Bin.custom encode decode

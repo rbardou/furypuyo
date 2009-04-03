@@ -37,28 +37,6 @@ let next r =
   r.current <- game;
   game
 
-let encode_puyo p =
-  match p.color with
-    | Red -> 0
-    | Green -> 1
-    | Blue -> 2
-    | Yellow -> 3
-    | Gray -> 4
-
-let decode_puyo c =
-  let c = match c with
-    | 0 -> Red
-    | 1 -> Green
-    | 2 -> Blue
-    | 3 -> Yellow
-    | 4 -> Gray
-    | _ -> failwith "Replay.decode_puyo"
-  in
-  Puyo.make c
-
-let codec_puyo =
-  Bin.convert encode_puyo decode_puyo Bin.int
-
 let codec_cell =
   Bin.convert
     (fun c -> c.Cell.puyo)

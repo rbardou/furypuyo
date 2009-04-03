@@ -50,3 +50,28 @@ let to_string p =
     | Blue -> "Blue"
     | Yellow -> "Yellow"
     | Gray -> "Gray"
+
+let encode_color = function
+  | Red -> 0
+  | Green -> 1
+  | Blue -> 2
+  | Yellow -> 3
+  | Gray -> 4
+
+let decode_color = function
+  | 0 -> Red
+  | 1 -> Green
+  | 2 -> Blue
+  | 3 -> Yellow
+  | 4 -> Gray
+  | _ -> failwith "Puyo.decode_color"
+
+let encode p = p.color
+
+let decode c = make c
+
+let codec_color =
+  Bin.convert encode_color decode_color Bin.int
+
+let codec =
+  Bin.convert encode decode codec_color
