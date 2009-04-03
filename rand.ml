@@ -28,11 +28,25 @@
 (* OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.   *)
 (**************************************************************************)
 
-type t = int
+(* We cannot use the Random module, because it does not allow to save and
+   reload the state of the PRNG, and is not persistent. So this is just an
+   implementation of the UNIX PRNG. Anyway, for this game we do not really
+   need a very good PNRG. *)
+
+(* X(n+1) = (a * X(n) + c) mod m, where m = 2^32 *)
+
+let a = 1103515245l
+let c = 12345l
+
+type t = Int32.t
 
 let self_init () =
   Random.self_init ();
-  0
+  Int32.of_int (Random.bits ())
 
 let int r bound =
-  r, Random.int bound
+  let rand = Int32.to_int (Int32.rem (Int32.abs r) (Int32.of_int bound)) in
+  let next = Int32.add (Int32.mul a r) c in
+  next, rand
+
+let codec = Bin.int32
