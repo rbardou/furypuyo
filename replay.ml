@@ -73,6 +73,182 @@ let codec_cell =
     (fun p -> { Cell.puyo = p })
     (Bin.option Puyo.codec)
 
+let encode_game_state buf s =
+  let w x = Bin.write buf x in
+  match s with
+    | Starting s ->
+        w Bin.int 0;
+        w Bin.int s.s_countdown;
+        w Bin.int s.s_next
+    | Incoming s ->
+        w Bin.int 1;
+        w Block.codec s.inc_block;
+        w Bin.int s.inc_x;
+        w Bin.int s.inc_y;
+        w Bin.int s.inc_insert_time;
+        w Bin.bool s.inc_fast_fall
+    | Inserting s ->
+        w Bin.int 2;
+        w Bin.int s.ins_end
+    | Falling s ->
+        w Bin.int 3;
+        w (Bin.list (Bin.triple Bin.int Bin.int Puyo.codec)) s.f_puyos;
+        w Bin.int s.f_y;
+        w Bin.int s.f_speed
+    | Popping s ->
+        w Bin.int 4;
+        w Bin.int s.pop_end;
+        w (Bin.list (Bin.couple Bin.int Bin.int)) s.pop_puyos;
+        w Bin.int s.pop_score_base;
+        w Bin.int s.pop_score_mult;
+        w Bin.int s.pop_chain
+    | GameOver s ->
+        w Bin.int 5;
+        w Bin.int s.go_speed;
+        w Bin.int s.go_y;
+        w Bin.int s.go_end
+
+let decode_game_state buf =
+  let r x = Bin.read buf x in
+  match r Bin.int with
+    | 0 ->
+        let countdown = r Bin.int in
+        let next = r Bin.int in
+        Starting {
+          s_countdown = countdown;
+          s_next = next;
+        }
+    | 1 ->
+        let block = r Block.codec in
+        let x = r Bin.int in
+        let y = r Bin.int in
+        let insert_time = r Bin.int in
+        let fast_fall = r Bin.bool in
+        Incoming {
+          inc_block = block;
+          inc_x = x;
+          inc_y = y;
+          inc_insert_time = insert_time;
+          inc_fast_fall = fast_fall;
+        }
+    | 2 ->
+        let ins_end = r Bin.int in
+        Inserting {
+          ins_end = ins_end;
+        }
+    | 3 ->
+        let puyos = r (Bin.list (Bin.triple Bin.int Bin.int Puyo.codec)) in
+        let y = r Bin.int in
+        let speed = r Bin.int in
+        Falling {
+          f_puyos = puyos;
+          f_y = y;
+          f_speed = speed;
+        }
+    | 4 ->
+        let pop_end = r Bin.int in
+        let puyos = r (Bin.list (Bin.couple Bin.int Bin.int)) in
+        let score_base = r Bin.int in
+        let score_mult = r Bin.int in
+        let chain = r Bin.int in
+        Popping {
+          pop_end = pop_end;
+          pop_puyos = puyos;
+          pop_score_base = score_base;
+          pop_score_mult = score_mult;
+          pop_chain = chain;
+        }
+    | 5 ->
+        let speed = r Bin.int in
+        let y = r Bin.int in
+        let go_end = r Bin.int in
+        GameOver {
+          go_speed = speed;
+          go_y = y;
+          go_end = go_end;
+        }
+    | _ -> failwith "Replay.decode_game_state"
+
+let codec_game_state =
+  Bin.custom encode_game_state decode_game_state
+
+let encode_game_speed buf s =
+  let w x = Bin.write buf x in
+  w Bin.int s.sp_fall_absorb;
+  w Bin.int s.sp_fall;
+  w Bin.int s.sp_fall_fast;
+  w Bin.int s.sp_insert_delay;
+  w Bin.int s.sp_gravity;
+  w Bin.int s.sp_pop_delay;
+  w Bin.int s.sp_fury_initial_delay;
+  w Bin.int s.sp_fury_acceleration;
+  w Bin.int s.sp_fury_minimum_delay;
+  w Bin.int s.sp_fury_initial;
+  w Bin.int s.sp_fury_gravity;
+  w Bin.int s.sp_fury_pop_delay
+
+let decode_game_speed buf =
+  let r x = Bin.read buf x in
+  let sp_fall_absorb = r Bin.int in
+  let sp_fall = r Bin.int in
+  let sp_fall_fast = r Bin.int in
+  let sp_insert_delay = r Bin.int in
+  let sp_gravity = r Bin.int in
+  let sp_pop_delay = r Bin.int in
+  let sp_fury_initial_delay = r Bin.int in
+  let sp_fury_acceleration = r Bin.int in
+  let sp_fury_minimum_delay = r Bin.int in
+  let sp_fury_initial = r Bin.int in
+  let sp_fury_gravity = r Bin.int in
+  let sp_fury_pop_delay = r Bin.int in
+  {
+    sp_fall_absorb = sp_fall_absorb;
+    sp_fall = sp_fall;
+    sp_fall_fast = sp_fall_fast;
+    sp_insert_delay = sp_insert_delay;
+    sp_gravity = sp_gravity;
+    sp_pop_delay = sp_pop_delay;
+    sp_fury_initial_delay = sp_fury_initial_delay;
+    sp_fury_acceleration = sp_fury_acceleration;
+    sp_fury_minimum_delay = sp_fury_minimum_delay;
+    sp_fury_initial = sp_fury_initial;
+    sp_fury_gravity = sp_fury_gravity;
+    sp_fury_pop_delay = sp_fury_pop_delay;
+  }
+
+let codec_game_speed =
+  Bin.custom encode_game_speed decode_game_speed
+
+let encode_fury_state buf f =
+  let w x = Bin.write buf x in
+  match f with
+    | FNone ->
+        w Bin.int 0
+    | FInitial i ->
+        w Bin.int 1;
+        w Bin.int i
+    | FDown (a, b) ->
+        w Bin.int 2;
+        w Bin.int a;
+        w Bin.int b
+
+let decode_fury_state buf =
+  let r x = Bin.read buf x in
+  match r Bin.int with
+    | 0 ->
+        FNone
+    | 1 ->
+        let i = r Bin.int in
+        FInitial i
+    | 2 ->
+        let a = r Bin.int in
+        let b = r Bin.int in
+        FDown (a, b)
+    | _ -> failwith "Replay.decode_fury_state"
+
+let codec_fury_state =
+  Bin.custom encode_fury_state decode_fury_state
+
 let encode_game buf game =
   let w x = Bin.write buf x in
   w Bin.int game.now;
@@ -89,13 +265,13 @@ let encode_game buf game =
   w Bin.bool game.garbage_protection;
   w Bin.int game.garbage_position;
   w Bin.int game.offsets;
-  w codec_fury_state game.fury_state
+  w codec_fury_state game.fury
   (* do not save Gfx *)
 
 let decode_game buf =
-  let r = Bin.read buf in
-  let now = r Bin.int game.now in
-  let field = r (Matrix.codec Cell.codec) in
+  let r x = Bin.read buf x in
+  let now = r Bin.int in
+  let field = r (Matrix.codec codec_cell) in
   let rand = r Rand.codec in
   let generator = r Generator.codec in
   let state = r codec_game_state in
