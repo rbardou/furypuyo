@@ -71,7 +71,7 @@ let codec_cell =
   Bin.convert
     (fun c -> c.Cell.puyo)
     (fun p -> { Cell.puyo = p })
-    (Bin.option codec_puyo)
+    (Bin.option Puyo.codec)
 
 let encode_game buf game =
   let w x = Bin.write buf x in

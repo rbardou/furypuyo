@@ -31,112 +31,88 @@
 open Block
 open Puyo
 
-type state = int
+type kind =
+  | Two
+  | Three
+  | Four
+  | Big
 
 type t = {
-  generator: t -> Rand.t -> Rand.t * t * Block.t;
-  state: int;
+  sequence: kind array;
+  position: int;
 }
 
-let combinations l =
-  List.flatten (List.map (fun x -> List.map (fun y -> x, y) l) l)
+let make_two a b =
+  List0 [ 0, 0, Puyo.make a;
+          0, 1, Puyo.make b ]
 
-let next_colors f origin =
-  let rec next acc color =
-    let nc = f color in
-    if nc = origin then acc else next (nc :: acc) nc
+let make_three1 a b =
+  List1 [ 0, 0, Puyo.make a;
+          0, 1, Puyo.make a;
+          1, 0, Puyo.make b ]
+
+let make_three2 a b =
+  List0 [ 0, 0, Puyo.make a;
+          0, 1, Puyo.make a;
+          1, 1, Puyo.make b ]
+
+let make_four a b =
+  List2 [ 0, 0, Puyo.make a;
+          0, 1, Puyo.make a;
+          1, 0, Puyo.make b;
+          1, 1, Puyo.make b ]
+
+let make_big a =
+  let next =
+    match a with
+      | Red -> [ Green; Blue; Yellow ]
+      | Green -> [ Blue; Yellow; Red ]
+      | Blue -> [ Yellow; Red; Green ]
+      | Yellow -> [ Red; Green; Blue ]
+      | Gray -> assert false
   in
-  List.rev (next [] origin)
+  Quad (a, next)
 
-let next_in_list l c =
-  match l with
-    | [] -> c
-    | hd::tl ->
-        let rec find = function
-          | [] | [_] -> hd
-          | x::y::r -> if x = c then y else find (y::r)
-        in
-        find l
+let random_in list rand =
+  let rand, i = Rand.int rand (List.length list) in
+  rand, List.nth list i
 
-let twos colors =
-  List.map
-    (fun (a, b) -> List0 [ 0, 0, Puyo.make a;
-                           0, 1, Puyo.make b ])
-    (combinations colors)
+let colors = [ Red; Green; Blue; Yellow ]
 
-let threes1 colors =
-  List.map
-    (fun (a, b) -> List1 [ 0, 0, Puyo.make a;
-                           0, 1, Puyo.make a;
-                           1, 0, Puyo.make b ])
-    (combinations colors)
+let random_block rand = function
+  | Two ->
+      let rand, c1 = random_in colors rand in
+      let rand, c2 = random_in colors rand in
+      rand, make_two c1 c2
+  | Three ->
+      let rand, c1 = random_in colors rand in
+      let rand, c2 = random_in colors rand in
+      let rand, b = Rand.bool rand in
+      rand, (if b then make_three1 else make_three2) c1 c2
+  | Four ->
+      let rand, c1 = random_in colors rand in
+      let rand, c2 = random_in (List.filter ((<>) c1) colors) rand in
+      rand, make_four c1 c2
+  | Big ->
+      let rand, c1 = random_in colors rand in
+      rand, make_big c1
 
-let threes2 colors =
-  List.map
-    (fun (a, b) -> List0 [ 0, 0, Puyo.make a;
-                           0, 1, Puyo.make a;
-                           1, 1, Puyo.make b ])
-    (combinations colors)
+let next gen rand =
+  let pos = gen.position in
+  let new_pos = pos + 1 in
+  let new_pos = if new_pos >= Array.length gen.sequence then 0 else new_pos in
+  let gen = { gen with position = new_pos } in
+  let rand, block = random_block rand gen.sequence.(pos) in
+  rand, gen, block
 
-let twotwos colors =
-  let combs = combinations colors in
-  let combs = List.filter (fun (a, b) -> a <> b) combs in
-  List.map
-    (fun (a, b) -> List2 [ 0, 0, Puyo.make a;
-                           0, 1, Puyo.make a;
-                           1, 0, Puyo.make b;
-                           1, 1, Puyo.make b ])
-    combs
-
-let quads colors =
-  List.map (fun a -> Quad (a, next_colors (next_in_list colors) a)) colors
-
-let all_blocks colors =
-  twos colors @ threes1 colors @ threes2 colors @ twotwos colors @ quads colors
-
-let random_from blocks =
-  let blocks = Array.of_list blocks in
-  let count = Array.length blocks in
-  let gen state rand =
-    let rand, n = Rand.int rand count in
-    rand, state, blocks.(n)
-  in {
-    generator = gen;
-    state = 0;
+let nice =
+  {
+    sequence = [| Two; Two; Two; Three;
+                  Two; Two; Two; Big;
+                  Two; Two; Two; Three;
+                  Two; Two; Two; Four |];
+    position = 0;
   }
-
-let random colors =
-  random_from (all_blocks colors)
-
-let only_twos colors =
-  random_from (twos colors)
-
-let sequence l =
-  let blocks = Array.of_list (List.map Array.of_list l) in
-  let gen state rand =
-    let pos = state.state in
-    let pos = if pos < 0 || pos >= Array.length blocks then 0 else pos in
-    let blocks = blocks.(pos) in
-    let rand, n = Rand.int rand (Array.length blocks) in
-    rand, { state with state = pos + 1 }, blocks.(n)
-  in {
-    generator = gen;
-    state = 0;
-  }
-
-let nice colors =
-  sequence [
-    twos colors;
-    twos colors;
-    twos colors;
-    quads colors @ twotwos colors;
-    twos colors;
-    twos colors;
-    twos colors;
-    threes1 colors @ threes2 colors;
-  ]
-
-let next gen rand = gen.generator gen rand
 
 let encode_kind = function
   | Two -> 0

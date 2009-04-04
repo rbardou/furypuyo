@@ -36,4 +36,6 @@ val self_init: unit -> t
 
 val int: t -> int -> t * int
 
+val bool: t -> t * bool
+
 val codec: t Bin.t

@@ -44,9 +44,18 @@ let self_init () =
   Random.self_init ();
   Int32.of_int (Random.bits ())
 
+let next r = Int32.add (Int32.mul a r) c
+
 let int r bound =
-  let rand = Int32.to_int (Int32.rem (Int32.abs r) (Int32.of_int bound)) in
-  let next = Int32.add (Int32.mul a r) c in
-  next, rand
+  let rand =
+    Int32.to_int
+      (Int32.rem
+         (Int32.abs (if bound >= 65536 then r else Int32.shift_right r 16))
+         (Int32.of_int bound)) in
+  next r, rand
+
+let bool r =
+  let b = Int32.compare (Int32.logand r 1048576l) 0l > 0 in (* 21th bit *)
+  next r, b
 
 let codec = Bin.int32

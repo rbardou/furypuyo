@@ -774,7 +774,7 @@ let think_frame game actions =
   think game
 
 let start () =
-  let generator = Generator.nice [ Red; Green; Blue; Yellow ] in
+  let generator = Generator.nice in
   let rand = Rand.self_init () in
   let rand, generator, block1 = Generator.next generator rand in
   let rand, generator, block2 = Generator.next generator rand in
