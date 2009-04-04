@@ -276,6 +276,25 @@ let list a =
     dec = dec;
   }
 
+let array a =
+  let enc buf l =
+    let len = Array.length l in
+    encode_int buf len;
+    Array.iter (a.enc buf) l
+  in
+  let dec buf =
+    let len = decode_int buf in
+    let rec read acc = function
+      | 0 -> List.rev acc
+      | n -> read (a.dec buf :: acc) (n - 1)
+    in
+    Array.of_list (read [] len)
+  in
+  {
+    enc = enc;
+    dec = dec;
+  }
+
 let option a =
   let enc buf = function
     | Some x ->
