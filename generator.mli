@@ -41,3 +41,5 @@ val only_twos: Puyo.color list -> t
 val nice: Puyo.color list -> t
 
 val next: t -> Rand.t -> Rand.t * t * Block.t
+
+val codec: t Bin.t

@@ -137,3 +137,25 @@ let nice colors =
   ]
 
 let next gen rand = gen.generator gen rand
+
+let encode_kind = function
+  | Two -> 0
+  | Three -> 1
+  | Four -> 2
+  | Big -> 3
+
+let decode_kind = function
+  | 0 -> Two
+  | 1 -> Three
+  | 2 -> Four
+  | 3 -> Big
+  | _ -> failwith "Generator.decode_kind"
+
+let codec_kind =
+  Bin.convert encode_kind decode_kind Bin.int
+
+let codec =
+  Bin.convert
+    (fun x -> x.sequence, x.position)
+    (fun (s, p) -> { sequence = s; position = p })
+    (Bin.couple (Bin.array codec_kind) Bin.int)
