@@ -116,27 +116,27 @@ let rec single_player_loop game cpu replay: unit =
   else if game_finished game then
     enter_score game.Game.score replay
   else begin
+    let cpu_actions, cpu = Cpu.think game cpu in
+    let actions = actions @ cpu_actions in
     Replay.frame replay actions;
     let game = Game.think_frame game actions in
-    let game, cpu = Cpu.think game cpu in
     if !draw then Draw.draw game;
     draw := IO.frame_delay 10;
     single_player_loop game cpu replay
   end
 
-and replay_loop cpu replay: unit =
+and replay_loop replay: unit =
   let actions = Reader.read () in
   if List.mem Action.Escape actions then
-    replay_pause cpu replay
+    replay_pause replay
   else begin
     let game = Replay.next replay in
     if game_finished game then
       main_menu ()
     else begin
-      let game, cpu = Cpu.think game cpu in
       if !draw then Draw.draw game;
       draw := IO.frame_delay 10;
-      replay_loop cpu replay
+      replay_loop replay
     end
   end
 
@@ -161,7 +161,7 @@ and pause game cpu replay: unit =
     | `Quit ->
         quit ()
 
-and replay_pause cpu r: unit =
+and replay_pause r: unit =
   let choice =
     Menu.string_choices ~default: `Continue [
       "CONTINUE", `Continue;
@@ -173,7 +173,7 @@ and replay_pause cpu r: unit =
   match choice with
     | `Continue ->
         IO.timer_start ();
-        replay_loop cpu r
+        replay_loop r
     | `Restart ->
         replay r
     | `MainMenu ->
@@ -190,18 +190,14 @@ and single_player_game (): unit =
 
 and replay r: unit =
   Replay.play r;
-  let cpu = Cpu.start in
   IO.timer_start ();
-  replay_loop cpu r
+  replay_loop r
 
 and replay_file file: unit =
   let ch = open_in file in
-  let replay = Bin.read (Bin.from_channel ch) Replay.codec in
+  let r = Bin.read (Bin.from_channel ch) Replay.codec in
   close_in ch;
-  Replay.play replay;
-  let cpu = Cpu.start in
-  IO.timer_start ();
-  replay_loop cpu replay
+  replay r
 
 and main_menu (): unit =
   Draw.draw_empty ();

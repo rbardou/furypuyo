@@ -39,29 +39,43 @@ type t =
   | RLeft
   | RRight
   | InstaFall
+
+  | SendGarbage of int
+  | FinishGarbage
+
   | Debug
 
-let encode = function
-  | Escape -> 0
-  | MLeft -> 1
-  | MRight -> 2
-  | MDown -> 3
-  | MDownRelease -> 4
-  | RLeft -> 5
-  | RRight -> 6
-  | InstaFall -> 7
-  | Debug -> 8
+let encode buf v =
+  let w x = Bin.write buf x in
+  match v with
+    | Escape -> w Bin.int 0
+    | MLeft -> w Bin.int 1
+    | MRight -> w Bin.int 2
+    | MDown -> w Bin.int 3
+    | MDownRelease -> w Bin.int 4
+    | RLeft -> w Bin.int 5
+    | RRight -> w Bin.int 6
+    | InstaFall -> w Bin.int 7
+    | Debug -> w Bin.int 8
+    | SendGarbage i ->
+        w Bin.int 9;
+        w Bin.int i
+    | FinishGarbage -> w Bin.int 10
 
-let decode = function
-  | 0 -> Escape
-  | 1 -> MLeft
-  | 2 -> MRight
-  | 3 -> MDown
-  | 4 -> MDownRelease
-  | 5 -> RLeft
-  | 6 -> RRight
-  | 7 -> InstaFall
-  | 8 -> Debug
-  | _ -> failwith "Action.decode"
+let decode buf =
+  let r x = Bin.read buf x in
+  match r Bin.int with
+    | 0 -> Escape
+    | 1 -> MLeft
+    | 2 -> MRight
+    | 3 -> MDown
+    | 4 -> MDownRelease
+    | 5 -> RLeft
+    | 6 -> RRight
+    | 7 -> InstaFall
+    | 8 -> Debug
+    | 9 -> SendGarbage (r Bin.int)
+    | 10 -> FinishGarbage
+    | _ -> failwith "Action.decode"
 
-let codec = Bin.convert encode decode Bin.int
+let codec = Bin.custom encode decode

@@ -708,13 +708,21 @@ let act_incoming game is = function
   | _ -> game
 
 let act game input =
-  match game.state with
-    | Starting _
-    | Inserting _
-    | Falling _
-    | Popping _
-    | GameOver _ -> game
-    | Incoming is -> act_incoming game is input
+  match input with
+    | SendGarbage count ->
+        { game with garbage_incoming = game.garbage_incoming + count }
+    | FinishGarbage ->
+        { game with
+            garbage_incoming = 0;
+            garbage_ready = game.garbage_incoming }
+    | _ ->
+        match game.state with
+          | Starting _
+          | Inserting _
+          | Falling _
+          | Popping _
+          | GameOver _ -> game
+          | Incoming is -> act_incoming game is input
 
 let think_fury game =
   match game.fury with

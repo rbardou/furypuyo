@@ -33,7 +33,7 @@
 open Game
 
 (** in frames (1/100 seconds) *)
-let build_delay = 2000
+let build_delay = (*2000*) 300
 let link_delay = 100
 
 type cpu = {
@@ -51,11 +51,6 @@ let start = {
 }
 
 let finish game cpu =
-  let game =
-    { game with
-        garbage_incoming = 0;
-        garbage_ready = game.garbage_ready + game.garbage_incoming }
-  in
   let level, next_level =
     if cpu.next_level <= 1 then
       cpu.level + 1, 3
@@ -68,26 +63,25 @@ let finish game cpu =
       level = level;
       next_level = next_level }
   in
-  game, cpu
+  cpu
 
 let send_link game cpu =
   let chain = cpu.chain + 1 in
   let cpu = { cpu with chain = chain } in
   let garb = ceil_div (40 * (chain_mult game chain + 4)) 120 in
-  let game = { game with garbage_incoming = game.garbage_incoming + garb } in
   if chain >= cpu.level then
-    finish game cpu
+    [ Action.SendGarbage garb; Action.FinishGarbage ], finish game cpu
   else
-    game, cpu
+    [ Action.SendGarbage garb ], cpu
 
 let think game cpu =
   match game.state with
-    | GameOver _ -> game, cpu
+    | GameOver _ -> [], cpu
     | _ ->
         if game.now >= cpu.start then
           if (cpu.start - game.now) mod link_delay = 0 then
             send_link game cpu
           else
-            game, cpu
+            [], cpu
         else
-          game, cpu
+          [], cpu
