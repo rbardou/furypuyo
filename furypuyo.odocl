@@ -1,4 +1,5 @@
 Action
+Bin
 Block
 Cell
 Config
@@ -14,6 +15,7 @@ Main
 Matrix
 Menu
 Misc
+Net
 Puyo
 Rand
 Replay
