@@ -27,8 +27,8 @@ clean:
 
 nettest:
 	$(OCAMLBUILD) -I bin -I net -I net/test client.native server.native
-	ln -f -s _build/net/test/client.native net/test/client
-	ln -f -s _build/net/test/server.native net/test/server
+	ln -f -s ../../_build/net/test/client.native net/test/client
+	ln -f -s ../../_build/net/test/server.native net/test/server
 
 distclean dist-clean: clean
 	rm -f *~

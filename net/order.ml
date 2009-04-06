@@ -28,7 +28,7 @@
 (* OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.   *)
 (**************************************************************************)
 
-open Misc
+open Netmisc
 
 type 'a orderer = {
   frame: 'a Frame.frame;

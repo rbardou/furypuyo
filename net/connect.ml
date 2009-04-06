@@ -83,15 +83,32 @@ let send_c = function
   | Server sc -> send_sc sc
   | Client cc -> send_cc cc
 
-let server_bind ?addr port =
-  let sock = socket () in
+let encode codec buf = function
+  | Hello -> Bin.write buf Bin.int 0
+  | Accept -> Bin.write buf Bin.int 1
+  | Message m -> Bin.write buf Bin.int 2; Bin.write buf codec m
+  | Bye -> Bin.write buf Bin.int 3
+
+let decode codec buf =
+  match Bin.read buf Bin.int with
+    | 0 -> Hello
+    | 1 -> Accept
+    | 2 -> Message (Bin.read buf codec)
+    | 3 -> Bye
+    | _ -> failwith "Connect.decode"
+
+let convert_codec codec =
+  Bin.custom (encode codec) (decode codec)
+
+let server_bind ?addr port codec =
+  let sock = socket (convert_codec codec) in
   bind sock ?addr port;
   sock
 
-let listen ?(addr = []) port =
+let listen ?(addr = []) port codec =
   let sockets = match addr with
-    | [] -> [ server_bind port ]
-    | _ -> List.map (fun addr -> server_bind ~addr port) addr
+    | [] -> [ server_bind port codec ]
+    | _ -> List.map (fun addr -> server_bind ~addr port codec) addr
   in
   {
     s_active = true;
@@ -239,8 +256,8 @@ let ready c =
     | Client c -> c.cc_ready
     | Server c -> true
 
-let connect addr port =
-  let sock = socket () in
+let connect addr port codec =
+  let sock = socket (convert_codec codec) in
   let client = {
     cc_hello_last = Time.now ();
     cc_hello_delay = Time.ms initial_resend_delay;

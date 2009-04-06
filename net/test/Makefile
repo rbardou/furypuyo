@@ -1,2 +1,4 @@
 default:
-	make -C .. test
+	LANG=C make -C .. nettest
+
+.PHONY: default

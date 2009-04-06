@@ -38,11 +38,13 @@ module type PROTOCOL = sig
   type message
   val channel: message -> int
   val channels: (int * channel_kind) list
+  val codec: message Bin.t
 end
 
 module type SIMPLEPROTOCOL = sig
   type message
   val kind: channel_kind
+  val codec: message Bin.t
 end
 
 module type NET = sig
@@ -79,7 +81,10 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
 
   type server = message Frame.m Channel.m Connect.server
 
-  let listen ?addr port = Connect.listen ?addr port
+  let codec = Channel.codec (Frame.codec P.codec)
+
+  let listen ?addr port =
+    Connect.listen ?addr port codec
 
   let make_connection cx =
     let frames =
@@ -112,7 +117,8 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
   let accept ?max (serv: server) =
     List.map make_connection (Connect.accept ?max serv)
 
-  let connect addr port = make_connection (Connect.connect addr port)
+  let connect addr port =
+    make_connection (Connect.connect addr port codec)
 
   let close cx = Connect.close cx.connection
 
@@ -168,6 +174,7 @@ struct
   type message = P.message
   let channel _ = 0
   let channels = [ 0, P.kind ]
+  let codec = P.codec
 end
 
 module Simple(P: SIMPLEPROTOCOL): NET with type message = P.message =

@@ -56,6 +56,9 @@ module type PROTOCOL = sig
 
   val channels: (int * channel_kind) list
     (** List of all channels used by the protocol. *)
+
+  val codec: message Bin.t
+    (** Message coder and encoder. *)
 end
 
 (** Simple protocol definition *)
@@ -65,6 +68,9 @@ module type SIMPLEPROTOCOL = sig
 
   val kind: channel_kind
     (** Channel kind of the protocol.*)
+
+  val codec: message Bin.t
+    (** Message coder and encoder. *)
 end
 
 (** Protocol implementation *)

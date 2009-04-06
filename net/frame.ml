@@ -131,3 +131,25 @@ let next frame =
 
 let size frame =
   frame.size
+
+let encode a buf = function
+  | Message (id, m) ->
+      Bin.write buf Bin.int 0;
+      Bin.write buf Bin.int id;
+      Bin.write buf a m
+  | Acknowledge id ->
+      Bin.write buf Bin.int 1;
+      Bin.write buf Bin.int id
+
+let decode a buf =
+  match Bin.read buf Bin.int with
+    | 0 ->
+        let id = Bin.read buf Bin.int in
+        let m = Bin.read buf a in
+        Message (id, m)
+    | 1 ->
+        Acknowledge (Bin.read buf Bin.int)
+    | _ -> failwith "Frame.decode"
+
+let codec a =
+  Bin.custom (encode a) (decode a)

@@ -49,3 +49,5 @@ val receive: 'a channel -> 'a list
 
 val receive_all: 'a m connection -> ('a channel * 'a) list
   (** Receive data of all channels. *)
+
+val codec: 'a Bin.t -> 'a m Bin.t

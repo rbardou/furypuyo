@@ -48,7 +48,7 @@ val addr: string -> int -> addr
       [addr a p] is the internet address [a], which may be an IP, IPv6 or DNS
       address, on port [p]. *)
 
-val socket: unit -> 'a socket
+val socket: 'a Bin.t -> 'a socket
   (** Make a new UDP socket. *)
 
 val bind: 'a socket -> ?addr: string -> int -> unit

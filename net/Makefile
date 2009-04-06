@@ -1,4 +1,6 @@
-default:
-	LANG=C make -C .. nettest
+default: nettest
 
-.PHONY: default
+nettest clean:
+	LANG=C make -C .. $@
+
+.PHONY: default clean nettest

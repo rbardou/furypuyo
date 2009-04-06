@@ -32,7 +32,10 @@ open Unix
 
 exception Network_error of string * string
 
-type 'a socket = file_descr
+type 'a socket = {
+  fd: file_descr;
+  codec: 'a Bin.t;
+}
 
 type addr = sockaddr
 
@@ -47,10 +50,13 @@ let addr addr port =
 
 let make_addr = addr
 
-let socket () =
+let socket codec =
   let sock = Unix.socket PF_INET SOCK_DGRAM 0 in
   Unix.set_nonblock sock;
-  sock
+  {
+    fd = sock;
+    codec = codec;
+  }
 
 let bind sock ?addr port =
   let addr =
@@ -58,27 +64,29 @@ let bind sock ?addr port =
       | None -> ADDR_INET (inet_addr_any, port)
       | Some addr -> make_addr addr port
   in
-  Unix.bind sock addr
+  Unix.bind sock.fd addr
 
 let close sock =
-  Unix.close sock
+  Unix.close sock.fd
 
 let maximum_packet_size = 512
 
 let send sock addr msg =
-  let buf = Marshal.to_string msg [] in
+  let buf = Buffer.create maximum_packet_size in
+  Bin.write (Bin.to_buffer buf) sock.codec msg;
+  let buf = Buffer.contents buf in
   let len = String.length buf in
   assert (len <= maximum_packet_size);
-  let sent = Unix.sendto sock buf 0 len [] addr in
+  let sent = Unix.sendto sock.fd buf 0 len [] addr in
   assert (sent = len)
 
 let receive_one (sock: 'a socket) =
   let len = maximum_packet_size in
   let buf = String.create len in
   try
-    let real_len, addr = Unix.recvfrom sock buf 0 len [] in
+    let real_len, addr = Unix.recvfrom sock.fd buf 0 len [] in
     assert (real_len > 0);
-    Some (addr, (Marshal.from_string buf 0: 'a))
+    Some (addr, (Bin.read (Bin.from_string buf) sock.codec))
   with
     | Unix_error ((EAGAIN | EWOULDBLOCK), _, _) ->
         None

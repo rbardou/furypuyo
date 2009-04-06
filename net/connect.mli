@@ -36,7 +36,7 @@ type 'a connection
 type 'a server
   (** The type of servers. *)
 
-val listen: ?addr: string list -> int -> 'a server
+val listen: ?addr: string list -> int -> 'a Bin.t -> 'a server
   (** Make a new server.
 
       [listen port]: make a server listening on [port] on addresses [addr].
@@ -48,7 +48,7 @@ val accept: ?max: int -> 'a server -> 'a connection list
       [accept serv]: accept incoming connections on server [serv]. At most
       [max] connections are returned (default is infinite). *)
 
-val connect: string -> int -> 'a connection
+val connect: string -> int -> 'a Bin.t -> 'a connection
   (** Connect to a server.
 
       [connect addr port]: connect to server at address [addr]

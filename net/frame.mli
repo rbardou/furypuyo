@@ -92,3 +92,5 @@ val size: 'a frame -> int
   (** Return the size of the frame.
 
       This is the [size] parameter given to [start]. *)
+
+val codec: 'a Bin.t -> 'a m Bin.t
