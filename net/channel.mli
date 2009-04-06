@@ -35,19 +35,19 @@ open Connect
 type 'a m
   (** The type of messages transmitted by a channel on a connection. *)
 
-type 'a channel
+type ('a, 'b) channel
   (** The type of connections. *)
 
-val channel: 'a m connection -> int -> 'a channel
+val channel: ('a m, 'b m) connection -> int -> ('a, 'b) channel
   (** Get a channel of a connection. *)
 
-val send: 'a channel -> 'a -> unit
+val send: ('a, 'b) channel -> 'a -> unit
   (** Send data over a channel. *)
 
-val receive: 'a channel -> 'a list
+val receive: ('a, 'b) channel -> 'b list
   (** Receive data over a channel. *)
 
-val receive_all: 'a m connection -> ('a channel * 'a) list
+val receive_all: ('a m, 'b m) connection -> (('a, 'b) channel * 'b) list
   (** Receive data of all channels. *)
 
 val codec: 'a Bin.t -> 'a m Bin.t

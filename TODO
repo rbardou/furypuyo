@@ -21,6 +21,8 @@ Network
 * find out ping to change initial resend delay
 * split packets which are too big
 * finish sending important packets before closing
+* put Channel before Connect
+* change Connect to split sent and received messages (Hello and Accept)
 
 Other
 =====

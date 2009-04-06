@@ -75,11 +75,17 @@ end
 
 (** Protocol implementation *)
 module type NET = sig
-  type message
-    (** The type of messages sent and received in the protocol. *)
+  type message_to_server
+    (** The type of messages sent to server in the protocol. *)
 
-  type connection
-    (** The type of connections. *)
+  type message_to_client
+    (** The type of messages sent to client in the protocol. *)
+
+  type ('a, 'b) connection
+    (** The type of connections.
+
+        An [('a, 'b)] connection sends ['a] packets and receives
+        ['b] packets. *)
 
   type server
     (** The type of servers. *)
@@ -90,19 +96,21 @@ module type NET = sig
         [listen port]: make a server listening on [port] on addresses [addr].
         If [addr] is omitted, listen to all addresses. *)
 
-  val accept: ?max: int -> server -> connection list
+  val accept: ?max: int -> server ->
+    (message_to_client, message_to_server) connection list
     (** Accept pending connections.
 
         [accept serv]: accept incoming connections on server [serv]. At most
         [max] connections are returned (default is infinite). *)
 
-  val connect: string -> int -> connection
+  val connect: string -> int ->
+    (message_to_server, message_to_client) connection
     (** Connect to a server.
 
         [connect addr port]: connect to server at address [addr]
         on port [port]. *)
 
-  val close: connection -> unit
+  val close: ('a, 'b) connection -> unit
     (** Close a connection.
 
         Packets that have not been received yet are lost. *)
@@ -110,35 +118,39 @@ module type NET = sig
   val stop: server -> unit
     (** Stop a server. *)
 
-  val ready: connection -> bool
+  val ready: ('a, 'b) connection -> bool
     (** Test if a connection is ready.
 
         Connections returned by [accept] are already ready. Connections returned
         by [connect] are not ready until the server accepts the connection. *)
 
-  val active: connection -> bool
+  val active: ('a, 'b) connection -> bool
     (** Test if a connection has been closed.
 
         Return [false] if one of the peers have closed the connection. *)
 
-  val send: connection -> message -> unit
+  val send: ('a, 'b) connection -> 'a -> unit
     (** Send data over a connection. *)
 
-  val receive: connection -> message list
+  val receive: ('a, 'b) connection -> 'b list
     (** Receive data over a connection. *)
 
-  val remote_address: connection -> string
+  val remote_address: ('a, 'b) connection -> string
     (** Get the remote address of a connection. *)
 
-  val remote_port: connection -> int
+  val remote_port: ('a, 'b) connection -> int
     (** Get the remote port of a connection. *)
 end
 
 (** Make a protocol *)
-module Make(P: PROTOCOL): NET with type message = P.message
+module Make(ToServer: PROTOCOL)(ToClient: PROTOCOL): NET
+  with type message_to_server = ToServer.message
+  with type message_to_client = ToClient.message
 
 (** Make a protocol definition from a simple definition *)
 module SimpleDef(P: SIMPLEPROTOCOL): PROTOCOL with type message = P.message
 
 (** Make a simple protocol *)
-module Simple(P: SIMPLEPROTOCOL): NET with type message = P.message
+module Simple(ToServer: SIMPLEPROTOCOL)(ToClient: SIMPLEPROTOCOL): NET
+  with type message_to_server = ToServer.message
+  with type message_to_client = ToClient.message

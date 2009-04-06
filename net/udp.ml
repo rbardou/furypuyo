@@ -32,9 +32,10 @@ open Unix
 
 exception Network_error of string * string
 
-type 'a socket = {
+type ('a, 'b) socket = {
   fd: file_descr;
-  codec: 'a Bin.t;
+  codec_send: 'a Bin.t;
+  codec_receive: 'b Bin.t;
 }
 
 type addr = sockaddr
@@ -50,12 +51,13 @@ let addr addr port =
 
 let make_addr = addr
 
-let socket codec =
+let socket codec_send codec_receive =
   let sock = Unix.socket PF_INET SOCK_DGRAM 0 in
   Unix.set_nonblock sock;
   {
     fd = sock;
-    codec = codec;
+    codec_send = codec_send;
+    codec_receive = codec_receive;
   }
 
 let bind sock ?addr port =
@@ -73,20 +75,20 @@ let maximum_packet_size = 512
 
 let send sock addr msg =
   let buf = Buffer.create maximum_packet_size in
-  Bin.write (Bin.to_buffer buf) sock.codec msg;
+  Bin.write (Bin.to_buffer buf) sock.codec_send msg;
   let buf = Buffer.contents buf in
   let len = String.length buf in
   assert (len <= maximum_packet_size);
   let sent = Unix.sendto sock.fd buf 0 len [] addr in
   assert (sent = len)
 
-let receive_one (sock: 'a socket) =
+let receive_one sock =
   let len = maximum_packet_size in
   let buf = String.create len in
   try
     let real_len, addr = Unix.recvfrom sock.fd buf 0 len [] in
     assert (real_len > 0);
-    Some (addr, (Bin.read (Bin.from_string buf) sock.codec))
+    Some (addr, (Bin.read (Bin.from_string buf) sock.codec_receive))
   with
     | Unix_error ((EAGAIN | EWOULDBLOCK), _, _) ->
         None

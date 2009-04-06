@@ -35,7 +35,7 @@ open Frame
 type 'a orderer
   (** The type of automatically reordering reception buffers. *)
 
-val start: ?size: int -> 'a frame -> 'a orderer
+val start: ?size: int -> ('a, 'b) frame -> 'b orderer
   (** Make a reordering reception buffer from a frame.
 
       The ordered ensures that if [id] is delivered, a message before [id] can

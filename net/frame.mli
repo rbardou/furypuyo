@@ -43,34 +43,34 @@ open Channel
 type 'a m
   (** The type of messages transmitted by a frame on a channel. *)
 
-type 'a frame
+type ('a, 'b) frame
   (** The type of framed connections. *)
 
-val start: ?size: int -> 'a m channel -> 'a frame
+val start: ?size: int -> ('a m, 'b m) channel -> ('a, 'b) frame
   (** Start framing on a channel.
 
       @param size the maximum number of messages in the frame. Bigger sizes
       mean we have to keep more information to avoid duplicates but will reduce
       latency. Default is 100. *)
 
-val send: ?ack: (unit -> unit) -> 'a frame -> 'a -> unit
+val send: ?ack: (unit -> unit) -> ('a, 'b) frame -> 'a -> unit
   (** Send data over a framed channel.
 
       @param ack function to call if an acknowledgement is received for the
       message. *)
 
-val resend: 'a frame -> int -> 'a -> unit
+val resend: ('a, 'b) frame -> int -> 'a -> unit
   (** Resend a message.
 
       [resend frame id msg]: resend message [msg] with identifier [id].
       The message is instantly resent, it is not put in a buffer. *)
 
-val receive: 'a frame -> (int * 'a) list
+val receive: ('a, 'b) frame -> (int * 'b) list
   (** Receive data over a framed channel.
 
       Also return the identifier of messages. *)
 
-val shift: 'a frame -> int -> unit
+val shift: ('a, 'b) frame -> int -> unit
   (** Shift sending frame.
 
       [shift f id]: assume that all messages (stricly) before [id] have been
@@ -79,16 +79,16 @@ val shift: 'a frame -> int -> unit
       You may typically call this function in the acknowledgement callback
       if some messages you sent were not important. *)
 
-val position: 'a frame -> int
+val position: ('a, 'b) frame -> int
   (** Get the current position of the sending frame.
 
       [position frame]: return the current position of the sending frame.
       All messages before this position are assumed received or unimportant. *)
 
-val next: 'a frame -> int
+val next: ('a, 'b) frame -> int
   (** Return the identifier of the next message that will be sent. *)
 
-val size: 'a frame -> int
+val size: ('a, 'b) frame -> int
   (** Return the size of the frame.
 
       This is the [size] parameter given to [start]. *)

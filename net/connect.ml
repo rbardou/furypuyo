@@ -39,19 +39,19 @@ type 'a msg =
   | Message of 'a
   | Bye
 
-type 'a server = {
+type ('a, 'b) server = {
   mutable s_active: bool;
-  s_sockets: 'a msg socket list;
-  s_hellos: ('a msg socket * addr) Queue.t;
-  mutable s_connections: 'a server_connection list;
+  s_sockets: ('a msg, 'b msg) socket list;
+  s_hellos: (('a msg, 'b msg) socket * addr) Queue.t;
+  mutable s_connections: ('a, 'b) server_connection list;
 }
 
-and 'a server_connection = {
-  sc_server: 'a server;
-  sc_socket: 'a msg socket;
+and ('a, 'b) server_connection = {
+  sc_server: ('a, 'b) server;
+  sc_socket: ('a msg, 'b msg) socket;
   mutable sc_active: bool;
   sc_remote_addr: addr;
-  mutable sc_buffer: 'a list;
+  mutable sc_buffer: 'b list;
 }
 
 let add_server_connection set connection =
@@ -63,19 +63,19 @@ let remove_server_connection set connection =
 let find_server_connection set addr =
   List.find (fun c -> c.sc_remote_addr = addr) set
 
-type 'a client_connection = {
+type ('a, 'b) client_connection = {
   mutable cc_hello_last: Time.t;
   mutable cc_hello_delay: Time.d;
   mutable cc_ready: bool;
   mutable cc_active: bool;
-  cc_socket: 'a msg socket;
+  cc_socket: ('a msg, 'b msg) socket;
   cc_remote_addr: addr;
-  mutable cc_buffer: 'a list;
+  mutable cc_buffer: 'b list;
 }
 
-type 'a connection =
-  | Client of 'a client_connection
-  | Server of 'a server_connection
+type ('a, 'b) connection =
+  | Client of ('a, 'b) client_connection
+  | Server of ('a, 'b) server_connection
 
 let send_sc c = Udp.send c.sc_socket c.sc_remote_addr
 let send_cc c = Udp.send c.cc_socket c.cc_remote_addr
@@ -100,15 +100,19 @@ let decode codec buf =
 let convert_codec codec =
   Bin.custom (encode codec) (decode codec)
 
-let server_bind ?addr port codec =
-  let sock = socket (convert_codec codec) in
+let server_bind ?addr port codec_send codec_receive =
+  let sock = socket (convert_codec codec_send) (convert_codec codec_receive) in
   bind sock ?addr port;
   sock
 
-let listen ?(addr = []) port codec =
+let listen ?(addr = []) port codec_send codec_receive =
   let sockets = match addr with
-    | [] -> [ server_bind port codec ]
-    | _ -> List.map (fun addr -> server_bind ~addr port codec) addr
+    | [] ->
+        [ server_bind port codec_send codec_receive ]
+    | _ ->
+        List.map
+          (fun addr -> server_bind ~addr port codec_send codec_receive)
+          addr
   in
   {
     s_active = true;
@@ -256,8 +260,8 @@ let ready c =
     | Client c -> c.cc_ready
     | Server c -> true
 
-let connect addr port codec =
-  let sock = socket (convert_codec codec) in
+let connect addr port codec_send codec_receive =
+  let sock = socket (convert_codec codec_send) (convert_codec codec_receive) in
   let client = {
     cc_hello_last = Time.now ();
     cc_hello_delay = Time.ms initial_resend_delay;

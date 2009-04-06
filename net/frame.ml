@@ -40,13 +40,13 @@ type ack_state =
   | Ack
 
 (* IDs between position and position + size - 1 are valid *)
-type 'a frame = {
-  channel: 'a m Channel.channel;
+type ('a, 'b) frame = {
+  channel: ('a m, 'b m) Channel.channel;
   size: int;
   ack: ack_state F.t; (* messages acknowledged by remote peer *)
   received: bool F.t; (* messages we received *)
   mutable next: int; (* next ID to send *)
-  mutable recv_buffer: (int * 'a) list; (* to deliver *)
+  mutable recv_buffer: (int * 'b) list; (* to deliver *)
   mutable send_buffer: (int * 'a * (unit -> unit)) list; (* oof to send *)
 }
 

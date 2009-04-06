@@ -31,7 +31,7 @@
 open Netmisc
 
 type 'a orderer = {
-  frame: 'a Frame.frame;
+  frame_receive: (unit -> (int * 'a) list);
   mutable next_deliverable: int;
   mutable buffer_before: (int * 'a) list;
   mutable buffer: 'a option F.t;
@@ -46,7 +46,7 @@ let start ?size frame =
           if size <= 0 then 0 else size
   in
   {
-    frame = frame;
+    frame_receive = (fun () -> Frame.receive frame);
     next_deliverable = 0;
     buffer_before = [];
     buffer = F.make size None None;
@@ -92,7 +92,7 @@ let message ord (id, msg) =
   end
 
 let update ord =
-  List.iter (message ord) (Frame.receive ord.frame)
+  List.iter (message ord) (ord.frame_receive ())
 
 let receive ord =
   update ord;

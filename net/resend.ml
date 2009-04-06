@@ -38,18 +38,22 @@ type 'a info = {
 }
 
 type 'a sender = {
-  frame: 'a Frame.frame;
+  frame_next: unit -> int;
+  frame_send: ?ack: (unit -> unit) -> 'a -> unit;
+  frame_resend: int -> 'a -> unit;
   buffer: (int, 'a info) Hashtbl.t;
 }
 
 let start frame =
   {
-    frame = frame;
+    frame_next = (fun () -> Frame.next frame);
+    frame_send = (fun ?ack -> Frame.send ?ack frame);
+    frame_resend = (Frame.resend frame);
     buffer = Hashtbl.create 17;
   }
 
 let send sender msg =
-  let id = Frame.next sender.frame in
+  let id = sender.frame_next () in
   let info =
     {
       msg = msg;
@@ -59,15 +63,15 @@ let send sender msg =
   in
   Hashtbl.add sender.buffer id info;
   let ack () = Hashtbl.remove sender.buffer id in
-  Frame.send ~ack sender.frame msg
+  sender.frame_send ~ack msg
 
-let check_resend frame id info =
+let check_resend frame_resend id info =
   let now = Time.now () in
   if now >= Time.shift info.last info.delay then begin
     info.last <- now;
     info.delay <- Time.multf info.delay resend_delay_rate;
-    Frame.resend frame id info.msg
+    frame_resend id info.msg
   end
 
 let update sender =
-  Hashtbl.iter (check_resend sender.frame) sender.buffer
+  Hashtbl.iter (check_resend sender.frame_resend) sender.buffer

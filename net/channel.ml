@@ -32,7 +32,7 @@ open Connect
 
 type 'a m = int * 'a
 
-type 'a channel = 'a m connection * int
+type ('a, 'b) channel = ('a m, 'b m) connection * int
 
 let channel c n = c, n
 

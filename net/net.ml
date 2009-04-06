@@ -48,77 +48,102 @@ module type SIMPLEPROTOCOL = sig
 end
 
 module type NET = sig
-  type message
-  type connection
+  type message_to_server
+  type message_to_client
+  type ('a, 'b) connection
   type server
   val listen: ?addr: string list -> int -> server
-  val accept: ?max: int -> server -> connection list
-  val connect: string -> int -> connection
-  val close: connection -> unit
+  val accept: ?max: int -> server ->
+    (message_to_client, message_to_server) connection list
+  val connect: string -> int ->
+    (message_to_server, message_to_client) connection
+  val close: ('a, 'b) connection -> unit
   val stop: server -> unit
-  val ready: connection -> bool
-  val active: connection -> bool
-  val send: connection -> message -> unit
-  val receive: connection -> message list
-  val remote_address: connection -> string
-  val remote_port: connection -> int
+  val ready: ('a, 'b) connection -> bool
+  val active: ('a, 'b) connection -> bool
+  val send: ('a, 'b) connection -> 'a -> unit
+  val receive: ('a, 'b) connection -> 'b list
+  val remote_address: ('a, 'b) connection -> string
+  val remote_port: ('a, 'b) connection -> int
 end
 
-module Make(P: PROTOCOL): NET with type message = P.message = struct
-  type message = P.message
+module Make(ToServer: PROTOCOL)(ToClient: PROTOCOL): NET
+  with type message_to_server = ToServer.message
+  with type message_to_client = ToClient.message =
+struct
+  type message_to_server = ToServer.message
+  type message_to_client = ToClient.message
 
-  type frame =
-    | FFast of message Frame.frame
-    | FFastOrdered of message Frame.frame * message Order.orderer
-    | FImportant of message Frame.frame * message Resend.sender
-    | FOrdered of message Frame.frame * message Resend.sender
-        * message Order.orderer
+  type ('a, 'b) frame =
+    | FFast of ('a, 'b) Frame.frame
+    | FFastOrdered of ('a, 'b) Frame.frame * 'b Order.orderer
+    | FImportant of ('a, 'b) Frame.frame * 'a Resend.sender
+    | FOrdered of ('a, 'b) Frame.frame * 'a Resend.sender
+        * 'b Order.orderer
 
-  type connection = {
-    connection: message Frame.m Channel.m Connect.connection;
-    frames: (int * frame) list;
+  type ('a, 'b) connection = {
+    connection: ('a Frame.m Channel.m, 'b Frame.m Channel.m) Connect.connection;
+    frames_send: (int * ('a, 'b) frame) list;
+    frames_receive: (int * ('a, 'b) frame) list;
+    channel_send: 'a -> int;
+    channel_receive: 'b -> int;
   }
 
-  type server = message Frame.m Channel.m Connect.server
+  type server =
+      (message_to_client Frame.m Channel.m,
+       message_to_server Frame.m Channel.m) Connect.server
 
-  let codec = Channel.codec (Frame.codec P.codec)
+  let codec_to_server = Channel.codec (Frame.codec ToServer.codec)
+  let codec_to_client = Channel.codec (Frame.codec ToClient.codec)
 
   let listen ?addr port =
-    Connect.listen ?addr port codec
+    Connect.listen ?addr port codec_to_client codec_to_server
 
-  let make_connection cx =
-    let frames =
-      List.map
-        (fun (ch, kind) ->
-           let frame = Frame.start (Channel.channel cx ch) in
-           let frame =
-             match kind with
-               | Fast ->
-                   FFast frame
-               | FastOrdered ->
-                   let receiver = Order.start ~size: 0 frame in
-                   FFastOrdered (frame, receiver)
-               | Important ->
-                   let sender = Resend.start frame in
-                   FImportant (frame, sender)
-               | Ordered ->
-                   let sender = Resend.start frame in
-                   let receiver = Order.start frame in
-                   FOrdered (frame, sender, receiver)
-           in
-           ch, frame)
-        P.channels
+  let make_frame cx (ch, kind) =
+    let frame = Frame.start (Channel.channel cx ch) in
+    let frame =
+      match kind with
+        | Fast ->
+            FFast frame
+        | FastOrdered ->
+            let receiver = Order.start ~size: 0 frame in
+            FFastOrdered (frame, receiver)
+        | Important ->
+            let sender = Resend.start frame in
+            FImportant (frame, sender)
+        | Ordered ->
+            let sender = Resend.start frame in
+            let receiver = Order.start frame in
+            FOrdered (frame, sender, receiver)
     in
+    ch, frame
+
+  let make_connection channels_send channels_receive ch_send ch_receive cx =
     {
       connection = cx;
-      frames = frames;
+      frames_send = List.map (make_frame cx) channels_send;
+      frames_receive = List.map (make_frame cx) channels_receive;
+      channel_send = ch_send;
+      channel_receive = ch_receive;
     }
 
   let accept ?max (serv: server) =
+    let make_connection =
+      make_connection
+        ToClient.channels
+        ToServer.channels
+        ToClient.channel
+        ToServer.channel
+    in
     List.map make_connection (Connect.accept ?max serv)
 
   let connect addr port =
-    make_connection (Connect.connect addr port codec)
+    make_connection
+      ToServer.channels
+      ToClient.channels
+      ToServer.channel      
+      ToClient.channel
+      (Connect.connect addr port codec_to_server codec_to_client)
 
   let close cx = Connect.close cx.connection
 
@@ -132,7 +157,11 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
 
   let remote_port cx = Connect.remote_port cx.connection
 
-  let frame cx msg = List.assoc (P.channel msg) cx.frames
+  let frame_send cx msg =
+    List.assoc (cx.channel_send msg) cx.frames_send
+
+  let frame_receive cx msg =
+    List.assoc (cx.channel_receive msg) cx.frames_receive
 
   let update_frame = function
     | FFast _
@@ -143,11 +172,12 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
         Resend.update sender
 
   let update cx =
-    List.iter (fun (_, frame) -> update_frame frame) cx.frames
+    List.iter (fun (_, frame) -> update_frame frame) cx.frames_send;
+    List.iter (fun (_, frame) -> update_frame frame) cx.frames_receive
 
   let send cx msg =
     update cx;
-    match frame cx msg with
+    match frame_send cx msg with
       | FFast frame
       | FFastOrdered (frame, _) ->
           Frame.send frame msg;
@@ -166,10 +196,12 @@ module Make(P: PROTOCOL): NET with type message = P.message = struct
 
   let receive cx =
     update cx;
-    List.flatten (List.map (fun (_, frame) -> receive_on frame) cx.frames)
+    List.flatten
+      (List.map (fun (_, frame) -> receive_on frame) cx.frames_receive)
 end
 
-module SimpleDef(P: SIMPLEPROTOCOL): PROTOCOL with type message = P.message =
+module SimpleDef(P: SIMPLEPROTOCOL): PROTOCOL
+  with type message = P.message =
 struct
   type message = P.message
   let channel _ = 0
@@ -177,5 +209,7 @@ struct
   let codec = P.codec
 end
 
-module Simple(P: SIMPLEPROTOCOL): NET with type message = P.message =
-  Make(SimpleDef(P))
+module Simple(ToServer: SIMPLEPROTOCOL)(ToClient: SIMPLEPROTOCOL): NET
+  with type message_to_server = ToServer.message
+  with type message_to_client = ToClient.message =
+  Make(SimpleDef(ToServer))(SimpleDef(ToClient))

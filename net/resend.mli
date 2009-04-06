@@ -38,7 +38,7 @@ open Frame
 type 'a sender
   (** The type of automatically resending buffers. *)
 
-val start: 'a frame -> 'a sender
+val start: ('a, 'b) frame -> 'a sender
   (** Make a resending buffer from a frame. *)
 
 val send: 'a sender -> 'a -> unit

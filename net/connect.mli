@@ -30,64 +30,70 @@
 
 (** Client / server connections *)
 
-type 'a connection
-  (** The type of connections. *)
+type ('a, 'b) connection
+  (** The type of connections.
 
-type 'a server
-  (** The type of servers. *)
+      An [('a, 'b)] connection sends packets of type ['a] and receives packets
+      of type ['b]. *)
 
-val listen: ?addr: string list -> int -> 'a Bin.t -> 'a server
+type ('a, 'b) server
+  (** The type of servers.
+
+      An [('a, 'b)] server provides [('a, 'b)] connections. You should connect
+      [('b, 'a)] connections to an [('a, 'b)] server. *)
+
+val listen: ?addr: string list -> int -> 'a Bin.t -> 'b Bin.t -> ('a, 'b) server
   (** Make a new server.
 
       [listen port]: make a server listening on [port] on addresses [addr].
       If [addr] is omitted, listen to all addresses. *)
 
-val accept: ?max: int -> 'a server -> 'a connection list
+val accept: ?max: int -> ('a, 'b) server -> ('a, 'b) connection list
   (** Accept pending connections.
 
       [accept serv]: accept incoming connections on server [serv]. At most
       [max] connections are returned (default is infinite). *)
 
-val connect: string -> int -> 'a Bin.t -> 'a connection
+val connect: string -> int -> 'a Bin.t -> 'b Bin.t -> ('a, 'b) connection
   (** Connect to a server.
 
       [connect addr port]: connect to server at address [addr]
       on port [port]. *)
 
-val close: 'a connection -> unit
+val close: ('a, 'b) connection -> unit
   (** Close a connection.
 
       Packets that have not been received yet are lost. *)
 
-val stop: 'a server -> unit
+val stop: ('a, 'b) server -> unit
   (** Stop a server. *)
 
-val ready: 'a connection -> bool
+val ready: ('a, 'b) connection -> bool
   (** Test if a connection is ready.
 
       Connections returned by [accept] are already ready. Connections returned
       by [connect] are not ready until the server accepts the connection. *)
 
-val active: 'a connection -> bool
+val active: ('a, 'b) connection -> bool
   (** Test if a connection has been closed.
 
       Return [false] if one of the peers have closed the connection. *)
 
-val send: 'a connection -> 'a -> unit
+val send: ('a, 'b) connection -> 'a -> unit
   (** Send data over a connection. *)
 
-val receive: 'a connection -> 'a list
+val receive: ('a, 'b) connection -> 'b list
   (** Receive data over a connection. *)
 
-val receive_filter: ('a -> bool) -> 'a connection -> 'a list
+val receive_filter: ('b -> bool) -> ('a, 'b) connection -> 'b list
   (** Receive data matching a predicate.
 
       [receive p c]: same as [receive c] but only receive data matching
       predicate [p]. Other messages are not discarded, they can still
       be received. *)
 
-val remote_address: 'a connection -> string
+val remote_address: ('a, 'b) connection -> string
   (** Get the remote address of a connection. *)
 
-val remote_port: 'a connection -> int
+val remote_port: ('a, 'b) connection -> int
   (** Get the remote port of a connection. *)

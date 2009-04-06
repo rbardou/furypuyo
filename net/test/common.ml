@@ -9,7 +9,7 @@ let echo x =
          time.tm_hour time.tm_min time.tm_sec s)
     x
 
-module Net = Net.Make(Protocol)
+module Net = Net.Make(Protocol)(Protocol)
 
 include Protocol
 
