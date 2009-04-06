@@ -33,7 +33,7 @@
 open Game
 
 (** in frames (1/100 seconds) *)
-let build_delay = (*2000*) 300
+let build_delay = 2000
 let link_delay = 100
 
 type cpu = {
