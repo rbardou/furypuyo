@@ -31,6 +31,7 @@
 (** Entry point *)
 
 open Misc
+open Protocol
 
 let show_version () =
   print_endline Version.string;

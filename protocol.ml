@@ -28,47 +28,79 @@
 (* OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.   *)
 (**************************************************************************)
 
-type t =
-  | MyName of string
-  | YourNameStatus of bool
-  | MyPassword of string
-  | YouAreConnected
+module ToServer = struct
+  type message =
+    | MyName of string
+    | MyPassword of string
 
-let channel = function
-  | MyName _
-  | YourNameStatus _
-  | MyPassword _
-  | YouAreConnected ->
-      0
+  let channel = function
+    | MyName _
+    | MyPassword _ ->
+        0
 
-let channels =
-  [ 0, Net.Ordered ]
+  let channels =
+    [ 0, Net.Ordered ]
 
-let encode buf m =
-  let w x = Bin.write buf x in
-  let wi = w Bin.int in
-  let ws = w Bin.string in
-  let wb = w Bin.bool in
-  match m with
-    | MyName s ->
-        wi 0;
-        ws s
-    | YourNameStatus b ->
-        wi 1;
-        wb b
-    | MyPassword s ->
-        wi 2;
-        ws s
+  let encode buf m =
+    let w x = Bin.write buf x in
+    let wi = w Bin.int in
+    let ws = w Bin.string in
+    match m with
+      | MyName s ->
+          wi 0;
+          ws s
+      | MyPassword s ->
+          wi 1;
+          ws s
+
+  let decode buf =
+    let r x = Bin.read buf x in
+    let ri () = r Bin.int in
+    let rs () = r Bin.string in
+    match ri () with
+      | 0 -> MyName (rs ())
+      | 1 -> MyPassword (rs ())
+      | _ -> failwith "Protocol.ToServer.decode"
+
+  let codec =
+    Bin.custom encode decode
+end
+
+module ToClient = struct
+  type message =
+    | YourNameStatus of bool
+    | YouAreConnected
+
+  let channel = function
+    | YourNameStatus _
     | YouAreConnected ->
-        wi 3
+        0
 
-let decode buf =
-  let r x = Bin.read buf x in
-  let ri () = r Bin.int in
-  let rs () = r Bin.string in
-  let rb () = r Bin.bool in
-  match ri () with
-    | 0 -> MyName (rs ())
-    | 1 -> YourNameStatus (rb ())
-    | 2 -> MyPassword (rs ())
-    | 3 -> YouAreConnected
+  let channels =
+    [ 0, Net.Ordered ]
+
+  let encode buf m =
+    let w x = Bin.write buf x in
+    let wi = w Bin.int in
+    let wb = w Bin.bool in
+    match m with
+      | YourNameStatus b ->
+          wi 0;
+          wb b
+      | YouAreConnected ->
+          wi 1
+
+  let decode buf =
+    let r x = Bin.read buf x in
+    let ri () = r Bin.int in
+    let rb () = r Bin.bool in
+    match ri () with
+      | 0 -> YourNameStatus (rb ())
+      | 1 -> YouAreConnected
+      | _ -> failwith "Protocol.ToClient.decode"
+
+  let codec =
+    Bin.custom encode decode
+end
+
+module Net = Net.Make(ToServer)(ToClient)
