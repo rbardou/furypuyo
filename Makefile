@@ -36,4 +36,15 @@ distclean dist-clean: clean
 dist: furypuyo
 	darcs dist -d furypuyo-`./furypuyo -version`
 
+distbin: furypuyo
+	DIR=furypuyo-`./furypuyo -version`-bin; \
+	darcs dist -d $$DIR; \
+	mkdir $$DIR; \
+	cp furypuyo $$DIR; \
+	gunzip $$DIR.tar.gz; \
+	tar fr $$DIR.tar $$DIR/furypuyo; \
+	gzip $$DIR.tar; \
+	rm $$DIR/furypuyo; \
+	rmdir $$DIR
+
 .PHONY: furypuyo doc clean distclean dist-clean dist all world
