@@ -52,10 +52,10 @@ let frame r a =
 
 let play r =
   r.remaining <- List.rev r.actions;
-  r.current <- r.start;
-  r.start
+  r.current <- r.start
 
 let next r =
+  let previous = r.current in
   let actions =
     match r.remaining with
       | [] -> []
@@ -65,7 +65,7 @@ let next r =
   in
   let game = Game.think_frame r.current actions in
   r.current <- game;
-  game
+  previous
 
 let codec_cell =
   Bin.convert

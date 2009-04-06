@@ -39,7 +39,7 @@ val record: Game.game -> t
 val frame: t -> Action.t list -> unit
   (** Record a new frame. *)
 
-val play: t -> Game.game
+val play: t -> unit
   (** Start playing a game replay. *)
 
 val next: t -> Game.game

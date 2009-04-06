@@ -62,3 +62,14 @@ let rec list_trunc acc l = function
         | x :: rem ->
             list_trunc (x :: acc) rem (n - 1)
 let list_trunc x = list_trunc [] x
+
+let rec new_file_name i base ext =
+  let name =
+    if i = 0 then base ^ ext
+    else Printf.sprintf "%s_%d%s" base i ext
+  in
+  if Sys.file_exists name then
+    new_file_name (i + 1) base ext
+  else
+    name
+let new_file_name = new_file_name 0

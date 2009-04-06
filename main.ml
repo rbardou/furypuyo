@@ -36,8 +36,11 @@ let show_version () =
   print_endline Version.string;
   exit 0
 
+let replay_file = ref ""
+
 let speclist = Arg.align [
-  "-version", Arg.Unit show_version, " Show version and exit"
+  "-version", Arg.Unit show_version, " Show version and exit";
+  "-replay", Arg.Set_string replay_file, "<file> Play a game replay";
 ]
 let usage_msg = "furypuyo [options]"
 let anon_fun x = raise (Arg.Bad ("unknown option: `"^x^"'"))
@@ -99,20 +102,40 @@ let game_over game =
     | Game.GameOver _ -> true
     | _ -> false
 
-let rec loop game cpu: unit =
+let save_replay replay file =
+  let file = new_file_name (Config.filename file) ".replay" in
+  let ch = open_out file in
+  let buf = Bin.to_channel ch in
+  Bin.write buf Replay.codec replay;
+  close_out ch
+
+let rec single_player_loop game cpu replay: unit =
   let actions = Reader.read () in
   if not (game_over game) && List.mem Action.Escape actions then
-    pause game cpu
+    pause game cpu replay
   else if game_finished game then
-    enter_score game.Game.score
-  else
+    enter_score game.Game.score replay
+  else begin
+    Replay.frame replay actions;
     let game = Game.think_frame game actions in
     let game, cpu = Cpu.think game cpu in
     if !draw then Draw.draw game;
     draw := IO.frame_delay 10;
-    loop game cpu
+    single_player_loop game cpu replay
+  end
 
-and pause game cpu: unit =
+and replay_loop cpu replay: unit =
+  let game = Replay.next replay in
+  if game_finished game then
+    main_menu ()
+  else begin
+    let game, cpu = Cpu.think game cpu in
+    if !draw then Draw.draw game;
+    draw := IO.frame_delay 10;
+    replay_loop cpu replay
+  end
+
+and pause game cpu replay: unit =
   Draw.draw_empty ();
   let choice =
     Menu.string_choices ~default: `Continue [
@@ -125,7 +148,7 @@ and pause game cpu: unit =
   match choice with
     | `Continue ->
         IO.timer_start ();
-        loop game cpu
+        single_player_loop game cpu replay
     | `Restart ->
         single_player_game ()
     | `MainMenu ->
@@ -135,9 +158,19 @@ and pause game cpu: unit =
 
 and single_player_game (): unit =
   let game = Game.start () in
+  let replay = Replay.record game in
   let cpu = Cpu.start in
   IO.timer_start ();
-  loop game cpu
+  single_player_loop game cpu replay
+
+and replay file: unit =
+  let ch = open_in file in
+  let replay = Bin.read (Bin.from_channel ch) Replay.codec in
+  close_in ch;
+  Replay.play replay;
+  let cpu = Cpu.start in
+  IO.timer_start ();
+  replay_loop cpu replay
 
 and main_menu (): unit =
   Draw.draw_empty ();
@@ -209,7 +242,7 @@ and show_high_scores ?focus (): unit =
   Draw.draw_empty ();
   Menu.show_high_scores pages
 
-and enter_score score: unit =
+and enter_score score replay: unit =
   let background = IO.Sprite.screenshot () in
   let name =
     Menu.input_string
@@ -217,6 +250,7 @@ and enter_score score: unit =
       "ENTER YOUR NAME:"
   in
   Config.set player_name name;
+  save_replay replay (Printf.sprintf "%s_%d" name score);
   let scores, changed = HighScores.add !high_scores name (Score.make score) in
   high_scores := scores;
   HighScores.save !high_scores high_scores_file;
@@ -225,4 +259,8 @@ and enter_score score: unit =
   game_over_menu ()
 
 let () =
-  main_menu ()
+  match !replay_file with
+    | "" ->
+        main_menu ()
+    | file ->
+        replay file

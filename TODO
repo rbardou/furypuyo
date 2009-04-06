@@ -7,7 +7,7 @@ Features
 * print chain count during combos
 * rotation animation
 * multiplayer
-* replays
+* replays: control the size of the replay directory somehow, zip replays
 * limit player name size in high scores (and allocate the string only once)
 * Ready Set Go sprites
 * less random generator
