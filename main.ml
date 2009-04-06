@@ -36,11 +36,11 @@ let show_version () =
   print_endline Version.string;
   exit 0
 
-let replay_file = ref ""
+let replay_file_name = ref ""
 
 let speclist = Arg.align [
   "-version", Arg.Unit show_version, " Show version and exit";
-  "-replay", Arg.Set_string replay_file, "<file> Play a game replay";
+  "-replay", Arg.Set_string replay_file_name, "<file> Play a game replay";
 ]
 let usage_msg = "furypuyo [options]"
 let anon_fun x = raise (Arg.Bad ("unknown option: `"^x^"'"))
@@ -125,14 +125,19 @@ let rec single_player_loop game cpu replay: unit =
   end
 
 and replay_loop cpu replay: unit =
-  let game = Replay.next replay in
-  if game_finished game then
-    main_menu ()
+  let actions = Reader.read () in
+  if List.mem Action.Escape actions then
+    replay_pause cpu replay
   else begin
-    let game, cpu = Cpu.think game cpu in
-    if !draw then Draw.draw game;
-    draw := IO.frame_delay 10;
-    replay_loop cpu replay
+    let game = Replay.next replay in
+    if game_finished game then
+      main_menu ()
+    else begin
+      let game, cpu = Cpu.think game cpu in
+      if !draw then Draw.draw game;
+      draw := IO.frame_delay 10;
+      replay_loop cpu replay
+    end
   end
 
 and pause game cpu replay: unit =
@@ -156,6 +161,26 @@ and pause game cpu replay: unit =
     | `Quit ->
         quit ()
 
+and replay_pause cpu r: unit =
+  let choice =
+    Menu.string_choices ~default: `Continue [
+      "CONTINUE", `Continue;
+      "RESTART", `Restart;
+      "MAIN MENU", `MainMenu;
+      "QUIT", `Quit;
+    ]
+  in
+  match choice with
+    | `Continue ->
+        IO.timer_start ();
+        replay_loop cpu r
+    | `Restart ->
+        replay r
+    | `MainMenu ->
+        main_menu ()
+    | `Quit ->
+        quit ()
+
 and single_player_game (): unit =
   let game = Game.start () in
   let replay = Replay.record game in
@@ -163,7 +188,13 @@ and single_player_game (): unit =
   IO.timer_start ();
   single_player_loop game cpu replay
 
-and replay file: unit =
+and replay r: unit =
+  Replay.play r;
+  let cpu = Cpu.start in
+  IO.timer_start ();
+  replay_loop cpu r
+
+and replay_file file: unit =
   let ch = open_in file in
   let replay = Bin.read (Bin.from_channel ch) Replay.codec in
   close_in ch;
@@ -259,8 +290,8 @@ and enter_score score replay: unit =
   game_over_menu ()
 
 let () =
-  match !replay_file with
+  match !replay_file_name with
     | "" ->
         main_menu ()
     | file ->
-        replay file
+        replay_file file
