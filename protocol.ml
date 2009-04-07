@@ -68,12 +68,14 @@ end
 
 module ToClient = struct
   type message =
-    | YourNameStatus of bool
+    | YourNameExists of bool
     | YouAreConnected
+    | WrongPassword
 
   let channel = function
-    | YourNameStatus _
-    | YouAreConnected ->
+    | YourNameExists _
+    | YouAreConnected
+    | WrongPassword ->
         0
 
   let channels =
@@ -84,19 +86,22 @@ module ToClient = struct
     let wi = w Bin.int in
     let wb = w Bin.bool in
     match m with
-      | YourNameStatus b ->
+      | YourNameExists b ->
           wi 0;
           wb b
       | YouAreConnected ->
           wi 1
+      | WrongPassword ->
+          wi 2
 
   let decode buf =
     let r x = Bin.read buf x in
     let ri () = r Bin.int in
     let rb () = r Bin.bool in
     match ri () with
-      | 0 -> YourNameStatus (rb ())
+      | 0 -> YourNameExists (rb ())
       | 1 -> YouAreConnected
+      | 2 -> WrongPassword
       | _ -> failwith "Protocol.ToClient.decode"
 
   let codec =

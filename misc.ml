@@ -30,6 +30,9 @@
 
 (** Miscellaneous stuff *)
 
+open Printf
+open Unix
+
 let rec list_mapi acc i f = function
   | [] -> List.rev acc
   | x :: rem -> list_mapi (f i x :: acc) (i + 1) f rem
@@ -73,3 +76,11 @@ let rec new_file_name i base ext =
   else
     name
 let new_file_name = new_file_name 0
+
+let log x =
+  ksprintf
+    (fun s ->
+       let time = localtime (time ()) in
+       printf "[%02d:%02d:%02d] %s\n%!"
+         time.tm_hour time.tm_min time.tm_sec s)
+    x

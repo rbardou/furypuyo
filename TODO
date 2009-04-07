@@ -28,3 +28,4 @@ Other
 =====
 
 * Gfx.set with arrays (using a bound on the length of effects)
+* -debug option to use "d" key but no score nor replay
