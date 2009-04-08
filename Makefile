@@ -28,7 +28,7 @@ nettest:
 
 server:
 	$(OCAMLBUILD) server.native
-	ln -f -s _build/server.native furypuyo_srv
+	ln -f -s _build/server/server.native furypuyo_srv
 
 clean:
 	rm -rf _build

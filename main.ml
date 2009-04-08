@@ -32,6 +32,8 @@
 
 open Misc
 open Protocol
+open ToServer
+open ToClient
 
 let show_version () =
   print_endline Version.string;
@@ -83,6 +85,13 @@ let player_name =
          try Sys.getenv "USER" with Not_found ->
            try Sys.getenv "LOGNAME" with Not_found ->
              "Fury Puyo")
+
+let server_address =
+  Config.string config "SERVERADDRESS" "Server address for online play"
+    "localhost"
+
+let server_port =
+  Config.int config "SERVERADDRESS" "Server port for online play" 4269
 
 let high_scores_file = "single_player.scores"
 let high_scores = ref (HighScores.load high_scores_file 10)
@@ -205,6 +214,7 @@ and main_menu (): unit =
   let choice =
     Menu.string_choices [
       "SINGLE PLAYER", `Single;
+      "PLAY ONLINE", `PlayOnline;
       "HIGH SCORES", `HighScores;
       "QUIT", `Quit;
     ]
@@ -212,6 +222,8 @@ and main_menu (): unit =
   match choice with
     | `Single ->
         single_player_game ()
+    | `PlayOnline ->
+        play_online ()
     | `HighScores ->
         show_high_scores ();
         main_menu ()
@@ -285,6 +297,108 @@ and enter_score score replay: unit =
   if changed then show_high_scores ~focus: name ();
   IO.Sprite.draw background 0 0;
   game_over_menu ()
+
+and play_online (): unit =
+  Draw.draw_empty ();
+  let host =
+    Menu.input_string
+      ~default: (Config.get server_address)
+      "ENTER SERVER ADDRESS:"
+  in
+  Config.set server_address host;
+  let cx = Net.connect host (Config.get server_port) in
+  let check_message test () =
+    let seen = ref None in
+    List.iter
+      (fun m ->
+         match test m with
+           | None -> ()
+           | Some x -> seen := Some x)
+      (Net.receive cx);
+    !seen
+  in
+  let option_of_bool = function
+    | true -> Some ()
+    | false -> None
+  in
+  try
+    Draw.draw_empty ();
+    Menu.waiting_string "CONNECTING" (fun () -> option_of_bool (Net.ready cx));
+    Draw.draw_empty ();
+    let name =
+      Menu.input_string
+        ~default: (Config.get player_name)
+        "ENTER YOUR NAME:"
+    in
+    Config.set player_name name;
+    Net.send cx (MyName name);
+    Draw.draw_empty ();
+    let name_exists =
+      Menu.waiting_string
+        "CONNECTING"
+        (check_message (function YourNameExists e -> Some e | _ -> None))
+    in
+    if name_exists then begin
+      Draw.draw_empty ();
+      let pass =
+        Menu.input_string
+          ~default: ""
+          ~passchar: ':'
+          "ENTER YOUR PASSWORD:"
+      in
+      Net.send cx (MyPassword pass);
+      let ok =
+        Menu.waiting_string
+          "CONNECTING"
+          (check_message (function
+                            | YouAreConnected -> Some true
+                            | WrongPassword -> Some false
+                            | _ -> None))
+      in
+      if not ok then begin
+        Draw.draw_empty ();
+        Menu.waiting_string "BAD PASSWORD" (fun () -> None);
+      end
+    end else begin
+      let pass = ref "" in
+      begin
+        try
+          while true do
+            Draw.draw_empty ();
+            let pass1 =
+              Menu.input_string
+                ~default: ""
+                ~passchar: ':'
+                "ENTER NEW PASSWORD:"
+            in
+            Draw.draw_empty ();
+            let pass2 =
+              Menu.input_string
+                ~default: ""
+                ~passchar: ':'
+                "CONFIRM NEW PASSWORD:"
+            in
+            if pass1 = pass2 then begin
+              pass := pass1;
+              raise Exit
+            end
+          done
+        with Exit ->
+          ()
+      end;
+      Net.send cx (MyPassword !pass);
+      Draw.draw_empty ();
+      Menu.waiting_string
+        "CONNECTING"
+        (check_message (function
+                          | YouAreConnected -> Some ()
+                          | _ -> None))
+    end;
+    Draw.draw_empty ();
+    Menu.waiting_string "CONNECTED" (fun () -> None);
+  with Exit ->
+    Net.close cx;
+    main_menu ()
 
 let () =
   match !replay_file_name with

@@ -163,12 +163,13 @@ let () =
   InputStringReader.key_auto 500 50 Sdlkey.KEY_BACKSPACE BackSpace;
   InputStringReader.key_down Sdlkey.KEY_RETURN Return
 
-let input_string ?(default = "") query =
+let input_string ?(default = "") ?passchar query =
   let result = ref [] in
   for i = 0 to String.length default - 1 do
     result := default.[i] :: !result;
   done;
   let resultstr = ref "" in
+  let resultshown = ref "" in
   let update_resultstr () =
     let len = List.length !result in
     let res = String.create len in
@@ -180,7 +181,11 @@ let input_string ?(default = "") query =
           fill n rem
     in
     fill len !result;
-    resultstr := res
+    resultstr := res;
+    resultshown :=
+      match passchar with
+        | None -> !resultstr
+        | Some c -> String.make len c
   in
   update_resultstr ();
   let background = IO.Sprite.screenshot () in
@@ -199,9 +204,9 @@ let input_string ?(default = "") query =
 
         IO.Text.write font ~align: IO.Center query_x query_y query;
 
-        let w, _ = IO.Text.size font (String.uppercase !resultstr) in
+        let w, _ = IO.Text.size font (String.uppercase !resultshown) in
         IO.Text.write font ~align: input_align input_x input_y
-          (String.uppercase !resultstr);
+          (String.uppercase !resultshown);
 
         if !now / 50 mod 2 = 0 then
           IO.Sprite.draw sprite_puyo (input_x + w / 2) input_y;
@@ -283,3 +288,28 @@ let show_high_scores pages =
     assert false
   with Exit ->
     ()
+
+let waiting_string msg test =
+  let background = IO.Sprite.screenshot () in
+  let text_x = screen_width / 2 in
+  let text_y = screen_height / 2 in
+  MenuReader.reset ();
+  let test_result = ref (test ()) in
+  while !test_result = None do
+    if IO.frame_delay 10 then begin
+      IO.Sprite.draw background 0 0;
+      IO.Text.write font ~align: IO.Top text_x text_y msg;
+      IO.update ()
+    end;
+
+    List.iter
+      (function
+         | Escape -> raise Exit
+         | _ -> ())
+      (MenuReader.read ());
+
+    test_result := test ()
+  done;
+  match !test_result with
+    | Some x -> x
+    | None -> assert false

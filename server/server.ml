@@ -28,6 +28,17 @@ type client = {
   mutable state: client_state;
 }
 
+let client_id c =
+  let name =
+    match c.state with
+      | Hello -> "?"
+      | Logging name -> name ^ "?"
+      | Logged player -> player.name
+  in
+  string_of_int c.id ^ ":" ^ name
+
+let logc c x = Printf.ksprintf (log "[%s] %s" (client_id c)) x
+
 let load_players players =
   Hashtbl.clear players
 
@@ -68,13 +79,21 @@ let new_client =
   fun cx ->
     let id = !next in
     incr next;
-    log "[%d] new client: %s:%d" id
-      (Net.remote_address cx) (Net.remote_port cx);
-    {
+    let c = {
       id = id;
       cx = cx;
       state = Hello;
-    }
+    } in
+    logc c "new client: %s:%d" (Net.remote_address cx) (Net.remote_port cx);
+    c
+
+let check_active c =
+  if Net.active c.cx then
+    true
+  else begin
+    logc c "disconnected";
+    false
+  end
 
 let () =
   let players = Hashtbl.create 7 in
@@ -83,7 +102,7 @@ let () =
   let clients = ref [] in
   log "Listening to port %d" port;
   while true do
-    clients := List.filter (fun c -> Net.active c.cx) !clients;
+    clients := List.filter check_active !clients;
     let news = Net.accept ~max: maximum_connection_count server in
     let news = List.map new_client news in
     clients := !clients @ news;

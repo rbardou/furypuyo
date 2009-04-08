@@ -35,10 +35,11 @@ val string_choices: ?default: 'a -> (string * 'a) list -> 'a
 
       @param default value to return if the escape key is pressed *)
 
-val input_string: ?default: string -> string -> string
+val input_string: ?default: string -> ?passchar: char -> string -> string
   (** The user inputs a string.
 
       @param default default value
+      @param passchar replace characters by this password char (ex: ['*'])
 
       The other parameter is the input query. *)
 
@@ -47,3 +48,11 @@ val show_high_scores: (string * (string list)) list -> unit
 
       The argument is a list of high score pages, with a title and a list
       of lines to be printed. The user can switch between pages. *)
+
+val waiting_string: string -> (unit -> 'a option) -> 'a
+  (** Show a waiting string with a message.
+
+      [waiting_string message f]: show [message] until the user hits
+      the escape key or [f ()] returns [Some x]. If the user has hit the escape
+      key, exception [Exit] is raised instead of returning normally.
+      If [f ()] returns [Some x], this [x] value is returned. *)
