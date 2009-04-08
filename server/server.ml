@@ -48,6 +48,7 @@ let new_player players name pass =
     pass = pass;
   } in
   Hashtbl.replace players name player;
+  log "new player: %s" name;
   player
 
 let handle_client_message players c m =
@@ -56,17 +57,20 @@ let handle_client_message players c m =
         c.state <- Logging name;
         Net.send c.cx (YourNameExists (Hashtbl.mem players name))
     | Logging name, MyPassword pass ->
+        let accept_login player =
+          c.state <- Logged player;
+          logc c "logged in";
+          Net.send c.cx YouAreConnected
+        in
         begin try
           let player = Hashtbl.find players name in
-          if player.pass = pass then begin
-            c.state <- Logged player;
-            Net.send c.cx YouAreConnected
-          end else
+          if player.pass = pass then
+            accept_login player
+          else
             Net.send c.cx WrongPassword
         with Not_found ->
           let player = new_player players name pass in
-          c.state <- Logged player;
-          Net.send c.cx YouAreConnected
+          accept_login player
         end
     | _ ->
         ()
@@ -100,7 +104,7 @@ let () =
   load_players players;
   let server = Net.listen port in
   let clients = ref [] in
-  log "Listening to port %d" port;
+  log "listening to port %d" port;
   while true do
     clients := List.filter check_active !clients;
     let news = Net.accept ~max: maximum_connection_count server in
