@@ -28,7 +28,7 @@
 (* OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.   *)
 (**************************************************************************)
 
-(** In-game menus. *)
+(** In-game menus *)
 
 val string_choices: ?default: 'a -> (string * 'a) list -> 'a
   (** The user chooses from a vertical, centered list of strings.
