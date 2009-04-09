@@ -28,14 +28,32 @@
 (* OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.   *)
 (**************************************************************************)
 
-(** Monadic pseudo-random number generator *)
+(** Persistent pseudo-random number generator (PRNG) *)
 
 type t
+  (** State of a PRNG. *)
 
 val self_init: unit -> t
+  (** Create a self-initialized new PRNG.
+
+      It is initialized using [Random.self_init]. *)
 
 val int: t -> int -> t * int
+  (** Generate a random integer.
+
+      [rand prng bound]: generate a random integer from [prng], and return
+      the new state of the PRNG along with the random integer which is
+      uniformly distributed between [0] and [bound-1]. *)
 
 val bool: t -> t * bool
+  (** Generate a random boolean.
+
+      [rand prng bound]: generate a random boolean from [prng], and return
+      the new state of the PRNG along with the random boolean which is
+      uniformly distributed between [true] and [false]. *)
 
 val codec: t Bin.t
+  (** Coder and encoder of a PRNG state.
+
+      This can be used to save the state of the PRNG to reuse it later, or
+      to give this state to another thread, process or machine, and so on. *)
