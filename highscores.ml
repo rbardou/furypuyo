@@ -147,7 +147,7 @@ module Make(C: SCORE) = struct
         h, false
     else
       let scores = score :: scores in
-      let scores = List.sort (fun x y -> - C.compare x y) scores in
+      let scores = List.sort (fun x y -> C.compare y x) scores in
       let scores = list_trunc scores (size h) in
       set_players h (StringMap.add name scores (players h)), true
 

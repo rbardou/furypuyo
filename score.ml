@@ -28,37 +28,52 @@
 (* OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.   *)
 (**************************************************************************)
 
-type t =
-  | V1 of int
+type t = {
+  score: int;
+  max_chain: int;
+  delay: int; (* frame count *)
+}
 
-let compare a b =
-  match a, b with
-    | V1 a, V1 b -> compare a b
+let compare = compare
 
-let renew = function
-  | V1 score -> V1 score
-
-let encode buf scores =
-  match scores with
-    | V1 scores ->
-        Bin.write buf Bin.int 1;
-        Bin.write buf Bin.int scores
+let encode buf score =
+  let wi = Bin.write buf Bin.int in
+  wi 2;
+  wi score.score;
+  wi score.max_chain;
+  wi score.delay
 
 let decode buf =
-  let scores =
-    match Bin.read buf Bin.int with
-      | 1 -> V1 (Bin.read buf Bin.int)
-      | n ->
-          raise (Highscores.Cannot_read_scores
-                   ("unknown version: "^string_of_int n))
-  in
-  renew scores
+  let ri () = Bin.read buf Bin.int in
+  match ri () with
+    | 1 ->
+        let score = ri () in
+        {
+          score = score;
+          max_chain = 0;
+          delay = 0;
+        }
+    | 2 ->
+        let score = ri () in
+        let max_chain = ri () in
+        let delay = ri () in
+        {
+          score = score;
+          max_chain = max_chain;
+          delay = delay;
+        }
+    | n ->
+        raise (Highscores.Cannot_read_scores
+                 ("unknown version: "^string_of_int n))
 
 let codec =
   Bin.custom encode decode
 
 let make score =
-  V1 score
+  {
+    score = score;
+    max_chain = 0;
+    delay = 0;
+  }
 
-let score = function
-  | V1 score -> score
+let score score = score.score
