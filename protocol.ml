@@ -34,13 +34,13 @@ module ToServer = struct
   type message =
     | MyName of string
     | MyPassword of string
-    | NewScore of Score.t
+    | MyScore of Score.t
 
   let channel = function
     | MyName _
     | MyPassword _ ->
         0
-    | NewScore _ ->
+    | MyScore _ ->
         1
 
   let channels =
@@ -58,7 +58,7 @@ module ToServer = struct
       | MyPassword s ->
           wi 1;
           ws s
-      | NewScore s ->
+      | MyScore s ->
           wi 2;
           w Score.codec s
 
@@ -69,6 +69,7 @@ module ToServer = struct
     match ri () with
       | 0 -> MyName (rs ())
       | 1 -> MyPassword (rs ())
+      | 2 -> MyScore (r Score.codec)
       | _ -> failwith "Protocol.ToServer.decode"
 
   let codec =

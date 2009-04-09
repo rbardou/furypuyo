@@ -394,6 +394,9 @@ and play_online (): unit =
                           | YouAreConnected -> Some ()
                           | _ -> None))
     end;
+    List.iter
+      (fun score -> Net.send cx (MyScore score))
+      (HighScores.player !high_scores name);
     Draw.draw_empty ();
     Menu.waiting_string "CONNECTED" (fun () -> None);
   with Exit ->

@@ -29,7 +29,8 @@ let encode_player buf p =
   Bin.write buf Bin.int 1; (* version *)
   Bin.write buf Bin.int p.pid;
   Bin.write buf Bin.string p.name;
-  Bin.write buf Bin.string p.pass
+  Bin.write buf Bin.string p.pass;
+  Bin.write buf (Bin.list Score.codec) p.scores
 
 let decode_player buf =
   Bin.read buf player_identifier;
@@ -167,7 +168,7 @@ let handle_client_message players c m =
           let player = new_player players name pass in
           accept_login player
         end
-    | Logged player, NewScore score ->
+    | Logged player, MyScore score ->
         let comp x y = Score.compare y x in
         let scores = insert_in_sorted_list_nodup comp score player.scores in
         let scores = list_trunc scores maximum_score_count in
