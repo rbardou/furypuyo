@@ -34,14 +34,18 @@ module ToServer = struct
   type message =
     | MyName of string
     | MyPassword of string
+    | NewScore of Score.t
 
   let channel = function
     | MyName _
     | MyPassword _ ->
         0
+    | NewScore _ ->
+        1
 
   let channels =
-    [ 0, Net.Ordered ]
+    [ 0, Net.Ordered;
+      1, Net.Important ]
 
   let encode buf m =
     let w x = Bin.write buf x in
@@ -54,6 +58,9 @@ module ToServer = struct
       | MyPassword s ->
           wi 1;
           ws s
+      | NewScore s ->
+          wi 2;
+          w Score.codec s
 
   let decode buf =
     let r x = Bin.read buf x in

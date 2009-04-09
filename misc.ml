@@ -84,3 +84,25 @@ let log x =
        printf "[%02d:%02d:%02d] %s\n%!"
          time.tm_hour time.tm_min time.tm_sec s)
     x
+
+let rec insert_in_sorted_list acc compare x = function
+  | [] ->
+      List.rev (x :: acc)
+  | (y :: rem) as l ->
+      if compare x y < 0 then
+        List.rev_append acc (x :: l)
+      else
+        insert_in_sorted_list (y :: acc) compare x rem
+let insert_in_sorted_list x = insert_in_sorted_list [] x
+
+let rec insert_in_sorted_list_nodup acc compare x = function
+  | [] ->
+      List.rev (x :: acc)
+  | (y :: rem) as l ->
+      if compare x y < 0 then
+        List.rev_append acc (x :: l)
+      else if compare x y = 0 then
+        List.rev_append acc l
+      else
+        insert_in_sorted_list_nodup (y :: acc) compare x rem
+let insert_in_sorted_list_nodup x = insert_in_sorted_list_nodup [] x

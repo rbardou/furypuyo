@@ -4,6 +4,7 @@ open ToClient
 open Misc
 
 let maximum_connection_count = 20
+let maximum_score_count = 10
 
 let config =
   Config.init ~var: "FURYPUYOSRVCONF" "~/.furypuyo";
@@ -16,6 +17,7 @@ type player = {
   pid: int;
   name: string;
   pass: string;
+  mutable scores: Score.t list;
 }
 
 let player_identifier = Bin.identifier "PUYOSRVPLAYER"
@@ -36,10 +38,12 @@ let decode_player buf =
         let pid = Bin.read buf Bin.int in
         let name = Bin.read buf Bin.string in
         let pass = Bin.read buf Bin.string in
+        let scores = Bin.read buf (Bin.list Score.codec) in
         {
           pid = pid;
           name = name;
           pass = pass;
+          scores = scores;
         }
     | _ -> raise Unknown_file_format
 
@@ -128,6 +132,7 @@ let new_player players name pass =
     name = name;
     pass = pass;
     pid = players.next;
+    scores = [];
   } in
   players.next <- players.next + 1;
   Hashtbl.replace players.players name player;
@@ -162,6 +167,11 @@ let handle_client_message players c m =
           let player = new_player players name pass in
           accept_login player
         end
+    | Logged player, NewScore score ->
+        let comp x y = Score.compare y x in
+        let scores = insert_in_sorted_list_nodup comp score player.scores in
+        let scores = list_trunc scores maximum_score_count in
+        player.scores <- scores
     | _ ->
         ()
 
