@@ -135,11 +135,11 @@ end = struct
   let empty = Leaf
 
   let count = function
-    | Leaf _ -> 0
+    | Leaf -> 0
     | Node (_, c, _, _, _) -> c
 
   let height = function
-    | Leaf _ -> 0
+    | Leaf -> 0
     | Node (h, _, _, _, _) -> h
 
   let left = function
