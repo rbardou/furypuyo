@@ -17,7 +17,7 @@ type player = {
   pid: int;
   name: string;
   pass: string;
-  mutable scores: Score.t list;
+  mutable best_score: Score.t;
 }
 
 let player_identifier = Bin.identifier "PUYOSRVPLAYER"
@@ -30,7 +30,7 @@ let encode_player buf p =
   Bin.write buf Bin.int p.pid;
   Bin.write buf Bin.string p.name;
   Bin.write buf Bin.string p.pass;
-  Bin.write buf (Bin.list Score.codec) p.scores
+  Bin.write buf Score.codec p.best_score
 
 let decode_player buf =
   Bin.read buf player_identifier;
@@ -39,19 +39,19 @@ let decode_player buf =
         let pid = Bin.read buf Bin.int in
         let name = Bin.read buf Bin.string in
         let pass = Bin.read buf Bin.string in
-        let scores = Bin.read buf (Bin.list Score.codec) in
+        let best_score = Bin.read buf Score.codec in
         {
           pid = pid;
           name = name;
           pass = pass;
-          scores = scores;
+          best_score = best_score;
         }
     | _ -> raise Unknown_file_format
 
 let codec_player =
   Bin.custom encode_player decode_player
 
-type players = {
+type server_state = {
   players: (string, player) Hashtbl.t;
   mutable next: int;
 }
@@ -133,7 +133,7 @@ let new_player players name pass =
     name = name;
     pass = pass;
     pid = players.next;
-    scores = [];
+    best_score = Score.make 0;
   } in
   players.next <- players.next + 1;
   Hashtbl.replace players.players name player;
@@ -169,10 +169,7 @@ let handle_client_message players c m =
           accept_login player
         end
     | Logged player, MyScore score ->
-        let comp x y = Score.compare y x in
-        let scores = insert_in_sorted_list_nodup comp score player.scores in
-        let scores = list_trunc scores maximum_score_count in
-        player.scores <- scores
+        player.best_score <- Score.max player.best_score score
     | _ ->
         ()
 

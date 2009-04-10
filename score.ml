@@ -36,6 +36,8 @@ type t = {
 
 let compare = compare
 
+let max = max
+
 let encode buf score =
   let wi = Bin.write buf Bin.int in
   wi 2;

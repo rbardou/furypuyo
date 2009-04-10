@@ -36,6 +36,8 @@ val codec: t Bin.t
 
 val compare: t -> t -> int
 
+val max: t -> t -> t
+
 val make: int -> t
 
 val score: t -> int
