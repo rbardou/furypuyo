@@ -106,3 +106,130 @@ let rec insert_in_sorted_list_nodup acc compare x = function
       else
         insert_in_sorted_list_nodup (y :: acc) compare x rem
 let insert_in_sorted_list_nodup x = insert_in_sorted_list_nodup [] x
+
+module type OrderedType = sig
+  type t
+  val compare: t -> t -> int
+end
+
+module SortedList(O: OrderedType): sig
+  type t
+  val empty: t
+  val add: ?dup: bool -> O.t -> t -> t
+  val remove: O.t -> t -> t
+  val nth: int -> t -> O.t
+  val count: t -> int
+end = struct
+  type t =
+    | Leaf
+    | Node of int * int * O.t * t * t (* height, count, value, left, right *)
+
+  let empty = Leaf
+
+  let count = function
+    | Leaf _ -> 0
+    | Node (_, c, _, _, _) -> c
+
+  let height = function
+    | Leaf _ -> 0
+    | Node (h, _, _, _, _) -> h
+
+  let left = function
+    | Leaf -> invalid_arg "left"
+    | Node (_, _, _, l, _) -> l
+
+  let right = function
+    | Leaf -> invalid_arg "right"
+    | Node (_, _, _, _, r) -> r
+
+  let value = function
+    | Leaf -> invalid_arg "value"
+    | Node (_, _, v, _, _) -> v
+
+  let node v x y =
+    Node (max (height x) (height y) + 1, count x + count y + 1, v, x, y)
+
+  let rotate_left = function
+    | Node (_, _, v, x, Node (_, _, w, y, z)) ->
+        node w (node v x y) z
+    | _ -> assert false
+
+  let rotate_right = function
+    | Node (_, _, v, Node (_, _, w, x, y), z) ->
+        node v x (node w x y)
+    | _ -> assert false
+
+  let balance n =
+    let v = value n in
+    let l = left n in
+    let r = right n in
+    let lh = height l in
+    let rh = height r in
+    match lh - rh with
+      | 2 ->
+          let ll = left l in
+          begin match lh - height ll with
+            | 1 -> rotate_right n
+            | 2 -> rotate_right (node v (rotate_left l) r)
+            | _ -> assert false
+          end
+      | 1 | 0 | -1 ->
+          node v l r
+      | -2 ->
+          let rr = right r in
+          begin match rh - height rr with
+            | 1 -> rotate_left n
+            | 2 -> rotate_left (node v l (rotate_right r))
+            | _ -> assert false
+          end
+      | _ ->
+          assert false
+
+  let rec add ?(dup = true) x = function
+    | Leaf ->
+        node x Leaf Leaf
+    | Node (_, _, y, l, r) as tree ->
+        if O.compare x y > 0 then
+          balance (node y l (add ~dup x r))
+        else if O.compare x y < 0 || not dup then
+          balance (node y (add ~dup x l) r)
+        else
+          tree
+
+  let rec remove x = function
+    | Leaf ->
+        raise Not_found
+    | Node (_, _, v, Leaf, Leaf) when O.compare x v = 0 ->
+        Leaf
+    | Node (_, _, v, l, r) ->
+        if O.compare x v > 0 then
+          balance (node v l (remove x r))
+        else if O.compare x v < 0 then
+          balance (node v (remove x l) r)
+        else
+          if height l > height r then
+            let lv = value l in
+            balance (node lv (remove lv l) r)
+          else
+            let rv = value r in
+            balance (node rv l (remove rv r))
+
+  let rec nth n = function
+    | Leaf ->
+        invalid_arg "nth"
+    | Node (_, _, v, l, r) ->
+        let lc = count l in
+        if n < lc then
+          nth n l
+        else if n > lc then
+          nth (n - lc - 1) r
+        else
+          v
+end
+
+(*
+TODO: check dup
+TODO: extract all elements
+TODO: extract successive elements
+TODO: split ?
+*)
