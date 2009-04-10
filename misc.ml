@@ -119,6 +119,14 @@ module SortedList(O: OrderedType): sig
   val remove: O.t -> t -> t
   val nth: int -> t -> O.t
   val count: t -> int
+  val contents: t -> O.t list
+  val sub: int -> int -> t -> O.t list
+    (** Extract some elements.
+
+        [sub i j l]: extract all items from [i] to [j].
+        If [i > j] or if [i >= count l] or if [j < 0], return [[]].
+        If [i < 0], behave as if [i = 0].
+        If [j >= count l], behave as if [j = count l - 1]. *)
 end = struct
   type t =
     | Leaf
@@ -156,7 +164,7 @@ end = struct
 
   let rotate_right = function
     | Node (_, _, v, Node (_, _, w, x, y), z) ->
-        node v x (node w x y)
+        node w x (node v y z)
     | _ -> assert false
 
   let balance n =
@@ -191,7 +199,7 @@ end = struct
     | Node (_, _, y, l, r) as tree ->
         if O.compare x y > 0 then
           balance (node y l (add ~dup x r))
-        else if O.compare x y < 0 || not dup then
+        else if O.compare x y < 0 || dup then
           balance (node y (add ~dup x l) r)
         else
           tree
@@ -225,11 +233,52 @@ end = struct
           nth (n - lc - 1) r
         else
           v
+
+  (* "acc" serves not to make the function tail-rec but to avoid using "@" *)
+  let rec contents acc = function
+    | Leaf ->
+        acc
+    | Node (_, _, v, l, r) ->
+        contents (v :: (contents acc r)) l
+
+  let rec sub acc i j = function
+    | Leaf ->
+        acc
+    | Node (_, c, v, l, r) ->
+        let lc = count l in
+        if j < lc then
+          sub acc i j l
+        else if i > lc then
+          sub acc (i - lc - 1) (j - lc - 1) r
+        else
+          sub (v :: (sub acc 0 (j - lc - 1) r)) i (lc - 1) l
+
+  let contents x = contents [] x
+
+  let sub x = sub [] x
 end
 
 (*
-TODO: check dup
-TODO: extract all elements
-TODO: extract successive elements
-TODO: split ?
+module L = SortedList(struct type t = int let compare = compare end)
+let l = L.empty;;
+let l = L.add 10 l;;
+let l = L.add 4 l;;
+let l = L.add 5 l;;
+let l = L.add 9 l;;
+let l = L.add 0 l;;
+let l = L.add 1 l;;
+let l = L.add 1 l;;
+let l = L.add 1 l;;
+let l = L.add 8 l;;
+let l = L.add 7 l;;
+let l = L.add 8 l;;
+let l = L.add 3 l;;
+L.contents l;;
+L.sub 3 8 l;;
+L.sub 8 3 l;;
+L.sub 3 3 l;;
+L.sub 0 0 l;;
+L.sub (-1) (-1) l;;
+L.sub 100 100 l;;
+L.sub 12 12 l;;
 *)
