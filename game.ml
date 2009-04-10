@@ -683,14 +683,15 @@ let insta_fall game is =
   start_inserting game b x y
 
 let debug game =
-  let gfx = gfx_explosion game game.gfx Gfx.GreenStar 1. 120 300 10 in
+  (*let gfx = gfx_explosion game game.gfx Gfx.GreenStar 1. 120 300 10 in
   let gfx = gfx_explosion game gfx Gfx.YellowStar 1.2 120 300 5 in
   let gfx = gfx_explosion game gfx Gfx.RedStar 1.4 120 300 2 in
   let gfx = gfx_explosion game gfx Gfx.PurpleStar 1.6 120 300 1 in
   { game with
       offsets = 6;
       garbage_ready = game.garbage_ready + 1;
-      gfx = gfx }
+      gfx = gfx }*)
+  game
 
 let act_incoming game is = function
   | MLeft -> move game is (-1)
