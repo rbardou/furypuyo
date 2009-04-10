@@ -206,7 +206,7 @@ end = struct
 
   let rec remove x = function
     | Leaf ->
-        raise Not_found
+        Leaf
     | Node (_, _, v, Leaf, Leaf) when O.compare x v = 0 ->
         Leaf
     | Node (_, _, v, l, r) ->
@@ -281,4 +281,18 @@ L.sub 0 0 l;;
 L.sub (-1) (-1) l;;
 L.sub 100 100 l;;
 L.sub 12 12 l;;
+let l = L.remove 9 l;;
+L.contents l;;
+let l = L.remove 0 l;;
+let l = L.remove 1 l;;
+let l = L.remove 42 l;;
+L.contents l;;
+let l = L.add 5 l;;
+let l = L.add 9 l;;
+let l = L.add 0 l;;
+let l = L.add 1 l;;
+let l = L.add 1 l;;
+let l = L.add 1 l;;
+let l = L.add 8 l;;
+L.contents l;;
 *)

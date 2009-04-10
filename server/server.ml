@@ -51,9 +51,19 @@ let decode_player buf =
 let codec_player =
   Bin.custom encode_player decode_player
 
+module NamedScore = struct
+  type t = int * Score.t
+  let compare (n1, s1) (n2, s2) =
+    match compare s1 s2 with
+      | 0 -> compare n1 n2
+      | n -> n
+end
+module ScoreList = SortedList(NamedScore)
+
 type server_state = {
   players: (string, player) Hashtbl.t;
   mutable next: int;
+  mutable scores: ScoreList.t;
 }
 
 type client_state =
@@ -90,6 +100,8 @@ let load_player players file =
     close_in ch;
     players.next <- max players.next (player.pid + 1);
     Hashtbl.add players.players player.name player;
+    players.scores <-
+      ScoreList.add (player.pid, player.best_score) players.scores;
     log "loaded player: %s (%d)" player.name player.pid
   with
     | Sys_error s ->
@@ -112,6 +124,7 @@ let load_players () =
   let players = {
     players = Hashtbl.create 17;
     next = 0;
+    scores = ScoreList.empty;
   } in
   Hashtbl.clear players.players;
   players.next <- 0;
@@ -169,7 +182,11 @@ let handle_client_message players c m =
           accept_login player
         end
     | Logged player, MyScore score ->
-        player.best_score <- Score.max player.best_score score
+        players.scores <-
+          ScoreList.remove (player.pid, player.best_score) players.scores;
+        player.best_score <- Score.max player.best_score score;
+        players.scores <-
+          ScoreList.add (player.pid, player.best_score) players.scores
     | _ ->
         ()
 
