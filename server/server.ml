@@ -54,7 +54,7 @@ let codec_player =
 module NamedScore = struct
   type t = int * Score.t
   let compare (n1, s1) (n2, s2) =
-    match compare s1 s2 with
+    match compare s2 s1 with
       | 0 -> compare n1 n2
       | n -> n
 end
@@ -62,6 +62,7 @@ module ScoreList = SortedList(NamedScore)
 
 type server_state = {
   players: (string, player) Hashtbl.t;
+  players_by_id: (int, player) Hashtbl.t;
   mutable next: int;
   mutable scores: ScoreList.t;
 }
@@ -100,6 +101,7 @@ let load_player players file =
     close_in ch;
     players.next <- max players.next (player.pid + 1);
     Hashtbl.add players.players player.name player;
+    Hashtbl.add players.players_by_id player.pid player;
     players.scores <-
       ScoreList.add (player.pid, player.best_score) players.scores;
     log "loaded player: %s (%d)" player.name player.pid
@@ -123,10 +125,10 @@ let save_player player =
 let load_players () =
   let players = {
     players = Hashtbl.create 17;
+    players_by_id = Hashtbl.create 17;
     next = 0;
     scores = ScoreList.empty;
   } in
-  Hashtbl.clear players.players;
   players.next <- 0;
   if Sys.file_exists players_dir then begin
     let manifest = Sys.readdir players_dir in
@@ -149,13 +151,19 @@ let new_player players name pass =
     best_score = Score.make 0;
   } in
   players.next <- players.next + 1;
-  Hashtbl.replace players.players name player;
+  Hashtbl.add players.players name player;
+  Hashtbl.add players.players_by_id player.pid player;
+  players.scores <-
+    ScoreList.add (player.pid, player.best_score) players.scores;
   save_player player;
   log "new player: %s (%d)" name player.pid;
   player
 
 let find_player players name =
   Hashtbl.find players.players name
+
+let find_player_by_id players name =
+  Hashtbl.find players.players_by_id name
 
 let mem_player players name =
   Hashtbl.mem players.players name
@@ -186,7 +194,14 @@ let handle_client_message players c m =
           ScoreList.remove (player.pid, player.best_score) players.scores;
         player.best_score <- Score.max player.best_score score;
         players.scores <-
-          ScoreList.add (player.pid, player.best_score) players.scores
+          ScoreList.add (player.pid, player.best_score) players.scores;
+        save_player player
+    | Logged _, GetScores pos ->
+        list_iteri
+          (fun i (pid, score) ->
+             Net.send c.cx
+               (Score (pos + i, (find_player_by_id players pid).name, score)))
+          (ScoreList.sub pos (pos + 9) players.scores)
     | _ ->
         ()
 

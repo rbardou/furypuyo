@@ -66,7 +66,7 @@ let decode buf =
         }
     | n ->
         raise (Highscores.Cannot_read_scores
-                 ("unknown version: "^string_of_int n))
+                 ("unknown score version: "^string_of_int n))
 
 let codec =
   Bin.custom encode decode

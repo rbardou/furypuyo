@@ -35,12 +35,14 @@ module ToServer = struct
     | MyName of string
     | MyPassword of string
     | MyScore of Score.t
+    | GetScores of int (* position (only give position .. position + 9) *)
 
   let channel = function
     | MyName _
     | MyPassword _ ->
         0
-    | MyScore _ ->
+    | MyScore _
+    | GetScores _ ->
         1
 
   let channels =
@@ -61,6 +63,9 @@ module ToServer = struct
       | MyScore s ->
           wi 2;
           w Score.codec s
+      | GetScores i ->
+          wi 3;
+          wi i
 
   let decode buf =
     let r x = Bin.read buf x in
@@ -70,6 +75,7 @@ module ToServer = struct
       | 0 -> MyName (rs ())
       | 1 -> MyPassword (rs ())
       | 2 -> MyScore (r Score.codec)
+      | 3 -> GetScores (ri ())
       | _ -> failwith "Protocol.ToServer.decode"
 
   let codec =
@@ -81,20 +87,25 @@ module ToClient = struct
     | YourNameExists of bool
     | YouAreConnected
     | WrongPassword
+    | Score of int * string * Score.t (* position, player, score *)
 
   let channel = function
     | YourNameExists _
     | YouAreConnected
     | WrongPassword ->
         0
+    | Score _ ->
+        1
 
   let channels =
-    [ 0, Net.Ordered ]
+    [ 0, Net.Ordered;
+      1, Net.Important ]
 
   let encode buf m =
     let w x = Bin.write buf x in
     let wi = w Bin.int in
     let wb = w Bin.bool in
+    let ws = w Bin.string in
     match m with
       | YourNameExists b ->
           wi 0;
@@ -103,15 +114,26 @@ module ToClient = struct
           wi 1
       | WrongPassword ->
           wi 2
+      | Score (i, s, sc) ->
+          wi 3;
+          wi i;
+          ws s;
+          w Score.codec sc
 
   let decode buf =
     let r x = Bin.read buf x in
     let ri () = r Bin.int in
     let rb () = r Bin.bool in
+    let rs () = r Bin.string in
     match ri () with
       | 0 -> YourNameExists (rb ())
       | 1 -> YouAreConnected
       | 2 -> WrongPassword
+      | 3 ->
+          let i = ri () in
+          let s = rs () in
+          let sc = r Score.codec in
+          Score (i, s, sc)
       | _ -> failwith "Protocol.ToClient.decode"
 
   let codec =

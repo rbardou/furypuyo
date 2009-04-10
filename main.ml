@@ -91,7 +91,7 @@ let server_address =
     "localhost"
 
 let server_port =
-  Config.int config "SERVERADDRESS" "Server port for online play" 4269
+  Config.int config "SERVERPORT" "Server port for online play" 4269
 
 let high_scores_file = "single_player.scores"
 let high_scores = ref (HighScores.load high_scores_file 10)
@@ -397,8 +397,14 @@ and play_online (): unit =
     List.iter
       (fun score -> Net.send cx (MyScore score))
       (HighScores.player !high_scores name);
+    Net.send cx (GetScores 0);
     Draw.draw_empty ();
-    Menu.waiting_string "CONNECTED" (fun () -> None);
+    Menu.waiting_string "CONNECTED"
+      (fun () -> List.iter (function
+                              | Score (pos, name, score) ->
+                                  Printf.printf "Score %2d: %s, %d\n%!"
+                                    pos name (Score.score score)
+                              | _ -> ()) (Net.receive cx); None);
   with Exit ->
     Net.close cx;
     main_menu ()
