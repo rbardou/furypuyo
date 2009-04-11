@@ -30,11 +30,7 @@
 
 open Misc
 open Sprites
-
-module MenuAction = struct
-  type t = Up | Down | Return | Escape | Left | Right
-end
-module MenuReader = IO.MakeReader(MenuAction)
+open Common
 
 open MenuAction
 
@@ -237,11 +233,25 @@ let input_string ?(default = "") ?passchar query =
 
 open MenuAction
 
-let show_high_scores pages =
-  let pages = Array.of_list pages in
-  let count = Array.length pages in
-  let page = ref 0 in
-  let background = IO.Sprite.screenshot () in
+let high_scores_top_players_page top =
+  let scores =
+    list_mapi
+      (fun i (name, score) ->
+         Printf.sprintf "%2d%9d  %s" (i + 1) (Score.score score) name)
+      top
+  in
+  "TOP PLAYERS", scores
+
+let high_scores_player_page name scores =
+  let scores =
+    list_mapi
+      (fun i score ->
+         Printf.sprintf "%2d%9d" (i + 1) (Score.score score))
+      scores
+  in
+  name, scores
+
+let draw_high_scores_page =
   let title_x = screen_width / 2 in
   let title_y = 50 in
   let scores_x = 20 in
@@ -249,28 +259,31 @@ let show_high_scores pages =
   let scores_d = 35 in
   let nothing_x = screen_width / 2 in
   let nothing_y = screen_height / 2 in
+  fun (title, lines) ->
+    let title = String.uppercase title in
+    IO.Text.write font ~align: IO.Top title_x title_y title;
+    if lines = [] then
+      IO.Text.write font ~align: IO.Center nothing_x nothing_y
+        "NO SCORE YET"
+    else
+      list_iteri
+        (fun i line ->
+           let line = String.uppercase line in
+           IO.Text.write font scores_x (scores_y + scores_d * i) line)
+        lines;
+    IO.update ()
+
+let show_high_scores pages =
+  let pages = Array.of_list pages in
+  let count = Array.length pages in
+  let page = ref 0 in
+  let background = IO.Sprite.screenshot () in
   MenuReader.reset ();
   try
     while true do
-      let title, lines = pages.(!page) in
-
       if IO.frame_delay 10 then begin
         IO.Sprite.draw background 0 0;
-
-        let title = String.uppercase title in
-        IO.Text.write font ~align: IO.Top title_x title_y title;
-
-        if lines = [] then
-          IO.Text.write font ~align: IO.Center nothing_x nothing_y
-            "NO SCORE YET"
-        else
-          list_iteri
-            (fun i line ->
-               let line = String.uppercase line in
-               IO.Text.write font scores_x (scores_y + scores_d * i) line)
-            lines;
-
-        IO.update ()
+        draw_high_scores_page pages.(!page)
       end;
 
       List.iter

@@ -31,35 +31,11 @@
 (** Entry point *)
 
 open Misc
-open Protocol
-open ToServer
-open ToClient
-
-let show_version () =
-  print_endline Version.string;
-  exit 0
-
-let replay_file_name = ref ""
-
-let speclist = Arg.align [
-  "-version", Arg.Unit show_version, " Show version and exit";
-  "-replay", Arg.Set_string replay_file_name, "<file> Play a game replay";
-]
-let usage_msg = "furypuyo [options]"
-let anon_fun x = raise (Arg.Bad ("unknown option: `"^x^"'"))
-let () = Arg.parse speclist anon_fun usage_msg
+open Common
 
 module Reader = IO.MakeReader(Action)
 
 module HighScores = Highscores.Make(Score)
-
-let config =
-  Config.init ~var: "FURYPUYOCONF" "~/.furypuyo";
-  Config.load "furypuyo.cfg" "Fury Puyo configuration file"
-
-let on_quit () =
-  Config.save config;
-  true
 
 let () =
   Sdlwm.set_caption ~title: "Fury Puyo" ~icon: "Fury Puyo";
@@ -76,22 +52,6 @@ let () =
   Reader.key_down Sdlkey.KEY_DOWN Action.MDown;
   Reader.key_up Sdlkey.KEY_DOWN Action.MDownRelease;
   IO.on_quit on_quit
-
-let player_name =
-  Config.string config "PLAYERNAME" "Player name"
-    (try Unix.getlogin () with Unix.Unix_error _ ->
-       try (Unix.getpwuid (Unix.getuid ())).Unix.pw_name
-       with Unix.Unix_error _ ->
-         try Sys.getenv "USER" with Not_found ->
-           try Sys.getenv "LOGNAME" with Not_found ->
-             "Fury Puyo")
-
-let server_address =
-  Config.string config "SERVERADDRESS" "Server address for online play"
-    "localhost"
-
-let server_port =
-  Config.int config "SERVERPORT" "Server port for online play" 4269
 
 let high_scores_file = "single_player.scores"
 let high_scores = ref (HighScores.load high_scores_file 10)
@@ -299,116 +259,12 @@ and enter_score score replay: unit =
   game_over_menu ()
 
 and play_online (): unit =
-  Draw.draw_empty ();
-  let host =
-    Menu.input_string
-      ~default: (Config.get server_address)
-      "ENTER SERVER ADDRESS:"
-  in
-  Config.set server_address host;
-  let cx = Net.connect host (Config.get server_port) in
-  let check_message test () =
-    let seen = ref None in
-    List.iter
-      (fun m ->
-         match test m with
-           | None -> ()
-           | Some x -> seen := Some x)
-      (Net.receive cx);
-    !seen
-  in
-  let option_of_bool = function
-    | true -> Some ()
-    | false -> None
-  in
-  try
-    Draw.draw_empty ();
-    Menu.waiting_string "CONNECTING" (fun () -> option_of_bool (Net.ready cx));
-    Draw.draw_empty ();
-    let name =
-      Menu.input_string
-        ~default: (Config.get player_name)
-        "ENTER YOUR NAME:"
-    in
-    Config.set player_name name;
-    Net.send cx (MyName name);
-    Draw.draw_empty ();
-    let name_exists =
-      Menu.waiting_string
-        "CONNECTING"
-        (check_message (function YourNameExists e -> Some e | _ -> None))
-    in
-    if name_exists then begin
-      Draw.draw_empty ();
-      let pass =
-        Menu.input_string
-          ~default: ""
-          ~passchar: ':'
-          "ENTER YOUR PASSWORD:"
-      in
-      Net.send cx (MyPassword pass);
-      let ok =
-        Menu.waiting_string
-          "CONNECTING"
-          (check_message (function
-                            | YouAreConnected -> Some true
-                            | WrongPassword -> Some false
-                            | _ -> None))
-      in
-      if not ok then begin
-        Draw.draw_empty ();
-        Menu.waiting_string "BAD PASSWORD" (fun () -> None);
-      end
-    end else begin
-      let pass = ref "" in
-      begin
-        try
-          while true do
-            Draw.draw_empty ();
-            let pass1 =
-              Menu.input_string
-                ~default: ""
-                ~passchar: ':'
-                "ENTER NEW PASSWORD:"
-            in
-            Draw.draw_empty ();
-            let pass2 =
-              Menu.input_string
-                ~default: ""
-                ~passchar: ':'
-                "CONFIRM NEW PASSWORD:"
-            in
-            if pass1 = pass2 then begin
-              pass := pass1;
-              raise Exit
-            end
-          done
-        with Exit ->
-          ()
-      end;
-      Net.send cx (MyPassword !pass);
-      Draw.draw_empty ();
-      Menu.waiting_string
-        "CONNECTING"
-        (check_message (function
-                          | YouAreConnected -> Some ()
-                          | _ -> None))
-    end;
-    begin match HighScores.player !high_scores name with
-      | [] -> ()
-      | score :: _ -> Net.send cx (MyScore score)
-    end;
-    Net.send cx (GetScores 0);
-    Draw.draw_empty ();
-    Menu.waiting_string "CONNECTED"
-      (fun () -> List.iter (function
-                              | Score (pos, name, score) ->
-                                  Printf.printf "Score %2d: %s, %d\n%!"
-                                    pos name (Score.score score)
-                              | _ -> ()) (Net.receive cx); None);
-  with Exit ->
-    Net.close cx;
-    main_menu ()
+  match Online.connection_screen () with
+    | None -> main_menu ()
+    | Some (cx, login) ->
+        Online.send_score cx (HighScores.player !high_scores login);
+        Online.high_scores_screen cx;
+        main_menu ()
 
 let () =
   match !replay_file_name with
