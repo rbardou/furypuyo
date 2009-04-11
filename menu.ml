@@ -37,6 +37,8 @@ open MenuAction
 let () =
   MenuReader.key_auto 500 100 Sdlkey.KEY_UP Up;
   MenuReader.key_auto 500 100 Sdlkey.KEY_DOWN Down;
+  MenuReader.key_auto 500 100 Sdlkey.KEY_PAGEUP PageUp;
+  MenuReader.key_auto 500 100 Sdlkey.KEY_PAGEDOWN PageDown;
   MenuReader.key_auto 500 100 Sdlkey.KEY_LEFT Left;
   MenuReader.key_auto 500 100 Sdlkey.KEY_RIGHT Right;
   MenuReader.key_down Sdlkey.KEY_RETURN Return;
@@ -86,10 +88,10 @@ let string_choices ?default choices =
 
       List.iter
         (function
-           | Up | Left ->
+           | Up | Left | PageUp ->
                decr choice;
                if !choice < 0 then choice := count - 1
-           | Down | Right ->
+           | Down | Right | PageDown ->
                incr choice;
                if !choice >= count then choice := 0
            | Return ->
@@ -245,11 +247,13 @@ let input_string ?(default = "") ?passchar query =
 
 open MenuAction
 
-let high_scores_top_players_page top =
+type page = string * string list
+
+let high_scores_top_players_page ?(pos = 1) top =
   let scores =
     list_mapi
       (fun i (name, score) ->
-         Printf.sprintf "%2d%9d  %s" (i + 1) (Score.score score) name)
+         Printf.sprintf "%2d%9d  %s" (i + pos) (Score.score score) name)
       top
   in
   "TOP PLAYERS", scores
@@ -300,10 +304,10 @@ let show_high_scores pages =
 
       List.iter
         (function
-           | Up | Left ->
+           | Up | Left | PageUp ->
                decr page;
                if !page < 0 then page := count - 1
-           | Down | Right ->
+           | Down | Right | PageDown ->
                incr page;
                if !page >= count then page := 0
            | Return | Escape ->

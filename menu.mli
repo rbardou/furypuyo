@@ -56,3 +56,11 @@ val waiting_string: string -> (unit -> 'a option) -> 'a
       the escape key or [f ()] returns [Some x]. If the user has hit the escape
       key, exception [Exit] is raised instead of returning normally.
       If [f ()] returns [Some x], this [x] value is returned. *)
+
+type page
+
+val draw_high_scores_page: page -> unit
+
+val high_scores_top_players_page: ?pos: int -> (string * Score.t) list -> page
+
+val high_scores_player_page: string -> Score.t list -> page

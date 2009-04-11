@@ -37,6 +37,6 @@ let server_port =
   Config.int config "SERVERPORT" "Server port for online play" 4269
 
 module MenuAction = struct
-  type t = Up | Down | Return | Escape | Left | Right
+  type t = Up | Down | Return | Escape | Left | Right | PageUp | PageDown
 end
 module MenuReader = IO.MakeReader(MenuAction)

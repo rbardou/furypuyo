@@ -110,16 +110,63 @@ let send_score cx scores =
     | [] -> ()
     | score :: _ -> Net.send cx (MyScore score)
   end;
-  Net.send cx (GetScores 0)
+
+open MenuAction
 
 let high_scores_screen cx =
+  let empty = "", Score.make 0 in
+  let count = 10 in
+  let scores = Array.make count empty in
+  let pos = ref 1 in
   Draw.draw_empty ();
+  let background = IO.Sprite.screenshot () in
+  MenuReader.reset ();
+  let set_score p s =
+    if p >= !pos && p < !pos + count then
+      scores.(p - !pos) <- s
+  in
+  Net.send cx (GetScores 0);
+  let shift_position i =
+    let old = !pos in
+    pos := !pos + i;
+    if !pos < 1 then pos := 1;
+    let olds = Array.to_list scores in
+    for i = 0 to count - 1 do
+      scores.(i) <- empty
+    done;
+    list_iteri
+      (fun i s -> set_score (i + old) s)
+      olds;
+    Net.send cx (GetScores (!pos - 1))
+  in
   try
-    Menu.waiting_string "CONNECTED"
-      (fun () -> List.iter (function
-                              | Score (pos, name, score) ->
-                                  Printf.printf "Score %2d: %s, %d\n%!"
-                                    pos name (Score.score score)
-                              | _ -> ()) (Net.receive cx); None);
+    while true do
+      if IO.frame_delay 10 then begin
+        IO.Sprite.draw background 0 0;
+        Menu.draw_high_scores_page
+          (Menu.high_scores_top_players_page ~pos: !pos (Array.to_list scores))
+      end;
+
+      List.iter
+        (function
+           | Up | Left ->
+               shift_position (-1)
+           | Down | Right ->
+               shift_position 1
+           | PageUp ->
+               shift_position (-10)
+           | PageDown ->
+               shift_position 10
+           | Return | Escape ->
+               raise Exit)
+        (MenuReader.read ());
+
+      List.iter
+        (function
+           | Score (pos, name, score) ->
+               set_score (pos + 1) (name, score)
+           | _ -> ())
+        (Net.receive cx)
+    done
   with Exit ->
     ()
