@@ -57,6 +57,9 @@ let yellow_star = load_black "data/yellowstar.png"
 let red_star = load_black "data/redstar.png"
 let purple_star = load_black "data/purplestar.png"
 let all_clear = load_black ~align: IO.Center "data/allclear.png"
+let sprite_ready = load_alpha ~align: IO.Center "data/ready.png"
+let sprite_set = load_alpha ~align: IO.Center "data/set.png"
+let sprite_go = load_alpha ~align: IO.Center "data/go.png"
 
 let char_sprite font size width char =
   let sprite = try

@@ -187,13 +187,13 @@ let draw_timer now =
   Text.write font timer_x timer_y (Printf.sprintf "%02d:%02d" m s)
 
 let draw_ready_set_go now =
-  let write = Text.write font ~align: IO.Center ready_set_go_x ready_set_go_y in
+  let draw x = Sprite.draw x ready_set_go_x ready_set_go_y in
   if now < -Game.ready_set_go_delay then
-    write "READY"
+    draw sprite_ready
   else if now < 0 then
-    write "SET"
+    draw sprite_set
   else if now < Game.ready_set_go_delay then
-    write "GO"
+    draw sprite_go
 
 let draw_empty () =
   Sprite.draw background 0 0;

@@ -8,7 +8,6 @@ Features
 * multiplayer
 * replays: control the size of the replay directory somehow, zip replays
 * limit player name size in high scores (and allocate the string only once)
-* Ready Set Go sprites
 * less random generator
 * background image(s)
 * sound
