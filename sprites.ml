@@ -133,6 +133,13 @@ let chain =
   let chain10 = load_chain 10 in
   let chain11 = load_chain 11 in
   let chain12 = load_chain 12 in
+  let chain13 = load_chain 13 in
+  let chain14 = load_chain 14 in
+  let chain15 = load_chain 15 in
+  let chain16 = load_chain 16 in
+  let chain17 = load_chain 17 in
+  let chain18 = load_chain 18 in
+  let chain19 = load_chain 19 in
   function
     | 2 -> chain2
     | 3 -> chain3
@@ -145,4 +152,11 @@ let chain =
     | 10 -> chain10
     | 11 -> chain11
     | 12 -> chain12
+    | 13 -> chain13
+    | 14 -> chain14
+    | 15 -> chain15
+    | 16 -> chain16
+    | 17 -> chain17
+    | 18 -> chain18
+    | 19 -> chain19
     | _ -> purple_star

@@ -4,7 +4,6 @@ Features
 * bottom foreground for game over
 * puyo with different shapes
 * puyo connection images
-* print chain count during combos
 * rotation animation
 * multiplayer
 * replays: control the size of the replay directory somehow, zip replays
