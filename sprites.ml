@@ -130,6 +130,9 @@ let chain =
   let chain7 = load_chain 7 in
   let chain8 = load_chain 8 in
   let chain9 = load_chain 9 in
+  let chain10 = load_chain 10 in
+  let chain11 = load_chain 11 in
+  let chain12 = load_chain 12 in
   function
     | 2 -> chain2
     | 3 -> chain3
@@ -139,4 +142,7 @@ let chain =
     | 7 -> chain7
     | 8 -> chain8
     | 9 -> chain9
+    | 10 -> chain10
+    | 11 -> chain11
+    | 12 -> chain12
     | _ -> purple_star
