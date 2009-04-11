@@ -155,6 +155,18 @@ let () =
   InputStringReader.key_auto 500 50 Sdlkey.KEY_7 (Char '7');
   InputStringReader.key_auto 500 50 Sdlkey.KEY_8 (Char '8');
   InputStringReader.key_auto 500 50 Sdlkey.KEY_9 (Char '9');
+  InputStringReader.key_auto 500 50 Sdlkey.KEY_PERIOD (Char '.');
+  InputStringReader.key_auto 500 50 Sdlkey.KEY_KP0 (Char '0');
+  InputStringReader.key_auto 500 50 Sdlkey.KEY_KP1 (Char '1');
+  InputStringReader.key_auto 500 50 Sdlkey.KEY_KP2 (Char '2');
+  InputStringReader.key_auto 500 50 Sdlkey.KEY_KP3 (Char '3');
+  InputStringReader.key_auto 500 50 Sdlkey.KEY_KP4 (Char '4');
+  InputStringReader.key_auto 500 50 Sdlkey.KEY_KP5 (Char '5');
+  InputStringReader.key_auto 500 50 Sdlkey.KEY_KP6 (Char '6');
+  InputStringReader.key_auto 500 50 Sdlkey.KEY_KP7 (Char '7');
+  InputStringReader.key_auto 500 50 Sdlkey.KEY_KP8 (Char '8');
+  InputStringReader.key_auto 500 50 Sdlkey.KEY_KP9 (Char '9');
+  InputStringReader.key_auto 500 50 Sdlkey.KEY_KP_PERIOD (Char '.');
   InputStringReader.key_auto 500 50 Sdlkey.KEY_SPACE (Char ' ');
   InputStringReader.key_auto 500 50 Sdlkey.KEY_BACKSPACE BackSpace;
   InputStringReader.key_down Sdlkey.KEY_RETURN Return

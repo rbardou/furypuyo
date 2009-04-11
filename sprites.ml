@@ -99,6 +99,7 @@ let char_sprite font size width char =
       | 'Z' -> "zm"
       | '+' -> "plus"
       | ':' -> "colon"
+      | '.' -> "dot"
       | 'x' -> "x"
       | _ -> raise Not_found
     in
