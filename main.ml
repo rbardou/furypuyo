@@ -267,6 +267,7 @@ and play_online (): unit =
         main_menu ()
 
 let () =
+  Sdlmouse.show_cursor false;
   match !replay_file_name with
     | "" ->
         main_menu ()
