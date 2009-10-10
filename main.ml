@@ -58,10 +58,6 @@ let high_scores = ref (HighScores.load high_scores_file 10)
 
 let draw = ref true
 
-let quit () =
-  ignore (on_quit ());
-  IO.close ()
-
 let game_finished game =
   match game.Game.state with
     | Game.GameOver s -> s.Game.go_end <= game.Game.now
@@ -260,11 +256,14 @@ and enter_score score replay: unit =
 
 and play_online (): unit =
   match Online.connection_screen () with
-    | None -> main_menu ()
+    | None ->
+	main_menu ()
     | Some (cx, login) ->
         Online.send_score cx (HighScores.player !high_scores login);
-        Online.high_scores_screen cx;
-        main_menu ()
+        if Online.menu cx then
+	  main_menu ()
+	else
+	  quit ()
 
 let () =
   Sdlmouse.show_cursor false;

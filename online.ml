@@ -109,7 +109,7 @@ let send_score cx scores =
   begin match scores with
     | [] -> ()
     | score :: _ -> Net.send cx (MyScore score)
-  end;
+  end
 
 open MenuAction
 
@@ -170,3 +170,24 @@ let high_scores_screen cx =
     done
   with Exit ->
     ()
+
+(* return true if disconnect, false if quit *)
+let rec menu cx =
+  Draw.draw_empty ();
+  let choice =
+    Menu.string_choices [
+      "HIGH SCORES", `HighScores;
+      "DISCONNECT", `Disconnect;
+      "QUIT", `Quit;
+    ]
+  in
+  match choice with
+    | `HighScores ->
+	high_scores_screen cx;
+	menu cx
+    | `Disconnect ->
+	Net.close cx;
+	true
+    | `Quit ->
+	Net.close cx;
+	false

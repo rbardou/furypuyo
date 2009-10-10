@@ -20,6 +20,10 @@ let on_quit () =
   Config.save config;
   true
 
+let quit () =
+  ignore (on_quit ());
+  IO.close ()
+
 let player_name =
   Config.string config "PLAYERNAME" "Player name"
     (try Unix.getlogin () with Unix.Unix_error _ ->
