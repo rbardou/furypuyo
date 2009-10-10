@@ -173,15 +173,31 @@ let high_scores_screen cx =
 
 (* return true if disconnect, false if quit *)
 let rec menu cx =
+  Net.send cx GetRoomList;
+  Draw.draw_empty ();
+  let rooms =
+    try
+      Menu.waiting_string
+	"LISTING ROOMS..."
+	(check_message cx (function RoomList l -> Some l | _ -> None))
+    with Exit ->
+      []
+  in
+  let room_choices = List.map (fun (name, id) -> String.uppercase name, `Join id) rooms in
   Draw.draw_empty ();
   let choice =
-    Menu.string_choices [
+    Menu.string_choices (room_choices @ [
+      "CREATE NEW ROOM", `CreateNewRoom;
       "HIGH SCORES", `HighScores;
       "DISCONNECT", `Disconnect;
       "QUIT", `Quit;
-    ]
+    ])
   in
   match choice with
+    | `Join id ->
+	join_room cx (Some id)
+    | `CreateNewRoom ->
+	join_room cx None
     | `HighScores ->
 	high_scores_screen cx;
 	menu cx
@@ -191,3 +207,31 @@ let rec menu cx =
     | `Quit ->
 	Net.close cx;
 	false
+
+and join_room cx rido =
+  begin match rido with
+    | None -> Net.send cx NewRoom
+    | Some id -> Net.send cx (JoinRoom id)
+  end;
+  let room =
+    try
+      let r =
+	Menu.waiting_string
+	  "JOINING ROOM..."
+	  (check_message cx (function JoinedRoom (name, id) -> Some (name, id) | _ -> None))
+      in Some r
+    with Exit ->
+      None
+  in
+  match room with
+    | None -> menu cx
+    | Some (name, id) -> joined_room cx name id
+
+and joined_room cx rname rid = (* TODO *)
+  let rname = String.uppercase rname in
+  Draw.draw_empty ();
+  try
+    Menu.waiting_string rname (fun () -> None)
+  with Exit ->
+    Net.send cx LeaveRoom;
+    menu cx

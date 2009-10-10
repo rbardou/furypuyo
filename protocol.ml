@@ -36,13 +36,21 @@ module ToServer = struct
     | MyPassword of string
     | MyScore of Score.t
     | GetScores of int (* position (only give position .. position + 9) *)
+    | GetRoomList
+    | NewRoom
+    | JoinRoom of int
+    | LeaveRoom
 
   let channel = function
     | MyName _
     | MyPassword _ ->
         0
     | MyScore _
-    | GetScores _ ->
+    | GetScores _
+    | GetRoomList
+    | NewRoom
+    | JoinRoom _
+    | LeaveRoom ->
         1
 
   let channels =
@@ -66,6 +74,15 @@ module ToServer = struct
       | GetScores i ->
           wi 3;
           wi i
+      | GetRoomList ->
+	  wi 4;
+      | NewRoom ->
+	  wi 5
+      | JoinRoom i ->
+	  wi 6;
+	  wi i
+      | LeaveRoom ->
+	  wi 7
 
   let decode buf =
     let r x = Bin.read buf x in
@@ -76,6 +93,10 @@ module ToServer = struct
       | 1 -> MyPassword (rs ())
       | 2 -> MyScore (r Score.codec)
       | 3 -> GetScores (ri ())
+      | 4 -> GetRoomList
+      | 5 -> NewRoom
+      | 6 -> JoinRoom (ri ())
+      | 7 -> LeaveRoom
       | _ -> failwith "Protocol.ToServer.decode"
 
   let codec =
@@ -88,11 +109,15 @@ module ToClient = struct
     | YouAreConnected
     | WrongPassword
     | Score of int * string * Score.t (* position, player, score *)
+    | RoomList of (string * int) list
+    | JoinedRoom of string * int (* room's name, room's identifier *)
 
   let channel = function
     | YourNameExists _
     | YouAreConnected
-    | WrongPassword ->
+    | WrongPassword
+    | RoomList _
+    | JoinedRoom _ ->
         0
     | Score _ ->
         1
@@ -119,6 +144,13 @@ module ToClient = struct
           wi i;
           ws s;
           w Score.codec sc
+      | RoomList l ->
+	  wi 4;
+	  w (Bin.list (Bin.couple Bin.string Bin.int)) l
+      | JoinedRoom (s, i) ->
+	  wi 5;
+	  ws s;
+	  wi i
 
   let decode buf =
     let r x = Bin.read buf x in
@@ -134,6 +166,11 @@ module ToClient = struct
           let s = rs () in
           let sc = r Score.codec in
           Score (i, s, sc)
+      | 4 -> RoomList (r (Bin.list (Bin.couple Bin.string Bin.int)))
+      | 5 ->
+	  let s = rs () in
+	  let i = ri () in
+	  JoinedRoom (s, i)
       | _ -> failwith "Protocol.ToClient.decode"
 
   let codec =

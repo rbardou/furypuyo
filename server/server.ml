@@ -5,6 +5,7 @@ open Misc
 
 let maximum_connection_count = 20
 let maximum_score_count = 10
+let maximum_room_count = 5
 
 let config =
   Config.init ~var: "FURYPUYOSRVCONF" "~/.furypuyo";
@@ -18,6 +19,13 @@ type player = {
   name: string;
   pass: string;
   mutable best_score: Score.t;
+  mutable room: room option;
+}
+
+and room = {
+  rid: int;
+  rname: string;
+  mutable rplayers: player list;
 }
 
 let player_identifier = Bin.identifier "PUYOSRVPLAYER"
@@ -45,6 +53,7 @@ let decode_player buf =
           name = name;
           pass = pass;
           best_score = best_score;
+	  room = None;
         }
     | _ -> raise Unknown_file_format
 
@@ -65,6 +74,7 @@ type server_state = {
   players_by_id: (int, player) Hashtbl.t;
   mutable next: int;
   mutable scores: ScoreList.t;
+  mutable rooms: room list;
 }
 
 type client_state =
@@ -128,6 +138,7 @@ let load_players () =
     players_by_id = Hashtbl.create 17;
     next = 0;
     scores = ScoreList.empty;
+    rooms = [];
   } in
   players.next <- 0;
   if Sys.file_exists players_dir then begin
@@ -149,6 +160,7 @@ let new_player players name pass =
     pass = pass;
     pid = players.next;
     best_score = Score.make 0;
+    room = None;
   } in
   players.next <- players.next + 1;
   Hashtbl.add players.players name player;
@@ -167,6 +179,46 @@ let find_player_by_id players name =
 
 let mem_player players name =
   Hashtbl.mem players.players name
+
+let fresh_room_id rooms =
+  let l = List.map (fun r -> r.rid) rooms in
+  let l = List.sort compare l in
+  let rec aux n = function
+    | [] -> n
+    | i :: r when i = n -> aux (n + 1) r
+    | _ -> n
+  in
+  aux 0 l
+
+let create_new_room players name =
+  let room = {
+    rid = fresh_room_id players.rooms;
+    rname = name;
+    rplayers = [];
+  } in
+  log "room created: %s (%d)" room.rname room.rid;
+  room
+
+let destroy_room players room =
+  log "room destroyed: %s (%d)" room.rname room.rid;
+  players.rooms <- List.filter (fun r -> r.rid <> room.rid) players.rooms
+
+let player_join_room c player room =
+  player.room <- Some room;
+  logc c "joined room %s (%d)" room.rname room.rid;
+  room.rplayers <- player :: room.rplayers;
+  Net.send c.cx (JoinedRoom (room.rname, room.rid))
+
+let player_leave_room players c player =
+  match player.room with
+    | None -> ()
+    | Some room ->
+	logc c "leaved room %s (%d)" room.rname room.rid;
+	player.room <- None;
+	room.rplayers <- List.filter (fun p -> p.pid <> player.pid) room.rplayers;
+	match room.rplayers with
+	  | [] -> destroy_room players room
+	  | _ -> ()
 
 let handle_client_message players c m =
   match c.state, m with
@@ -202,6 +254,35 @@ let handle_client_message players c m =
              Net.send c.cx
                (Score (pos + i, (find_player_by_id players pid).name, score)))
           (ScoreList.sub pos (pos + 9) players.scores)
+    | Logged _, GetRoomList ->
+	let rooms = List.map (fun r -> r.rname, r.rid) players.rooms in
+	Net.send c.cx (RoomList rooms)
+    | Logged player, NewRoom ->
+	begin match player.room with
+	  | None ->
+	      if List.length players.rooms < maximum_room_count then begin
+		let room = create_new_room players (player.name ^ "'s room") in
+		players.rooms <- room :: players.rooms;
+		player_join_room c player room;
+	      end else
+		() (* TODO: tell client the error *)
+	  | Some room ->
+	      Net.send c.cx (JoinedRoom (room.rname, room.rid))
+	end
+    | Logged player, JoinRoom rid ->
+	begin match player.room with
+	  | None ->
+	      begin try
+		let room = List.find (fun r -> r.rid = rid) players.rooms in
+		player_join_room c player room
+	      with Not_found ->
+		() (* TODO: tell client the error *)
+	      end
+	  | Some room ->
+	      Net.send c.cx (JoinedRoom (room.rname, room.rid))
+	end
+    | Logged player, LeaveRoom ->
+	player_leave_room players c player
     | _ ->
         ()
 
@@ -221,13 +302,13 @@ let new_client =
     logc c "new client: %s:%d" (Net.remote_address cx) (Net.remote_port cx);
     c
 
-let check_active c =
-  if Net.active c.cx then
-    true
-  else begin
-    logc c "disconnected";
-    false
-  end
+let deactivate_client players c =
+  logc c "disconnected";
+  match c.state with
+    | Hello | Logging _ ->
+	()
+    | Logged player ->
+	player_leave_room players c player
 
 let () =
   let players = load_players () in
@@ -235,7 +316,9 @@ let () =
   let clients = ref [] in
   log "listening to port %d" port;
   while true do
-    clients := List.filter check_active !clients;
+    let active, inactive = List.partition (fun c -> Net.active c.cx) !clients in
+    clients := active;
+    List.iter (deactivate_client players) inactive;
     let news = Net.accept ~max: maximum_connection_count server in
     let news = List.map new_client news in
     clients := !clients @ news;
