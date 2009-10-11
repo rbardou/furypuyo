@@ -338,8 +338,8 @@ let handle_client_message players c m =
 	let rooms = List.map (fun r -> r.rname, r.rid) players.rooms in
 	Net.send c.cx (RoomList rooms)
     | Logged player, NewRoom ->
-	begin match player.room with
-	  | None ->
+	begin match player.room, player.game with
+	  | None, None ->
 	      if List.length players.rooms < maximum_room_count then begin
 		let room =
 		  create_new_room players (player.name ^ "'s room") in
@@ -347,20 +347,24 @@ let handle_client_message players c m =
 		player_join_room c player room;
 	      end else
 		() (* TODO: tell client the error *)
-	  | Some room ->
+	  | Some room, _ ->
 	      Net.send c.cx (JoinedRoom (room.rname, room.rid))
+	  | None, Some _ ->
+	      () (* TODO: tell client the error *)
 	end
     | Logged player, JoinRoom rid ->
-	begin match player.room with
-	  | None ->
+	begin match player.room, player.game with
+	  | None, None ->
 	      begin try
 		let room = List.find (fun r -> r.rid = rid) players.rooms in
 		player_join_room c player room
 	      with Not_found ->
 		() (* TODO: tell client the error *)
 	      end
-	  | Some room ->
+	  | Some room, _ ->
 	      Net.send c.cx (JoinedRoom (room.rname, room.rid))
+	  | None, Some _ ->
+	      () (* TODO: tell client the error *)
 	end
     | Logged player, LeaveRoom ->
 	player_leave_room players c player
