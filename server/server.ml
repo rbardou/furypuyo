@@ -212,7 +212,13 @@ let create_new_room players name =
 
 let destroy_room players room =
   log "room destroyed: %s (%d)" room.rname room.rid;
+  List.iter (fun p -> p.room <- None) room.rplayers;
   players.rooms <- List.filter (fun r -> r.rid <> room.rid) players.rooms
+
+let may_start room =
+  match room.rplayers with
+    | [] | [_] -> false
+    | l -> List.for_all (fun p -> p.ready) l
 
 let room_send_players room =
   let m = RoomPlayers (List.map (fun p -> p.name, p.ready) room.rplayers) in
@@ -228,12 +234,20 @@ let player_join_room c player room =
   Net.send c.cx (JoinedRoom (room.rname, room.rid));
   room_send_players room
 
-let player_ready c player =
+let start_game players room =
+  log "game started for room %s (%d)" room.rname room.rid;
+  List.iter (fun p -> send_to p StartGame) room.rplayers;
+  destroy_room players room
+
+let player_ready players c player =
   match player.room with
     | None -> ()
     | Some room ->
 	player.ready <- true;
-	room_send_players room
+	if may_start room then
+	  start_game players room
+	else
+	  room_send_players room
 
 let player_leave_room players c player =
   match player.room with
@@ -312,7 +326,7 @@ let handle_client_message players c m =
     | Logged player, LeaveRoom ->
 	player_leave_room players c player
     | Logged player, Ready ->
-	player_ready c player
+	player_ready players c player
     | _ ->
         ()
 

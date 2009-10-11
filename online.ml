@@ -5,6 +5,8 @@ open ToClient
 open Sprites
 open Common
 
+exception GameStarts
+
 let rec check_message cx test () =
   match Net.receive_one cx with
     | None -> None
@@ -266,10 +268,14 @@ and joined_room cx rname rid = (* TODO *)
       List.iter
 	(function
 	   | RoomPlayers l -> players := l
+	   | StartGame -> raise GameStarts
 	   | _ -> ())
 	(Net.receive cx)
     done;
     assert false
-  with Exit ->
-    Net.send cx LeaveRoom;
-    menu cx
+  with
+    |  Exit ->
+	 Net.send cx LeaveRoom;
+	 menu cx
+    | GameStarts ->
+	menu cx (* TODO *)

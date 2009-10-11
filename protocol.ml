@@ -117,13 +117,15 @@ module ToClient = struct
     | RoomList of (string * int) list
     | JoinedRoom of string * int (* room's name, room's identifier *)
     | RoomPlayers of (string * bool) list (* player's name, ready *)
+    | StartGame
 
   let channel = function
     | YourNameExists _
     | YouAreConnected
     | WrongPassword
     | RoomList _
-    | JoinedRoom _ ->
+    | JoinedRoom _
+    | StartGame ->
         0
     | Score _
     | RoomPlayers _ ->
@@ -161,6 +163,8 @@ module ToClient = struct
       | RoomPlayers l ->
 	  wi 6;
 	  w (Bin.list (Bin.couple Bin.string Bin.bool)) l
+      | StartGame ->
+	  wi 7
 
   let decode buf =
     let r x = Bin.read buf x in
@@ -183,6 +187,8 @@ module ToClient = struct
 	  JoinedRoom (s, i)
       | 6 ->
 	  RoomPlayers (r (Bin.list (Bin.couple Bin.string Bin.bool)))
+      | 7 ->
+	  StartGame
       | _ -> failwith "Protocol.ToClient.decode"
 
   let codec =
