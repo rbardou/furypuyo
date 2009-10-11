@@ -20,14 +20,21 @@ type player = {
   pass: string;
   mutable best_score: Score.t;
   mutable room: room option;
-  mutable pcx: (Net.message_to_client, Net.message_to_server) Net.connection option;
+  mutable pcx:
+    (Net.message_to_client, Net.message_to_server) Net.connection option;
   mutable ready: bool;
+  mutable game: game option;
 }
 
 and room = {
   rid: int;
   rname: string;
   mutable rplayers: player list;
+}
+
+and game = {
+  gid: int;
+  mutable gplayers: player list;
 }
 
 let player_identifier = Bin.identifier "PUYOSRVPLAYER"
@@ -63,6 +70,7 @@ let decode_player buf =
 	  room = None;
 	  pcx = None;
 	  ready = false;
+	  game = None;
         }
     | _ -> raise Unknown_file_format
 
@@ -84,6 +92,8 @@ type server_state = {
   mutable next: int;
   mutable scores: ScoreList.t;
   mutable rooms: room list;
+  games: (int, game) Hashtbl.t;
+  mutable next_game: int;
 }
 
 type client_state =
@@ -148,6 +158,8 @@ let load_players () =
     next = 0;
     scores = ScoreList.empty;
     rooms = [];
+    games = Hashtbl.create 17;
+    next_game = 0;
   } in
   players.next <- 0;
   if Sys.file_exists players_dir then begin
@@ -172,6 +184,7 @@ let new_player players name pass =
     room = None;
     pcx = None;
     ready = false;
+    game = None;
   } in
   players.next <- players.next + 1;
   Hashtbl.add players.players name player;
@@ -215,6 +228,11 @@ let destroy_room players room =
   List.iter (fun p -> p.room <- None) room.rplayers;
   players.rooms <- List.filter (fun r -> r.rid <> room.rid) players.rooms
 
+let destroy_game players game =
+  log "game destroyed: %d" game.gid;
+  List.iter (fun p -> p.game <- None) game.gplayers;
+  Hashtbl.remove players.games game.gid
+
 let may_start room =
   match room.rplayers with
     | [] | [_] -> false
@@ -235,9 +253,16 @@ let player_join_room c player room =
   room_send_players room
 
 let start_game players room =
-  log "game started for room %s (%d)" room.rname room.rid;
-  List.iter (fun p -> send_to p StartGame) room.rplayers;
-  destroy_room players room
+  let game = {
+    gid = players.next_game;
+    gplayers = room.rplayers;
+  } in
+  players.next_game <- players.next_game + 1;
+  Hashtbl.add players.games game.gid game;
+  List.iter (fun p -> p.game <- Some game) game.gplayers;
+  destroy_room players room;
+  List.iter (fun p -> send_to p StartGame) game.gplayers;
+  log "game %d started for room %s (%d)" game.gid room.rname room.rid
 
 let player_ready players c player =
   match player.room with
@@ -251,15 +276,28 @@ let player_ready players c player =
 
 let player_leave_room players c player =
   match player.room with
-    | None -> ()
     | Some room ->
 	logc c "leaved room %s (%d)" room.rname room.rid;
 	player.room <- None;
-	room.rplayers <- List.filter (fun p -> p.pid <> player.pid) room.rplayers;
+	room.rplayers <- List.filter (fun p -> p.pid <> player.pid)
+	  room.rplayers;
 	room_send_players room;
-	match room.rplayers with
+	begin match room.rplayers with
 	  | [] -> destroy_room players room
 	  | _ -> ()
+	end
+    | None ->
+	match player.game with
+	  | Some game ->
+	      logc c "leaved game %d" game.gid;
+	      player.game <- None;
+	      game.gplayers <- List.filter (fun p -> p.pid <> player.pid)
+		game.gplayers;
+	      begin match game.gplayers with
+		| [] -> destroy_game players game
+		| _ -> ()
+	      end
+	  | None -> ()
 
 let handle_client_message players c m =
   match c.state, m with
@@ -303,7 +341,8 @@ let handle_client_message players c m =
 	begin match player.room with
 	  | None ->
 	      if List.length players.rooms < maximum_room_count then begin
-		let room = create_new_room players (player.name ^ "'s room") in
+		let room =
+		  create_new_room players (player.name ^ "'s room") in
 		players.rooms <- room :: players.rooms;
 		player_join_room c player room;
 	      end else
@@ -361,7 +400,8 @@ let () =
   let clients = ref [] in
   log "listening to port %d" port;
   while true do
-    let active, inactive = List.partition (fun c -> Net.active c.cx) !clients in
+    let active, inactive =
+      List.partition (fun c -> Net.active c.cx) !clients in
     clients := active;
     List.iter (deactivate_client players) inactive;
     let news = Net.accept ~max: maximum_connection_count server in
