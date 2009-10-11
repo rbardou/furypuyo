@@ -21,6 +21,7 @@ type player = {
   mutable best_score: Score.t;
   mutable room: room option;
   mutable pcx: (Net.message_to_client, Net.message_to_server) Net.connection option;
+  mutable ready: bool;
 }
 
 and room = {
@@ -61,6 +62,7 @@ let decode_player buf =
           best_score = best_score;
 	  room = None;
 	  pcx = None;
+	  ready = false;
         }
     | _ -> raise Unknown_file_format
 
@@ -169,6 +171,7 @@ let new_player players name pass =
     best_score = Score.make 0;
     room = None;
     pcx = None;
+    ready = false;
   } in
   players.next <- players.next + 1;
   Hashtbl.add players.players name player;
@@ -212,17 +215,25 @@ let destroy_room players room =
   players.rooms <- List.filter (fun r -> r.rid <> room.rid) players.rooms
 
 let room_send_players room =
-  let m = RoomPlayers (List.map (fun p -> p.name) room.rplayers) in
+  let m = RoomPlayers (List.map (fun p -> p.name, p.ready) room.rplayers) in
   List.iter
     (fun p -> send_to p m)
     room.rplayers
 
 let player_join_room c player room =
   player.room <- Some room;
+  player.ready <- false;
   logc c "joined room %s (%d)" room.rname room.rid;
   room.rplayers <- player :: room.rplayers;
   Net.send c.cx (JoinedRoom (room.rname, room.rid));
   room_send_players room
+
+let player_ready c player =
+  match player.room with
+    | None -> ()
+    | Some room ->
+	player.ready <- true;
+	room_send_players room
 
 let player_leave_room players c player =
   match player.room with
@@ -300,6 +311,8 @@ let handle_client_message players c m =
 	end
     | Logged player, LeaveRoom ->
 	player_leave_room players c player
+    | Logged player, Ready ->
+	player_ready c player
     | _ ->
         ()
 

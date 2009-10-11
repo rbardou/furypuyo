@@ -244,9 +244,14 @@ and joined_room cx rname rid = (* TODO *)
 	IO.Sprite.draw background 0 0;
 	IO.Text.write font ~align: IO.Top title_x title_y rname;
 	list_iteri
-	  (fun i name ->
-	     IO.Text.write font ~align: IO.TopLeft player_x (player_y + i * player_h)
-	       (String.uppercase name))
+	  (fun i (name, ready) ->
+	     let name = String.uppercase name in
+	     let text = if ready then "OK "^name else "   "^name in
+	     IO.Text.write
+	       font
+	       ~align: IO.TopLeft player_x
+	       (player_y + i * player_h)
+	       text)
 	  !players;
 	IO.update ()
       end;
@@ -254,6 +259,7 @@ and joined_room cx rname rid = (* TODO *)
       List.iter
 	(function
            | Escape -> raise Exit
+	   | Return -> Net.send cx Ready
            | _ -> ())
 	(MenuReader.read ());
 

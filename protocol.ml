@@ -40,6 +40,7 @@ module ToServer = struct
     | NewRoom
     | JoinRoom of int
     | LeaveRoom
+    | Ready
 
   let channel = function
     | MyName _
@@ -50,7 +51,8 @@ module ToServer = struct
     | GetRoomList
     | NewRoom
     | JoinRoom _
-    | LeaveRoom ->
+    | LeaveRoom
+    | Ready ->
         1
 
   let channels =
@@ -83,6 +85,8 @@ module ToServer = struct
 	  wi i
       | LeaveRoom ->
 	  wi 7
+      | Ready ->
+	  wi 8
 
   let decode buf =
     let r x = Bin.read buf x in
@@ -97,6 +101,7 @@ module ToServer = struct
       | 5 -> NewRoom
       | 6 -> JoinRoom (ri ())
       | 7 -> LeaveRoom
+      | 8 -> Ready
       | _ -> failwith "Protocol.ToServer.decode"
 
   let codec =
@@ -111,7 +116,7 @@ module ToClient = struct
     | Score of int * string * Score.t (* position, player, score *)
     | RoomList of (string * int) list
     | JoinedRoom of string * int (* room's name, room's identifier *)
-    | RoomPlayers of string list
+    | RoomPlayers of (string * bool) list (* player's name, ready *)
 
   let channel = function
     | YourNameExists _
@@ -155,7 +160,7 @@ module ToClient = struct
 	  wi i
       | RoomPlayers l ->
 	  wi 6;
-	  w (Bin.list Bin.string) l
+	  w (Bin.list (Bin.couple Bin.string Bin.bool)) l
 
   let decode buf =
     let r x = Bin.read buf x in
@@ -177,7 +182,7 @@ module ToClient = struct
 	  let i = ri () in
 	  JoinedRoom (s, i)
       | 6 ->
-	  RoomPlayers (r (Bin.list Bin.string))
+	  RoomPlayers (r (Bin.list (Bin.couple Bin.string Bin.bool)))
       | _ -> failwith "Protocol.ToClient.decode"
 
   let codec =
