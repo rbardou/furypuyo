@@ -2,17 +2,16 @@ open Misc
 open Protocol
 open ToServer
 open ToClient
+open Sprites
 open Common
 
-let check_message cx test () =
-  let seen = ref None in
-  List.iter
-    (fun m ->
-       match test m with
-         | None -> ()
-         | Some x -> seen := Some x)
-    (Net.receive cx);
-  !seen
+let rec check_message cx test () =
+  match Net.receive_one cx with
+    | None -> None
+    | Some m ->
+	match test m with
+	  | None -> check_message cx test ()
+	  | Some _ as x -> x
 
 let option_of_bool = function
   | true -> Some ()
@@ -218,7 +217,8 @@ and join_room cx rido =
       let r =
 	Menu.waiting_string
 	  "JOINING ROOM..."
-	  (check_message cx (function JoinedRoom (name, id) -> Some (name, id) | _ -> None))
+	  (check_message cx
+	     (function JoinedRoom (name, id) -> Some (name, id) | _ -> None))
       in Some r
     with Exit ->
       None
@@ -230,8 +230,40 @@ and join_room cx rido =
 and joined_room cx rname rid = (* TODO *)
   let rname = String.uppercase rname in
   Draw.draw_empty ();
+  let background = IO.Sprite.screenshot () in
+  let title_x = screen_width / 2 in
+  let title_y = 20 in
+  let player_y = 80 in
+  let player_x = 20 in
+  let player_h = 30 in
+  MenuReader.reset ();
+  let players = ref [] in
   try
-    Menu.waiting_string rname (fun () -> None)
+    while true do
+      if IO.frame_delay 10 then begin
+	IO.Sprite.draw background 0 0;
+	IO.Text.write font ~align: IO.Top title_x title_y rname;
+	list_iteri
+	  (fun i name ->
+	     IO.Text.write font ~align: IO.TopLeft player_x (player_y + i * player_h)
+	       (String.uppercase name))
+	  !players;
+	IO.update ()
+      end;
+
+      List.iter
+	(function
+           | Escape -> raise Exit
+           | _ -> ())
+	(MenuReader.read ());
+
+      List.iter
+	(function
+	   | RoomPlayers l -> players := l
+	   | _ -> ())
+	(Net.receive cx)
+    done;
+    assert false
   with Exit ->
     Net.send cx LeaveRoom;
     menu cx

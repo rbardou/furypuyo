@@ -63,6 +63,7 @@ module type NET = sig
   val active: ('a, 'b) connection -> bool
   val send: ('a, 'b) connection -> 'a -> unit
   val receive: ('a, 'b) connection -> 'b list
+  val receive_one: ('a, 'b) connection -> 'b option
   val remote_address: ('a, 'b) connection -> string
   val remote_port: ('a, 'b) connection -> int
 end
@@ -87,6 +88,7 @@ struct
     frames_receive: (int * ('a, 'b) frame) list;
     channel_send: 'a -> int;
     channel_receive: 'b -> int;
+    mutable reception: 'b list;
   }
 
   type server =
@@ -125,6 +127,7 @@ struct
       frames_receive = List.map (make_frame cx) channels_receive;
       channel_send = ch_send;
       channel_receive = ch_receive;
+      reception = [];
     }
 
   let accept ?max (serv: server) =
@@ -194,10 +197,25 @@ struct
     | FOrdered (_, _, receiver) ->
         Order.receive receiver
 
-  let receive cx =
+  let reception cx =
     update cx;
-    List.flatten
-      (List.map (fun (_, frame) -> receive_on frame) cx.frames_receive)
+    let news =
+      List.flatten
+	(List.map (fun (_, frame) -> receive_on frame) cx.frames_receive)
+    in
+    cx.reception <- cx.reception @ news
+
+  let receive cx =
+    reception cx;
+    let l = cx.reception in
+    cx.reception <- [];
+    l
+
+  let receive_one cx =
+    reception cx;
+    match cx.reception with
+      | [] -> None
+      | x :: r -> cx.reception <- r; Some x
 end
 
 module SimpleDef(P: SIMPLEPROTOCOL): PROTOCOL

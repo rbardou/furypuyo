@@ -135,6 +135,9 @@ module type NET = sig
   val receive: ('a, 'b) connection -> 'b list
     (** Receive data over a connection. *)
 
+  val receive_one: ('a, 'b) connection -> 'b option
+    (** Receive data over a connection (at most one message). *)
+
   val remote_address: ('a, 'b) connection -> string
     (** Get the remote address of a connection. *)
 

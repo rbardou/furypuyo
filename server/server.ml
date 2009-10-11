@@ -20,6 +20,7 @@ type player = {
   pass: string;
   mutable best_score: Score.t;
   mutable room: room option;
+  mutable pcx: (Net.message_to_client, Net.message_to_server) Net.connection option;
 }
 
 and room = {
@@ -31,6 +32,11 @@ and room = {
 let player_identifier = Bin.identifier "PUYOSRVPLAYER"
 
 exception Unknown_file_format
+
+let send_to p m =
+  match p.pcx with
+    | None -> log "warning: cannot send to player %s (%d)" p.name p.pid
+    | Some cx -> Net.send cx m
 
 let encode_player buf p =
   Bin.write buf player_identifier ();
@@ -54,6 +60,7 @@ let decode_player buf =
           pass = pass;
           best_score = best_score;
 	  room = None;
+	  pcx = None;
         }
     | _ -> raise Unknown_file_format
 
@@ -161,6 +168,7 @@ let new_player players name pass =
     pid = players.next;
     best_score = Score.make 0;
     room = None;
+    pcx = None;
   } in
   players.next <- players.next + 1;
   Hashtbl.add players.players name player;
@@ -203,11 +211,18 @@ let destroy_room players room =
   log "room destroyed: %s (%d)" room.rname room.rid;
   players.rooms <- List.filter (fun r -> r.rid <> room.rid) players.rooms
 
+let room_send_players room =
+  let m = RoomPlayers (List.map (fun p -> p.name) room.rplayers) in
+  List.iter
+    (fun p -> send_to p m)
+    room.rplayers
+
 let player_join_room c player room =
   player.room <- Some room;
   logc c "joined room %s (%d)" room.rname room.rid;
   room.rplayers <- player :: room.rplayers;
-  Net.send c.cx (JoinedRoom (room.rname, room.rid))
+  Net.send c.cx (JoinedRoom (room.rname, room.rid));
+  room_send_players room
 
 let player_leave_room players c player =
   match player.room with
@@ -216,6 +231,7 @@ let player_leave_room players c player =
 	logc c "leaved room %s (%d)" room.rname room.rid;
 	player.room <- None;
 	room.rplayers <- List.filter (fun p -> p.pid <> player.pid) room.rplayers;
+	room_send_players room;
 	match room.rplayers with
 	  | [] -> destroy_room players room
 	  | _ -> ()
@@ -228,6 +244,7 @@ let handle_client_message players c m =
     | Logging name, MyPassword pass ->
         let accept_login player =
           c.state <- Logged player;
+	  player.pcx <- Some c.cx;
           logc c "logged in";
           Net.send c.cx YouAreConnected
         in
@@ -308,6 +325,7 @@ let deactivate_client players c =
     | Hello | Logging _ ->
 	()
     | Logged player ->
+	player.pcx <- None;
 	player_leave_room players c player
 
 let () =

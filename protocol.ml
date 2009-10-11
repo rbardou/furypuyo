@@ -111,6 +111,7 @@ module ToClient = struct
     | Score of int * string * Score.t (* position, player, score *)
     | RoomList of (string * int) list
     | JoinedRoom of string * int (* room's name, room's identifier *)
+    | RoomPlayers of string list
 
   let channel = function
     | YourNameExists _
@@ -119,7 +120,8 @@ module ToClient = struct
     | RoomList _
     | JoinedRoom _ ->
         0
-    | Score _ ->
+    | Score _
+    | RoomPlayers _ ->
         1
 
   let channels =
@@ -151,6 +153,9 @@ module ToClient = struct
 	  wi 5;
 	  ws s;
 	  wi i
+      | RoomPlayers l ->
+	  wi 6;
+	  w (Bin.list Bin.string) l
 
   let decode buf =
     let r x = Bin.read buf x in
@@ -171,6 +176,8 @@ module ToClient = struct
 	  let s = rs () in
 	  let i = ri () in
 	  JoinedRoom (s, i)
+      | 6 ->
+	  RoomPlayers (r (Bin.list Bin.string))
       | _ -> failwith "Protocol.ToClient.decode"
 
   let codec =
