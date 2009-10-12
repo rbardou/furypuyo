@@ -1,3 +1,5 @@
+(** Parts which are common to single and multi-player games *)
+
 open Misc
 
 let show_version () =

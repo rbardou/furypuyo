@@ -1,3 +1,5 @@
+(** Multi-player games *)
+
 open Game
 open Misc
 open Protocol

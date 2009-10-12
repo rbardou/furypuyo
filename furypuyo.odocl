@@ -4,6 +4,7 @@ Block
 Cell
 Config
 Configlex
+Common
 Cpu
 Draw
 Game
@@ -16,6 +17,7 @@ Matrix
 Menu
 Misc
 Net
+Online
 Puyo
 Protocol
 Rand

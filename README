@@ -75,9 +75,20 @@ Just copy the Fury Puyo executable to your bin directory:
 
         cp furypuyo /usr/bin
 
+You can also copy the server executable if you want to host games:
+
+        cp furypuyo_srv /usr/bin
+
 Play
 ====
 
 Run the game with:
 
         furypuyo
+
+Multiplayer
+===========
+
+You can either join an existing server or run your own server with:
+
+        furypuyo_srv
