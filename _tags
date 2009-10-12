@@ -1,1 +1,2 @@
+<**/*.*>: dtypes
 <main.*> or <menu.*> or <IO.*> or <convert.*>: pkg_unix, pkg_sdl, pkg_sdl.sdlimage, pkg_sdl.sdlttf
