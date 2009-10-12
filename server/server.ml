@@ -24,6 +24,7 @@ type player = {
     (Net.message_to_client, Net.message_to_server) Net.connection option;
   mutable ready: bool;
   mutable game: game option;
+  mutable garbage: int;
 }
 
 and room = {
@@ -71,6 +72,7 @@ let decode_player buf =
 	  pcx = None;
 	  ready = false;
 	  game = None;
+          garbage = 0;
         }
     | _ -> raise Unknown_file_format
 
@@ -185,6 +187,7 @@ let new_player players name pass =
     pcx = None;
     ready = false;
     game = None;
+    garbage = 0;
   } in
   players.next <- players.next + 1;
   Hashtbl.add players.players name player;
@@ -262,6 +265,7 @@ let start_game players room =
   List.iter (fun p -> p.game <- Some game) game.gplayers;
   destroy_room players room;
   List.iter (fun p -> send_to p StartGame) game.gplayers;
+  List.iter (fun p -> p.garbage <- 0) game.gplayers;
   log "game %d started for room %s (%d)" game.gid room.rname room.rid
 
 let player_ready players c player =
@@ -298,6 +302,22 @@ let player_leave_room players c player =
 		| _ -> ()
 	      end
 	  | None -> ()
+
+let player_send_garbage player game count =
+  player.garbage <- player.garbage + count;
+  List.iter
+    (fun p ->
+       if p.pid <> player.pid then
+         send_to p (PrepareGarbage count))
+    game.gplayers
+
+let player_finish_garbage player game =
+  List.iter
+    (fun p ->
+       if p.pid <> player.pid then
+         send_to p (ReadyGarbage player.garbage))
+    game.gplayers;
+  player.garbage <- 0
 
 let handle_client_message players c m =
   match c.state, m with
@@ -370,6 +390,16 @@ let handle_client_message players c m =
 	player_leave_room players c player
     | Logged player, Ready ->
 	player_ready players c player
+    | Logged player, SendGarbage i ->
+        begin match player.game with
+          | None -> ()
+          | Some game -> player_send_garbage player game i
+        end
+    | Logged player, FinishGarbage ->
+        begin match player.game with
+          | None -> ()
+          | Some game -> player_finish_garbage player game
+        end
     | _ ->
         ()
 

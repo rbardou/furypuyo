@@ -1,3 +1,4 @@
+open Game
 open Misc
 open Protocol
 open ToServer
@@ -173,7 +174,7 @@ let high_scores_screen cx =
     ()
 
 (* return true if disconnect, false if quit *)
-let rec menu cx =
+let rec menu cx login =
   Net.send cx GetRoomList;
   Draw.draw_empty ();
   let rooms =
@@ -184,7 +185,8 @@ let rec menu cx =
     with Exit ->
       []
   in
-  let room_choices = List.map (fun (name, id) -> String.uppercase name, `Join id) rooms in
+  let room_choices =
+    List.map (fun (name, id) -> String.uppercase name, `Join id) rooms in
   Draw.draw_empty ();
   let choice =
     Menu.string_choices (room_choices @ [
@@ -196,12 +198,12 @@ let rec menu cx =
   in
   match choice with
     | `Join id ->
-	join_room cx (Some id)
+	join_room cx login (Some id)
     | `CreateNewRoom ->
-	join_room cx None
+	join_room cx login None
     | `HighScores ->
 	high_scores_screen cx;
-	menu cx
+	menu cx login
     | `Disconnect ->
 	Net.close cx;
 	true
@@ -209,7 +211,7 @@ let rec menu cx =
 	Net.close cx;
 	false
 
-and join_room cx rido =
+and join_room cx login rido =
   begin match rido with
     | None -> Net.send cx NewRoom
     | Some id -> Net.send cx (JoinRoom id)
@@ -226,10 +228,10 @@ and join_room cx rido =
       None
   in
   match room with
-    | None -> menu cx
-    | Some (name, id) -> joined_room cx name id
+    | None -> menu cx login
+    | Some (name, id) -> joined_room cx login name id
 
-and joined_room cx rname rid = (* TODO *)
+and joined_room cx login rname rid = (* TODO *)
   let rname = String.uppercase rname in
   Draw.draw_empty ();
   let background = IO.Sprite.screenshot () in
@@ -274,8 +276,43 @@ and joined_room cx rname rid = (* TODO *)
     done;
     assert false
   with
-    |  Exit ->
-	 Net.send cx LeaveRoom;
-	 menu cx
+    | Exit ->
+	Net.send cx LeaveRoom;
+	menu cx login
     | GameStarts ->
-	menu cx (* TODO *)
+	multi_player_game cx login
+
+and multi_player_game cx login =
+  let game = ref (Game.start ()) in
+  let replay = Replay.record !game in
+  IO.timer_start ();
+  while not (game_finished !game) do
+    let actions = ref (Reader.read ()) in
+    if IO.frame_delay 10 then Draw.draw !game;
+
+    (* TODO: pause menu *)
+    List.iter
+      (function
+         | PrepareGarbage i ->
+             actions := (Action.SendGarbage i) :: !actions
+         | ReadyGarbage i ->
+             actions := (Action.FinishSomeGarbage i) :: !actions
+         | _ -> ())
+      (Net.receive cx);
+
+    Replay.frame replay !actions;
+    game := Game.think_frame !game !actions;
+
+    (* send garbage *)
+    let garbage = !game.garbage_sent in
+    if garbage > 0 then begin
+      game := { !game with garbage_sent = 0 };
+      Net.send cx (SendGarbage garbage)
+    end;
+    if !game.garbage_finished then begin
+      game := { !game with garbage_finished = false };
+      Net.send cx FinishGarbage
+    end;
+  done;
+  save_replay replay (login ^ "_online");
+  menu cx login

@@ -41,10 +41,14 @@ module ToServer = struct
     | JoinRoom of int
     | LeaveRoom
     | Ready
+    | SendGarbage of int
+    | FinishGarbage
 
   let channel = function
     | MyName _
-    | MyPassword _ ->
+    | MyPassword _
+    | SendGarbage _
+    | FinishGarbage ->
         0
     | MyScore _
     | GetScores _
@@ -87,6 +91,11 @@ module ToServer = struct
 	  wi 7
       | Ready ->
 	  wi 8
+      | SendGarbage i ->
+          wi 9;
+          wi i
+      | FinishGarbage ->
+          wi 10
 
   let decode buf =
     let r x = Bin.read buf x in
@@ -102,6 +111,8 @@ module ToServer = struct
       | 6 -> JoinRoom (ri ())
       | 7 -> LeaveRoom
       | 8 -> Ready
+      | 9 -> SendGarbage (ri ())
+      | 10 -> FinishGarbage
       | _ -> failwith "Protocol.ToServer.decode"
 
   let codec =
@@ -118,6 +129,8 @@ module ToClient = struct
     | JoinedRoom of string * int (* room's name, room's identifier *)
     | RoomPlayers of (string * bool) list (* player's name, ready *)
     | StartGame
+    | PrepareGarbage of int
+    | ReadyGarbage of int
 
   let channel = function
     | YourNameExists _
@@ -125,7 +138,9 @@ module ToClient = struct
     | WrongPassword
     | RoomList _
     | JoinedRoom _
-    | StartGame ->
+    | StartGame
+    | PrepareGarbage _
+    | ReadyGarbage _ ->
         0
     | Score _
     | RoomPlayers _ ->
@@ -165,6 +180,12 @@ module ToClient = struct
 	  w (Bin.list (Bin.couple Bin.string Bin.bool)) l
       | StartGame ->
 	  wi 7
+      | PrepareGarbage i ->
+          wi 8;
+          wi i
+      | ReadyGarbage i ->
+          wi 9;
+          wi i
 
   let decode buf =
     let r x = Bin.read buf x in
@@ -185,10 +206,10 @@ module ToClient = struct
 	  let s = rs () in
 	  let i = ri () in
 	  JoinedRoom (s, i)
-      | 6 ->
-	  RoomPlayers (r (Bin.list (Bin.couple Bin.string Bin.bool)))
-      | 7 ->
-	  StartGame
+      | 6 -> RoomPlayers (r (Bin.list (Bin.couple Bin.string Bin.bool)))
+      | 7 -> StartGame
+      | 8 -> PrepareGarbage (ri ())
+      | 9 -> ReadyGarbage (ri ())
       | _ -> failwith "Protocol.ToClient.decode"
 
   let codec =

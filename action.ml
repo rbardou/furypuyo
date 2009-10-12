@@ -42,6 +42,7 @@ type t =
 
   | SendGarbage of int
   | FinishGarbage
+  | FinishSomeGarbage of int
 
   | Debug
 
@@ -61,6 +62,9 @@ let encode buf v =
         w Bin.int 9;
         w Bin.int i
     | FinishGarbage -> w Bin.int 10
+    | FinishSomeGarbage i ->
+        w Bin.int 11;
+        w Bin.int i
 
 let decode buf =
   let r x = Bin.read buf x in
@@ -76,6 +80,7 @@ let decode buf =
     | 8 -> Debug
     | 9 -> SendGarbage (r Bin.int)
     | 10 -> FinishGarbage
+    | 11 -> FinishSomeGarbage (r Bin.int)
     | _ -> failwith "Action.decode"
 
 let codec = Bin.custom encode decode

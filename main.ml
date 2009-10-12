@@ -33,10 +33,6 @@
 open Misc
 open Common
 
-module Reader = IO.MakeReader(Action)
-
-module HighScores = Highscores.Make(Score)
-
 let () =
   Sdlwm.set_caption ~title: "Fury Puyo" ~icon: "Fury Puyo";
   Reader.key_down Sdlkey.KEY_ESCAPE Action.Escape;
@@ -57,23 +53,6 @@ let high_scores_file = "single_player.scores"
 let high_scores = ref (HighScores.load high_scores_file 10)
 
 let draw = ref true
-
-let game_finished game =
-  match game.Game.state with
-    | Game.GameOver s -> s.Game.go_end <= game.Game.now
-    | _ -> false
-
-let game_over game =
-  match game.Game.state with
-    | Game.GameOver _ -> true
-    | _ -> false
-
-let save_replay replay file =
-  let file = new_file_name (Config.filename file) ".replay" in
-  let ch = open_out file in
-  let buf = Bin.to_channel ch in
-  Bin.write buf Replay.codec replay;
-  close_out ch
 
 let rec single_player_loop game cpu replay: unit =
   let actions = Reader.read () in
@@ -260,7 +239,7 @@ and play_online (): unit =
 	main_menu ()
     | Some (cx, login) ->
         Online.send_score cx (HighScores.player !high_scores login);
-        if Online.menu cx then
+        if Online.menu cx login then
 	  main_menu ()
 	else
 	  quit ()

@@ -1,3 +1,5 @@
+open Misc
+
 let show_version () =
   print_endline Version.string;
   exit 0
@@ -44,3 +46,24 @@ module MenuAction = struct
   type t = Up | Down | Return | Escape | Left | Right | PageUp | PageDown
 end
 module MenuReader = IO.MakeReader(MenuAction)
+
+let game_finished game =
+  match game.Game.state with
+    | Game.GameOver s -> s.Game.go_end <= game.Game.now
+    | _ -> false
+
+let game_over game =
+  match game.Game.state with
+    | Game.GameOver _ -> true
+    | _ -> false
+
+module Reader = IO.MakeReader(Action)
+
+module HighScores = Highscores.Make(Score)
+
+let save_replay replay file =
+  let file = new_file_name (Config.filename file) ".replay" in
+  let ch = open_out file in
+  let buf = Bin.to_channel ch in
+  Bin.write buf Replay.codec replay;
+  close_out ch

@@ -139,6 +139,10 @@ type game = {
     (** garbage that can be offset but that won't fall yet *)
   garbage_ready: int;
     (** garbage ready to fall *)
+  garbage_sent: int;
+    (** used by online games *)
+  garbage_finished: bool;
+    (** used by online games *)
   garbage_protection: bool;
   garbage_position: int;
   offsets: int;
@@ -342,7 +346,8 @@ let start_incoming game =
         rand = rand;
         generator = generator;
         next_blocks = next_blocks;
-        garbage_protection = false }
+        garbage_protection = false;
+        garbage_finished = true }
 
 let start_inserting game block x y =
   let new_field = Block.insert block x y game.field in
@@ -618,13 +623,13 @@ let think_popping game ps =
       if game.garbage_incoming >= garbage then 0, game.garbage_incoming - garbage
       else garbage - game.garbage_incoming, 0
     in
-    ignore garbage; (* TODO *)
     check_and_start_chain
       { game with
 	  field = field;
 	  score = game.score + add_score;
 	  garbage_incoming = garbage_incoming;
 	  garbage_ready = garbage_ready;
+          garbage_sent = game.garbage_sent + garbage;
           offsets = offsets;
           fury = fury;
           gfx = gfx }
@@ -715,7 +720,12 @@ let act game input =
     | FinishGarbage ->
         { game with
             garbage_incoming = 0;
-            garbage_ready = game.garbage_incoming }
+            garbage_ready = game.garbage_ready + game.garbage_incoming }
+    | FinishSomeGarbage i ->
+        let i = min i game.garbage_incoming in
+        { game with
+            garbage_incoming = game.garbage_incoming - i;
+            garbage_ready = game.garbage_ready + i }
     | _ ->
         match game.state with
           | Starting _
@@ -815,6 +825,8 @@ let start () =
     next_blocks = [ block1; block2 ];
     garbage_incoming = 0;
     garbage_ready = 0;
+    garbage_sent = 0;
+    garbage_finished = false;
     garbage_protection = false;
     garbage_position = -1;
     offsets = 0;
