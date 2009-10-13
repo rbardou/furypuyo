@@ -69,3 +69,9 @@ let save_replay replay file =
   let buf = Bin.to_channel ch in
   Bin.write buf Replay.codec replay;
   close_out ch
+
+let rec percent_of_handicap = function
+  | 0 -> 100
+  | i ->
+      let p = percent_of_handicap (i - 1) in
+      p + p / 5

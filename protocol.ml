@@ -44,6 +44,7 @@ module ToServer = struct
     | SendGarbage of int
     | FinishGarbage
     | GameOver
+    | MyHandicap of int
 
   let channel = function
     | MyName _
@@ -58,7 +59,8 @@ module ToServer = struct
     | JoinRoom _
     | LeaveRoom
     | Ready
-    | GameOver ->
+    | GameOver
+    | MyHandicap _ ->
         1
 
   let channels =
@@ -100,6 +102,9 @@ module ToServer = struct
           wi 10
       | GameOver ->
           wi 11
+      | MyHandicap i ->
+          wi 12;
+          wi i
 
   let decode buf =
     let r x = Bin.read buf x in
@@ -118,6 +123,7 @@ module ToServer = struct
       | 9 -> SendGarbage (ri ())
       | 10 -> FinishGarbage
       | 11 -> GameOver
+      | 12 -> MyHandicap (ri ())
       | _ -> failwith "Protocol.ToServer.decode"
 
   let codec =
@@ -132,7 +138,8 @@ module ToClient = struct
     | Score of int * string * Score.t (* position, player, score *)
     | RoomList of (string * int) list
     | JoinedRoom of string * int (* room's name, room's identifier *)
-    | RoomPlayers of (string * bool) list (* player's name, ready *)
+    | RoomPlayers of (string * bool * int) list
+        (* player's name, ready, handicap *)
     | StartGame
     | PrepareGarbage of int
     | ReadyGarbage of int
@@ -184,7 +191,7 @@ module ToClient = struct
 	  wi i
       | RoomPlayers l ->
 	  wi 6;
-	  w (Bin.list (Bin.couple Bin.string Bin.bool)) l
+	  w (Bin.list (Bin.triple Bin.string Bin.bool Bin.int)) l
       | StartGame ->
 	  wi 7
       | PrepareGarbage i ->
@@ -215,7 +222,7 @@ module ToClient = struct
 	  let s = rs () in
 	  let i = ri () in
 	  JoinedRoom (s, i)
-      | 6 -> RoomPlayers (r (Bin.list (Bin.couple Bin.string Bin.bool)))
+      | 6 -> RoomPlayers (r (Bin.list (Bin.triple Bin.string Bin.bool Bin.int)))
       | 7 -> StartGame
       | 8 -> PrepareGarbage (ri ())
       | 9 -> ReadyGarbage (ri ())

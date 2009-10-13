@@ -15,9 +15,10 @@ General
 Multiplayer
 ===========
 
-* pause menu
-* handicap
+* replace buggy garbage system by per-opponent client-side buckets
+* apply handicap
 * teams
+* pause menu
 * let the winner know he won
 * view other players' field
 

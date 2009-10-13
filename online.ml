@@ -269,23 +269,35 @@ and joined_room cx login rname rid =
   let player_y = 80 in
   let player_x = 20 in
   let player_h = 30 in
+  let handicap_x = 20 in
+  let handicap_y = screen_height - 40 in
   MenuReader.reset ();
   let players = ref [] in
+  let handicap = ref 0 in
   try
     while true do
       if IO.frame_delay 10 then begin
 	IO.Sprite.draw background 0 0;
 	IO.Text.write font ~align: IO.Top title_x title_y rname;
 	list_iteri
-	  (fun i (name, ready) ->
+	  (fun i (name, ready, handicap) ->
 	     let name = String.uppercase name in
 	     let text = if ready then "OK "^name else "   "^name in
+             let text =
+               if handicap > 0 then
+                 text ^ " (" ^ string_of_int handicap ^ ")"
+               else
+                 text
+             in
 	     IO.Text.write
 	       font
 	       ~align: IO.TopLeft player_x
 	       (player_y + i * player_h)
 	       text)
 	  !players;
+        IO.Text.write font ~align: IO.TopLeft handicap_x handicap_y
+          (Printf.sprintf "HANDICAP: %d (%d%%)" !handicap
+             (percent_of_handicap !handicap - 100));
 	IO.update ()
       end;
 
@@ -293,6 +305,14 @@ and joined_room cx login rname rid =
 	(function
            | Escape -> raise Exit
 	   | Return -> Net.send cx Ready
+           | Left ->
+               decr handicap;
+               if !handicap < 0 then handicap := 0;
+               Net.send cx (MyHandicap !handicap)
+           | Right ->
+               incr handicap;
+               if !handicap > 20 then handicap := 20;
+               Net.send cx (MyHandicap !handicap)
            | _ -> ())
 	(MenuReader.read ());
 

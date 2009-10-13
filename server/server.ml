@@ -7,6 +7,12 @@ let maximum_connection_count = 20
 let maximum_score_count = 10
 let maximum_room_count = 5
 
+let rec percent_of_handicap = function
+  | 0 -> 100
+  | i ->
+      let p = percent_of_handicap (i - 1) in
+      p + p / 5
+
 let config =
   Config.init ~var: "FURYPUYOSRVCONF" "~/.furypuyo";
   Config.load "server.cfg" "Fury Puyo Server Configuration File"
@@ -26,6 +32,7 @@ type player = {
   mutable game: game option;
   mutable garbage: int;
   mutable game_over: bool;
+  mutable handicap: int;
 }
 
 and room = {
@@ -75,6 +82,7 @@ let decode_player buf =
 	  game = None;
           garbage = 0;
           game_over = false;
+          handicap = 0;
         }
     | _ -> raise Unknown_file_format
 
@@ -198,6 +206,7 @@ let new_player players name pass =
     game = None;
     garbage = 0;
     game_over = false;
+    handicap = 0;
   } in
   players.next <- players.next + 1;
   Hashtbl.add players.players name player;
@@ -253,7 +262,7 @@ let may_start room =
     | l -> List.for_all (fun p -> p.ready) l
 
 let room_players_message room =
-  RoomPlayers (List.map (fun p -> p.name, p.ready) room.rplayers)
+  RoomPlayers (List.map (fun p -> p.name, p.ready, p.handicap) room.rplayers)
 
 let room_send_players room =
   let m = room_players_message room in
@@ -438,6 +447,17 @@ let handle_client_message players c m =
         begin match player.game with
           | None -> ()
           | Some game -> player_game_over players player game
+        end
+    | Logged player, MyHandicap i ->
+        begin match player.game with
+          | None ->
+              player.handicap <- i;
+              begin match player.room with
+                | None -> ()
+                | Some room ->
+                    room_send_players room
+              end
+          | Some _ -> () (* cheater? *)
         end
     | _ ->
         ()
