@@ -369,3 +369,9 @@ let triple a b c =
     (fun (a, b, c) -> (a, b), c)
     (fun ((a, b), c) -> a, b, c)
     (couple (couple a b) c)
+
+let quad a b c d =
+  convert
+    (fun (a, b, c, d) -> (a, b), (c, d))
+    (fun ((a, b), (c, d)) -> a, b, c, d)
+    (couple (couple a b) (couple c d))

@@ -32,6 +32,7 @@ type player = {
   mutable game: game option;
   mutable game_over: bool;
   mutable handicap: int;
+  mutable team: int;
 }
 
 and room = {
@@ -81,6 +82,7 @@ let decode_player buf =
 	  game = None;
           game_over = false;
           handicap = 0;
+          team = 0;
         }
     | _ -> raise Unknown_file_format
 
@@ -204,6 +206,7 @@ let new_player players name pass =
     game = None;
     game_over = false;
     handicap = 0;
+    team = 0;
   } in
   players.next <- players.next + 1;
   Hashtbl.add players.players name player;
@@ -259,7 +262,8 @@ let may_start room =
     | l -> List.for_all (fun p -> p.ready) l
 
 let room_players_message room =
-  RoomPlayers (List.map (fun p -> p.name, p.ready, p.handicap) room.rplayers)
+  RoomPlayers
+    (List.map (fun p -> p.name, p.ready, p.handicap, p.team) room.rplayers)
 
 let room_send_players room =
   let m = room_players_message room in
@@ -274,6 +278,7 @@ let player_join_room ?(send_players = true) player room =
   room.rplayers <- player :: room.rplayers;
   send_to player (JoinedRoom (room.rname, room.rid));
   send_to player (YourHandicap player.handicap);
+  send_to player (YourTeam player.team);
   if send_players then room_send_players room
 
 let start_game players room =
@@ -324,24 +329,30 @@ let player_leave_room players c player =
 	      end
 	  | None -> ()
 
+let player_targets player game =
+  List.filter
+    (fun p ->
+       player.pid <> p.pid
+       && (player.team = 0 || player.team <> p.team))
+    game.gplayers
+
 let player_send_garbage player game count =
+  let targets = player_targets player game in
+  let tc = List.length targets in
   List.iter
     (fun p ->
-       if p.pid <> player.pid then
-         let count =
-           count
-           * percent_of_handicap p.handicap
-           / percent_of_handicap player.handicap
-         in
-         send_to p (PrepareGarbage (player.pid, count)))
-    game.gplayers
+       let count =
+         count
+         * percent_of_handicap p.handicap
+         / (percent_of_handicap player.handicap * tc)
+       in
+       send_to p (PrepareGarbage (player.pid, count)))
+    targets
 
 let player_finish_garbage player game =
   List.iter
-    (fun p ->
-       if p.pid <> player.pid then
-         send_to p (ReadyGarbage player.pid))
-    game.gplayers
+    (fun p -> send_to p (ReadyGarbage player.pid))
+    (player_targets player game)
 
 let player_game_over players player game =
   player.game_over <- true;
@@ -408,7 +419,8 @@ let handle_client_message players c m =
 		() (* TODO: tell client the error *)
 	  | Some room, _ ->
 	      Net.send c.cx (JoinedRoom (room.rname, room.rid));
-              Net.send c.cx (YourHandicap player.handicap)
+              Net.send c.cx (YourHandicap player.handicap);
+              Net.send c.cx (YourTeam player.team)
 	  | None, Some _ ->
 	      () (* TODO: tell client the error *)
 	end
@@ -424,7 +436,8 @@ let handle_client_message players c m =
 	  | Some room, _ ->
 	      Net.send c.cx (JoinedRoom (room.rname, room.rid));
               Net.send c.cx (room_players_message room);
-              Net.send c.cx (YourHandicap player.handicap)
+              Net.send c.cx (YourHandicap player.handicap);
+              Net.send c.cx (YourTeam player.team)
 	  | None, Some _ ->
 	      () (* TODO: tell client the error *)
 	end
@@ -457,6 +470,18 @@ let handle_client_message players c m =
                     room_send_players room
               end;
               Net.send c.cx (YourHandicap player.handicap)
+          | Some _ -> () (* cheater? *)
+        end
+    | Logged player, MyTeam i ->
+        begin match player.game with
+          | None ->
+              player.team <- i;
+              begin match player.room with
+                | None -> ()
+                | Some room ->
+                    room_send_players room
+              end;
+              Net.send c.cx (YourTeam player.team)
           | Some _ -> () (* cheater? *)
         end
     | _ ->

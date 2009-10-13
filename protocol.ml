@@ -45,6 +45,7 @@ module ToServer = struct
     | FinishGarbage
     | GameOver
     | MyHandicap of int
+    | MyTeam of int
 
   let channel = function
     | MyName _
@@ -60,7 +61,8 @@ module ToServer = struct
     | LeaveRoom
     | Ready
     | GameOver
-    | MyHandicap _ ->
+    | MyHandicap _
+    | MyTeam _ ->
         1
 
   let channels =
@@ -105,6 +107,9 @@ module ToServer = struct
       | MyHandicap i ->
           wi 12;
           wi i
+      | MyTeam i ->
+          wi 13;
+          wi i
 
   let decode buf =
     let r x = Bin.read buf x in
@@ -124,6 +129,7 @@ module ToServer = struct
       | 10 -> FinishGarbage
       | 11 -> GameOver
       | 12 -> MyHandicap (ri ())
+      | 13 -> MyTeam (ri ())
       | _ -> failwith "Protocol.ToServer.decode"
 
   let codec =
@@ -138,13 +144,14 @@ module ToClient = struct
     | Score of int * string * Score.t (* position, player, score *)
     | RoomList of (string * int) list
     | JoinedRoom of string * int (* room's name, room's identifier *)
-    | RoomPlayers of (string * bool * int) list
+    | RoomPlayers of (string * bool * int * int) list
         (* player's name, ready, handicap *)
     | StartGame
     | PrepareGarbage of int * int (* player id, garbage count *)
     | ReadyGarbage of int (* player id *)
     | YouWin
     | YourHandicap of int
+    | YourTeam of int
 
   let channel = function
     | YourNameExists _
@@ -156,7 +163,8 @@ module ToClient = struct
     | PrepareGarbage _
     | ReadyGarbage _
     | YouWin
-    | YourHandicap _ ->
+    | YourHandicap _
+    | YourTeam _ ->
         0
     | Score _
     | RoomPlayers _ ->
@@ -193,7 +201,7 @@ module ToClient = struct
 	  wi i
       | RoomPlayers l ->
 	  wi 6;
-	  w (Bin.list (Bin.triple Bin.string Bin.bool Bin.int)) l
+	  w (Bin.list (Bin.quad Bin.string Bin.bool Bin.int Bin.int)) l
       | StartGame ->
 	  wi 7
       | PrepareGarbage (i, j) ->
@@ -207,6 +215,9 @@ module ToClient = struct
           wi 10
       | YourHandicap i ->
           wi 11;
+          wi i
+      | YourTeam i ->
+          wi 12;
           wi i
 
   let decode buf =
@@ -228,7 +239,9 @@ module ToClient = struct
 	  let s = rs () in
 	  let i = ri () in
 	  JoinedRoom (s, i)
-      | 6 -> RoomPlayers (r (Bin.list (Bin.triple Bin.string Bin.bool Bin.int)))
+      | 6 ->
+          RoomPlayers
+            (r (Bin.list (Bin.quad Bin.string Bin.bool Bin.int Bin.int)))
       | 7 -> StartGame
       | 8 ->
           let i = ri () in
@@ -237,6 +250,7 @@ module ToClient = struct
       | 9 -> ReadyGarbage (ri ())
       | 10 -> YouWin
       | 11 -> YourHandicap (ri ())
+      | 12 -> YourTeam (ri ())
       | _ -> failwith "Protocol.ToClient.decode"
 
   let codec =

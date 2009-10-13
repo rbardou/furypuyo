@@ -10,6 +10,8 @@ open Common
 
 exception GameStarts
 
+let sprite_puyo = IO.Sprite.align sprite_puyo_red IO.Center
+
 let rec check_message cx test () =
   match Net.receive_one cx with
     | None -> None
@@ -269,23 +271,34 @@ and joined_room cx login rname rid =
   let player_y = 80 in
   let player_x = 20 in
   let player_h = 30 in
-  let handicap_x = 20 in
+  let handicap_x = 40 in
   let handicap_y = screen_height - 40 in
+  let team_x = 40 in
+  let team_y = screen_height - 70 in
   MenuReader.reset ();
   let players = ref [] in
   let handicap = ref 0 in
+  let team = ref 0 in
+  let cursor_x = 20 in
+  let cursor_y = ref (float_of_int team_y) in
+  let cursor_pos = ref `Team in
   try
     while true do
       if IO.frame_delay 10 then begin
 	IO.Sprite.draw background 0 0;
 	IO.Text.write font ~align: IO.Top title_x title_y rname;
 	list_iteri
-	  (fun i (name, ready, handicap) ->
+	  (fun i (name, ready, handicap, team) ->
 	     let name = String.uppercase name in
 	     let text = if ready then "OK "^name else "   "^name in
              let text =
-               if handicap > 0 then
-                 text ^ " (" ^ string_of_int handicap ^ ")"
+               if handicap > 0 && team > 0 then
+                 text ^ " (T" ^ string_of_int team ^ ", H"
+                 ^ string_of_int handicap ^ ")"
+               else if handicap > 0 then
+                 text ^ " (H" ^ string_of_int handicap ^ ")"
+               else if team > 0 then
+                 text ^ " (T" ^ string_of_int team ^ ")"
                else
                  text
              in
@@ -295,24 +308,54 @@ and joined_room cx login rname rid =
 	       (player_y + i * player_h)
 	       text)
 	  !players;
-        IO.Text.write font ~align: IO.TopLeft handicap_x handicap_y
+        IO.Text.write font ~align: IO.Left team_x team_y
+          (Printf.sprintf "TEAM: %s"
+             (if !team = 0 then "NONE" else string_of_int !team));
+        IO.Text.write font ~align: IO.Left handicap_x handicap_y
           (Printf.sprintf "HANDICAP: %d (%d%%)" !handicap
              (percent_of_handicap !handicap - 100));
+        IO.Sprite.draw sprite_puyo cursor_x (int_of_float !cursor_y);
 	IO.update ()
       end;
+
+      let d = match !cursor_pos with
+        | `Team -> team_y
+        | `Handicap -> handicap_y
+      in
+      let d = float_of_int d in
+      cursor_y := !cursor_y +. (d -. !cursor_y) /. 10.;
 
       List.iter
 	(function
            | Escape -> raise Exit
 	   | Return -> Net.send cx Ready
            | Left ->
-               decr handicap;
-               if !handicap < 0 then handicap := 0;
-               Net.send cx (MyHandicap !handicap)
+               begin match !cursor_pos with
+                 | `Handicap ->
+                     decr handicap;
+                     if !handicap < 0 then handicap := 0;
+                     Net.send cx (MyHandicap !handicap)
+                 | `Team ->
+                     decr team;
+                     if !team < 0 then team := 0;
+                     Net.send cx (MyTeam !team)
+               end
            | Right ->
-               incr handicap;
-               if !handicap > 20 then handicap := 20;
-               Net.send cx (MyHandicap !handicap)
+               begin match !cursor_pos with
+                 | `Handicap ->
+                     incr handicap;
+                     if !handicap > 20 then handicap := 20;
+                     Net.send cx (MyHandicap !handicap)
+                 | `Team ->
+                     incr team;
+                     if !team > 9 then team := 9;
+                     Net.send cx (MyTeam !team)
+               end
+           | Up | Down ->
+               cursor_pos := begin match !cursor_pos with
+                 | `Team -> `Handicap
+                 | `Handicap -> `Team
+               end
            | _ -> ())
 	(MenuReader.read ());
 
@@ -321,6 +364,7 @@ and joined_room cx login rname rid =
 	   | RoomPlayers l -> players := l
 	   | StartGame -> raise GameStarts
            | YourHandicap i -> handicap := i
+           | YourTeam i -> team := i
 	   | _ -> ())
 	(Net.receive cx)
     done;

@@ -139,6 +139,8 @@ val couple: 'a t -> 'b t -> ('a * 'b) t
 
 val triple: 'a t -> 'b t -> 'c t -> ('a * 'b * 'c) t
 
+val quad: 'a t -> 'b t -> 'c t -> 'd t -> ('a * 'b * 'c * 'd) t
+
 val list: 'a t -> 'a list t
 
 val array: 'a t -> 'a array t
