@@ -260,7 +260,7 @@ and join_room cx login rido =
     | None -> menu cx login
     | Some (name, id) -> joined_room cx login name id
 
-and joined_room cx login rname rid = (* TODO *)
+and joined_room cx login rname rid =
   let rname = String.uppercase rname in
   Draw.draw_empty ();
   let background = IO.Sprite.screenshot () in
@@ -316,11 +316,11 @@ and multi_player_game cx login =
   let replay = Replay.record !game in
   IO.timer_start ();
   let won = ref false in
-  while not (game_finished !game || !won) do
+  let quit = ref false in
+  while not (game_finished !game || !won || !quit) do
     let actions = ref (Reader.read ()) in
     if IO.frame_delay 10 then Draw.draw !game;
 
-    (* TODO: pause menu *)
     iterate_messages
       (function
          | PrepareGarbage i ->
@@ -346,6 +346,10 @@ and multi_player_game cx login =
       game := { !game with garbage_finished = false };
       Net.send cx FinishGarbage
     end;
+
+    (* TODO: pause menu *)
+    if List.mem Action.Escape !actions then
+      quit := true;
   done;
   if not !won then Net.send cx GameOver;
   save_replay replay (login ^ "_online");
