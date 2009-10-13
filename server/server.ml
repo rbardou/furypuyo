@@ -434,6 +434,7 @@ let () =
   let clients = ref [] in
   log "listening to port %d" port;
   while true do
+    Udp.wait_for_input ~timeout: 1. ();
     let active, inactive =
       List.partition (fun c -> Net.active c.cx) !clients in
     clients := active;

@@ -81,3 +81,11 @@ val string_of_addr: addr -> string
 
 val port_of_addr: addr -> int
   (** Get the port of an address. *)
+
+val wait_for_input: ?timeout: float -> unit -> unit
+  (** Wait until some input is readable on any open socket.
+
+      Stop waiting after [timeout] seconds have passed. A negative value
+      means no timeout (default behavior).
+
+      Waiting is done using [Unix.select]. *)

@@ -33,12 +33,17 @@ open Unix
 exception Network_error of string * string
 
 type ('a, 'b) socket = {
+  id: int;
+    (* this identifier is associated to the file descriptor below in the
+       file descriptor hash table *)
   fd: file_descr;
   codec_send: 'a Bin.t;
   codec_receive: 'b Bin.t;
 }
 
 type addr = sockaddr
+
+let file_descriptors = Hashtbl.create 17
 
 let addr addr port =
   let addr =
@@ -51,14 +56,19 @@ let addr addr port =
 
 let make_addr = addr
 
+let fresh = let c = ref (-1) in fun () -> incr c; !c
+
 let socket codec_send codec_receive =
   let sock = Unix.socket PF_INET SOCK_DGRAM 0 in
   Unix.set_nonblock sock;
-  {
+  let socket = {
+    id = fresh ();
     fd = sock;
     codec_send = codec_send;
     codec_receive = codec_receive;
-  }
+  } in
+  Hashtbl.add file_descriptors socket.id socket.fd;
+  socket
 
 let bind sock ?addr port =
   let addr =
@@ -69,6 +79,7 @@ let bind sock ?addr port =
   Unix.bind sock.fd addr
 
 let close sock =
+  Hashtbl.remove file_descriptors sock.id;
   Unix.close sock.fd
 
 let maximum_packet_size = 512
@@ -113,3 +124,12 @@ let port_of_addr = function
       assert false
   | ADDR_INET (_, port) ->
       port
+
+let wait_for_input ?(timeout = -1.) () =
+  let fds =
+    Hashtbl.fold
+      (fun _ fd acc -> fd :: acc)
+      file_descriptors
+      []
+  in
+  ignore (select fds [] [] timeout)
