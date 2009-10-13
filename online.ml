@@ -320,6 +320,7 @@ and joined_room cx login rname rid =
 	(function
 	   | RoomPlayers l -> players := l
 	   | StartGame -> raise GameStarts
+           | YourHandicap i -> handicap := i
 	   | _ -> ())
 	(Net.receive cx)
     done;

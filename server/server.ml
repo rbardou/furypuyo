@@ -273,6 +273,7 @@ let player_join_room ?(send_players = true) player room =
   logp player "joined room %s (%d)" room.rname room.rid;
   room.rplayers <- player :: room.rplayers;
   send_to player (JoinedRoom (room.rname, room.rid));
+  send_to player (YourHandicap player.handicap);
   if send_players then room_send_players room
 
 let start_game players room =
@@ -327,6 +328,11 @@ let player_send_garbage player game count =
   List.iter
     (fun p ->
        if p.pid <> player.pid then
+         let count =
+           count
+           * percent_of_handicap p.handicap
+           / percent_of_handicap player.handicap
+         in
          send_to p (PrepareGarbage (player.pid, count)))
     game.gplayers
 
@@ -401,7 +407,8 @@ let handle_client_message players c m =
 	      end else
 		() (* TODO: tell client the error *)
 	  | Some room, _ ->
-	      Net.send c.cx (JoinedRoom (room.rname, room.rid))
+	      Net.send c.cx (JoinedRoom (room.rname, room.rid));
+              Net.send c.cx (YourHandicap player.handicap)
 	  | None, Some _ ->
 	      () (* TODO: tell client the error *)
 	end
@@ -416,7 +423,8 @@ let handle_client_message players c m =
 	      end
 	  | Some room, _ ->
 	      Net.send c.cx (JoinedRoom (room.rname, room.rid));
-              Net.send c.cx (room_players_message room)
+              Net.send c.cx (room_players_message room);
+              Net.send c.cx (YourHandicap player.handicap)
 	  | None, Some _ ->
 	      () (* TODO: tell client the error *)
 	end
@@ -447,7 +455,8 @@ let handle_client_message players c m =
                 | None -> ()
                 | Some room ->
                     room_send_players room
-              end
+              end;
+              Net.send c.cx (YourHandicap player.handicap)
           | Some _ -> () (* cheater? *)
         end
     | _ ->

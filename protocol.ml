@@ -144,6 +144,7 @@ module ToClient = struct
     | PrepareGarbage of int * int (* player id, garbage count *)
     | ReadyGarbage of int (* player id *)
     | YouWin
+    | YourHandicap of int
 
   let channel = function
     | YourNameExists _
@@ -154,7 +155,8 @@ module ToClient = struct
     | StartGame
     | PrepareGarbage _
     | ReadyGarbage _
-    | YouWin ->
+    | YouWin
+    | YourHandicap _ ->
         0
     | Score _
     | RoomPlayers _ ->
@@ -203,6 +205,9 @@ module ToClient = struct
           wi i
       | YouWin ->
           wi 10
+      | YourHandicap i ->
+          wi 11;
+          wi i
 
   let decode buf =
     let r x = Bin.read buf x in
@@ -231,6 +236,7 @@ module ToClient = struct
           PrepareGarbage (i, j)
       | 9 -> ReadyGarbage (ri ())
       | 10 -> YouWin
+      | 11 -> YourHandicap (ri ())
       | _ -> failwith "Protocol.ToClient.decode"
 
   let codec =
