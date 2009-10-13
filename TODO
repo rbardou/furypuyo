@@ -1,17 +1,25 @@
-Features
-========
+General
+=======
 
 * bottom foreground for game over
 * puyo with different shapes
 * puyo connection images
 * rotation animation
-* multiplayer
 * replays: control the size of the replay directory somehow, zip replays
 * limit player name size in high scores (and allocate the string only once)
 * less random generator
 * background image(s)
 * sound
 * better rotations to insert in the rightmost column
+
+Multiplayer
+===========
+
+* re-create the room after game finishes
+* pause menu
+* handicap
+* teams
+* let the winner know he won
 
 Network
 =======

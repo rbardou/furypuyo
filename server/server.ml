@@ -25,6 +25,7 @@ type player = {
   mutable ready: bool;
   mutable game: game option;
   mutable garbage: int;
+  mutable game_over: bool;
 }
 
 and room = {
@@ -73,6 +74,7 @@ let decode_player buf =
 	  ready = false;
 	  game = None;
           garbage = 0;
+          game_over = false;
         }
     | _ -> raise Unknown_file_format
 
@@ -188,6 +190,7 @@ let new_player players name pass =
     ready = false;
     game = None;
     garbage = 0;
+    game_over = false;
   } in
   players.next <- players.next + 1;
   Hashtbl.add players.players name player;
@@ -319,6 +322,14 @@ let player_finish_garbage player game =
     game.gplayers;
   player.garbage <- 0
 
+let player_game_over players player game =
+  player.game_over <- true;
+  let still_playing = List.filter (fun p -> not p.game_over) game.gplayers in
+  if List.length still_playing <= 1 then begin
+    List.iter (fun p -> send_to p YouWin) still_playing;
+    destroy_game players game;
+  end
+
 let handle_client_message players c m =
   match c.state, m with
     | Hello, MyName name ->
@@ -399,6 +410,11 @@ let handle_client_message players c m =
         begin match player.game with
           | None -> ()
           | Some game -> player_finish_garbage player game
+        end
+    | Logged player, GameOver ->
+        begin match player.game with
+          | None -> ()
+          | Some game -> player_game_over players player game
         end
     | _ ->
         ()

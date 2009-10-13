@@ -288,7 +288,8 @@ and multi_player_game cx login =
   let game = ref (Game.start ()) in
   let replay = Replay.record !game in
   IO.timer_start ();
-  while not (game_finished !game) do
+  let won = ref false in
+  while not (game_finished !game || !won) do
     let actions = ref (Reader.read ()) in
     if IO.frame_delay 10 then Draw.draw !game;
 
@@ -299,6 +300,8 @@ and multi_player_game cx login =
              actions := (Action.SendGarbage i) :: !actions
          | ReadyGarbage i ->
              actions := (Action.FinishSomeGarbage i) :: !actions
+         | YouWin ->
+             won := true
          | _ -> ())
       (Net.receive cx);
 
@@ -316,5 +319,6 @@ and multi_player_game cx login =
       Net.send cx FinishGarbage
     end;
   done;
+  if not !won then Net.send cx GameOver;
   save_replay replay (login ^ "_online");
   menu cx login

@@ -43,6 +43,7 @@ module ToServer = struct
     | Ready
     | SendGarbage of int
     | FinishGarbage
+    | GameOver
 
   let channel = function
     | MyName _
@@ -56,7 +57,8 @@ module ToServer = struct
     | NewRoom
     | JoinRoom _
     | LeaveRoom
-    | Ready ->
+    | Ready
+    | GameOver ->
         1
 
   let channels =
@@ -96,6 +98,8 @@ module ToServer = struct
           wi i
       | FinishGarbage ->
           wi 10
+      | GameOver ->
+          wi 11
 
   let decode buf =
     let r x = Bin.read buf x in
@@ -113,6 +117,7 @@ module ToServer = struct
       | 8 -> Ready
       | 9 -> SendGarbage (ri ())
       | 10 -> FinishGarbage
+      | 11 -> GameOver
       | _ -> failwith "Protocol.ToServer.decode"
 
   let codec =
@@ -131,6 +136,7 @@ module ToClient = struct
     | StartGame
     | PrepareGarbage of int
     | ReadyGarbage of int
+    | YouWin
 
   let channel = function
     | YourNameExists _
@@ -140,7 +146,8 @@ module ToClient = struct
     | JoinedRoom _
     | StartGame
     | PrepareGarbage _
-    | ReadyGarbage _ ->
+    | ReadyGarbage _
+    | YouWin ->
         0
     | Score _
     | RoomPlayers _ ->
@@ -186,6 +193,8 @@ module ToClient = struct
       | ReadyGarbage i ->
           wi 9;
           wi i
+      | YouWin ->
+          wi 10
 
   let decode buf =
     let r x = Bin.read buf x in
@@ -210,6 +219,7 @@ module ToClient = struct
       | 7 -> StartGame
       | 8 -> PrepareGarbage (ri ())
       | 9 -> ReadyGarbage (ri ())
+      | 10 -> YouWin
       | _ -> failwith "Protocol.ToClient.decode"
 
   let codec =
