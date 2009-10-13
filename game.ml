@@ -30,6 +30,7 @@
 
 (** Game state and rules *)
 
+open Misc
 open Action
 open Puyo
 open Cell
@@ -135,8 +136,9 @@ type game = {
   speed: speed;
   chain: int;
   next_blocks: Block.t list;
-  garbage_incoming: int;
-    (** garbage that can be offset but that won't fall yet *)
+  garbage_incoming: (int * int) list;
+    (** garbage that can be offset but that won't fall yet
+        (associates an opponent's number and garbage coming from him) *)
   garbage_ready: int;
     (** garbage ready to fall *)
   garbage_sent: int;
@@ -591,11 +593,23 @@ let gfx_chain game gfx count puyos =
   end else
     gfx
 
+(* TODO (maybe): remove garbage uniformly *)
+let rec remove_incoming_garbage g = function
+  | [] -> g, []
+  | (p, x) :: r ->
+      if x > g then
+        0, (p, x - g) :: r
+      else if x = g then
+        0, r
+      else
+        remove_incoming_garbage (g - x) r
+
 let think_popping game ps =
   if game.now >= ps.pop_end then
     let offsets =
-      if game.garbage_incoming + game.garbage_ready > 0 then
-        game.offsets + 1
+      if List.exists (fun (_, g) -> g > 0) game.garbage_incoming
+        || game.garbage_ready > 0 then
+          game.offsets + 1
       else
         game.offsets
     in
@@ -620,8 +634,7 @@ let think_popping game ps =
       else garbage - game.garbage_ready, 0
     in
     let garbage, garbage_incoming =
-      if game.garbage_incoming >= garbage then 0, game.garbage_incoming - garbage
-      else garbage - game.garbage_incoming, 0
+      remove_incoming_garbage garbage game.garbage_incoming
     in
     check_and_start_chain
       { game with
@@ -715,17 +728,20 @@ let act_incoming game is = function
 
 let act game input =
   match input with
-    | SendGarbage count ->
-        { game with garbage_incoming = game.garbage_incoming + count }
-    | FinishGarbage ->
+    | SendGarbage (pid, count) ->
+        let a, (_, g), b =
+          try split_when (fun (i, _) -> i = pid) game.garbage_incoming
+          with Not_found -> [], (pid, 0), game.garbage_incoming
+        in
+        { game with garbage_incoming = a @ ((pid, g + count) :: b) }
+    | FinishGarbage pid ->
+        let a, (_, g), b =
+          try split_when (fun (i, _) -> i = pid) game.garbage_incoming
+          with Not_found -> [], (pid, 0), game.garbage_incoming
+        in
         { game with
-            garbage_incoming = 0;
-            garbage_ready = game.garbage_ready + game.garbage_incoming }
-    | FinishSomeGarbage i ->
-        let i = min i game.garbage_incoming in
-        { game with
-            garbage_incoming = game.garbage_incoming - i;
-            garbage_ready = game.garbage_ready + i }
+            garbage_incoming = a @ b;
+            garbage_ready = game.garbage_ready + g }
     | _ ->
         match game.state with
           | Starting _
@@ -823,7 +839,7 @@ let start () =
       sp_fury_pop_delay = 30;
     };
     next_blocks = [ block1; block2 ];
-    garbage_incoming = 0;
+    garbage_incoming = [];
     garbage_ready = 0;
     garbage_sent = 0;
     garbage_finished = false;

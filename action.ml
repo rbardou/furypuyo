@@ -40,9 +40,8 @@ type t =
   | RRight
   | InstaFall
 
-  | SendGarbage of int
-  | FinishGarbage
-  | FinishSomeGarbage of int
+  | SendGarbage of int * int (** player id, garbage count *)
+  | FinishGarbage of int (** player id *)
 
   | Debug
 
@@ -58,12 +57,12 @@ let encode buf v =
     | RRight -> w Bin.int 6
     | InstaFall -> w Bin.int 7
     | Debug -> w Bin.int 8
-    | SendGarbage i ->
+    | SendGarbage (i, j) ->
         w Bin.int 9;
-        w Bin.int i
-    | FinishGarbage -> w Bin.int 10
-    | FinishSomeGarbage i ->
-        w Bin.int 11;
+        w Bin.int i;
+        w Bin.int j
+    | FinishGarbage i ->
+        w Bin.int 10;
         w Bin.int i
 
 let decode buf =
@@ -78,9 +77,11 @@ let decode buf =
     | 6 -> RRight
     | 7 -> InstaFall
     | 8 -> Debug
-    | 9 -> SendGarbage (r Bin.int)
-    | 10 -> FinishGarbage
-    | 11 -> FinishSomeGarbage (r Bin.int)
+    | 9 ->
+        let i = r Bin.int in
+        let j = r Bin.int in
+        SendGarbage (i, j)
+    | 10 -> FinishGarbage (r Bin.int)
     | _ -> failwith "Action.decode"
 
 let codec = Bin.custom encode decode

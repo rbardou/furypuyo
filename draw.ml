@@ -231,7 +231,11 @@ let draw game =
   end;
   draw_offsets game.offsets (game.fury <> FNone) blit;
   Sprite.draw foreground 0 0;
-  draw_garbage (game.garbage_incoming + game.garbage_ready);
+  let garbage_count =
+    List.fold_left (fun a (_, g) -> a + g) 0 game.garbage_incoming
+    + game.garbage_ready
+  in
+  draw_garbage garbage_count;
   Text.write font score_x score_y (string_of_int game.score);
   begin match game.state with
     | Popping ps ->

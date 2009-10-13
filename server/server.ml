@@ -30,7 +30,6 @@ type player = {
     (Net.message_to_client, Net.message_to_server) Net.connection option;
   mutable ready: bool;
   mutable game: game option;
-  mutable garbage: int;
   mutable game_over: bool;
   mutable handicap: int;
 }
@@ -80,7 +79,6 @@ let decode_player buf =
 	  pcx = None;
 	  ready = false;
 	  game = None;
-          garbage = 0;
           game_over = false;
           handicap = 0;
         }
@@ -204,7 +202,6 @@ let new_player players name pass =
     pcx = None;
     ready = false;
     game = None;
-    garbage = 0;
     game_over = false;
     handicap = 0;
   } in
@@ -287,11 +284,7 @@ let start_game players room =
   Hashtbl.add players.games game.gid game;
   List.iter (fun p -> p.game <- Some game) game.gplayers;
   destroy_room players room;
-  List.iter
-    (fun p ->
-       p.garbage <- 0;
-       p.game_over <- false)
-    game.gplayers;
+  List.iter (fun p -> p.game_over <- false) game.gplayers;
   List.iter (fun p -> send_to p StartGame) game.gplayers;
   log "game %d started for room %s (%d)" game.gid room.rname room.rid
 
@@ -331,20 +324,18 @@ let player_leave_room players c player =
 	  | None -> ()
 
 let player_send_garbage player game count =
-  player.garbage <- player.garbage + count;
   List.iter
     (fun p ->
        if p.pid <> player.pid then
-         send_to p (PrepareGarbage count))
+         send_to p (PrepareGarbage (player.pid, count)))
     game.gplayers
 
 let player_finish_garbage player game =
   List.iter
     (fun p ->
        if p.pid <> player.pid then
-         send_to p (ReadyGarbage player.garbage))
-    game.gplayers;
-  player.garbage <- 0
+         send_to p (ReadyGarbage player.pid))
+    game.gplayers
 
 let player_game_over players player game =
   player.game_over <- true;

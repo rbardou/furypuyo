@@ -343,10 +343,10 @@ and multi_player_game cx login =
 
     iterate_messages
       (function
-         | PrepareGarbage i ->
-             actions := (Action.SendGarbage i) :: !actions
-         | ReadyGarbage i ->
-             actions := (Action.FinishSomeGarbage i) :: !actions
+         | PrepareGarbage (pid, g) ->
+             actions := (Action.SendGarbage (pid, g)) :: !actions
+         | ReadyGarbage pid ->
+             actions := (Action.FinishGarbage pid) :: !actions
          | YouWin ->
              won := true;
              raise StopMessageIteration

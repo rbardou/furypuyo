@@ -36,6 +36,8 @@ open Game
 let build_delay = 2000
 let link_delay = 100
 
+let cpuid = 0
+
 type cpu = {
   start: int; (** time the chain started *)
   chain: int; (** link number in the current chain *)
@@ -70,9 +72,10 @@ let send_link game cpu =
   let cpu = { cpu with chain = chain } in
   let garb = ceil_div (40 * (chain_mult game chain + 4)) 120 in
   if chain >= cpu.level then
-    [ Action.SendGarbage garb; Action.FinishGarbage ], finish game cpu
+    [ Action.SendGarbage (cpuid, garb);
+      Action.FinishGarbage cpuid ], finish game cpu
   else
-    [ Action.SendGarbage garb ], cpu
+    [ Action.SendGarbage (cpuid, garb) ], cpu
 
 let think game cpu =
   match game.state with

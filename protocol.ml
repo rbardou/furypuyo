@@ -141,8 +141,8 @@ module ToClient = struct
     | RoomPlayers of (string * bool * int) list
         (* player's name, ready, handicap *)
     | StartGame
-    | PrepareGarbage of int
-    | ReadyGarbage of int
+    | PrepareGarbage of int * int (* player id, garbage count *)
+    | ReadyGarbage of int (* player id *)
     | YouWin
 
   let channel = function
@@ -194,9 +194,10 @@ module ToClient = struct
 	  w (Bin.list (Bin.triple Bin.string Bin.bool Bin.int)) l
       | StartGame ->
 	  wi 7
-      | PrepareGarbage i ->
+      | PrepareGarbage (i, j) ->
           wi 8;
-          wi i
+          wi i;
+          wi j
       | ReadyGarbage i ->
           wi 9;
           wi i
@@ -224,7 +225,10 @@ module ToClient = struct
 	  JoinedRoom (s, i)
       | 6 -> RoomPlayers (r (Bin.list (Bin.triple Bin.string Bin.bool Bin.int)))
       | 7 -> StartGame
-      | 8 -> PrepareGarbage (ri ())
+      | 8 ->
+          let i = ri () in
+          let j = ri () in
+          PrepareGarbage (i, j)
       | 9 -> ReadyGarbage (ri ())
       | 10 -> YouWin
       | _ -> failwith "Protocol.ToClient.decode"

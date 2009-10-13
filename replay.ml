@@ -31,7 +31,7 @@
 open Game
 open Puyo
 
-let identifier = Bin.identifier "PUYOREPLAY"
+let identifier = Bin.identifier "PUYOREPLAY00"
 
 type t = {
   start: Game.game;
@@ -260,7 +260,7 @@ let encode_game buf game =
   w codec_game_speed game.speed;
   w Bin.int game.chain;
   w (Bin.list Block.codec) game.next_blocks;
-  w Bin.int game.garbage_incoming;
+  w (Bin.list (Bin.couple Bin.int Bin.int)) game.garbage_incoming;
   w Bin.int game.garbage_ready;
   w Bin.bool game.garbage_protection;
   w Bin.int game.garbage_position;
@@ -279,7 +279,7 @@ let decode_game buf =
   let speed = r codec_game_speed in
   let chain = r Bin.int in
   let next_blocks = r (Bin.list Block.codec) in
-  let garbage_incoming = r Bin.int in
+  let garbage_incoming = r (Bin.list (Bin.couple Bin.int Bin.int)) in
   let garbage_ready = r Bin.int in
   let garbage_protection = r Bin.bool in
   let garbage_position = r Bin.int in

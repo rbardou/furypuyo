@@ -15,7 +15,6 @@ General
 Multiplayer
 ===========
 
-* replace buggy garbage system by per-opponent client-side buckets
 * apply handicap
 * teams
 * pause menu
