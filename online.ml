@@ -213,6 +213,7 @@ let rec menu cx login =
           Menu.string_choices
             (room_choices @ [
                "CREATE NEW ROOM", `CreateNewRoom;
+               "REFRESH ROOM LIST", `RefreshRoomList;
                "HIGH SCORES", `HighScores;
                "DISCONNECT", `Disconnect;
                "QUIT", `Quit;
@@ -223,6 +224,8 @@ let rec menu cx login =
 	      join_room cx login (Some id)
           | `CreateNewRoom ->
 	      join_room cx login None
+          | `RefreshRoomList ->
+              menu cx login
           | `HighScores ->
 	      high_scores_screen cx;
 	      menu cx login
@@ -241,6 +244,7 @@ and join_room cx login rido =
     | None -> Net.send cx NewRoom
     | Some id -> Net.send cx (JoinRoom id)
   end;
+  Draw.draw_empty ();
   let room =
     try
       let r =
