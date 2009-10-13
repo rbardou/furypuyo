@@ -18,6 +18,18 @@ let rec check_message cx test () =
 	  | None -> check_message cx test ()
 	  | Some _ as x -> x
 
+exception StopMessageIteration
+
+let rec iterate_messages f cx =
+  match Net.receive_one cx with
+    | None -> ()
+    | Some m ->
+        try
+          f m;
+          iterate_messages f cx
+        with StopMessageIteration ->
+          ()
+
 let option_of_bool = function
   | true -> Some ()
   | false -> None
@@ -179,39 +191,50 @@ let high_scores_screen cx =
 let rec menu cx login =
   Net.send cx GetRoomList;
   Draw.draw_empty ();
+  let joined_room = ref None in
   let rooms =
     try
       Menu.waiting_string
 	"LISTING ROOMS..."
-	(check_message cx (function RoomList l -> Some l | _ -> None))
+	(check_message cx
+           (function
+              | RoomList l -> Some l
+              | JoinedRoom (_, id) -> joined_room := Some id; None
+              | _ -> None))
     with Exit ->
       []
   in
-  let room_choices =
-    List.map (fun (name, id) -> String.uppercase name, `Join id) rooms in
-  Draw.draw_empty ();
-  let choice =
-    Menu.string_choices (room_choices @ [
-      "CREATE NEW ROOM", `CreateNewRoom;
-      "HIGH SCORES", `HighScores;
-      "DISCONNECT", `Disconnect;
-      "QUIT", `Quit;
-    ])
-  in
-  match choice with
-    | `Join id ->
-	join_room cx login (Some id)
-    | `CreateNewRoom ->
-	join_room cx login None
-    | `HighScores ->
-	high_scores_screen cx;
-	menu cx login
-    | `Disconnect ->
-	Net.close cx;
-	true
-    | `Quit ->
-	Net.close cx;
-	false
+  match !joined_room with
+    | None ->
+        let room_choices =
+          List.map (fun (name, id) -> String.uppercase name, `Join id) rooms in
+        Draw.draw_empty ();
+        let choice =
+          Menu.string_choices
+            (room_choices @ [
+               "CREATE NEW ROOM", `CreateNewRoom;
+               "HIGH SCORES", `HighScores;
+               "DISCONNECT", `Disconnect;
+               "QUIT", `Quit;
+             ])
+        in
+        begin match choice with
+          | `Join id ->
+	      join_room cx login (Some id)
+          | `CreateNewRoom ->
+	      join_room cx login None
+          | `HighScores ->
+	      high_scores_screen cx;
+	      menu cx login
+          | `Disconnect ->
+	      Net.close cx;
+	      true
+          | `Quit ->
+	      Net.close cx;
+	      false
+        end
+    | Some id ->
+        join_room cx login (Some id)
 
 and join_room cx login rido =
   begin match rido with
@@ -294,16 +317,17 @@ and multi_player_game cx login =
     if IO.frame_delay 10 then Draw.draw !game;
 
     (* TODO: pause menu *)
-    List.iter
+    iterate_messages
       (function
          | PrepareGarbage i ->
              actions := (Action.SendGarbage i) :: !actions
          | ReadyGarbage i ->
              actions := (Action.FinishSomeGarbage i) :: !actions
          | YouWin ->
-             won := true
+             won := true;
+             raise StopMessageIteration
          | _ -> ())
-      (Net.receive cx);
+      cx;
 
     Replay.frame replay !actions;
     game := Game.think_frame !game !actions;

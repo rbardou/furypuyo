@@ -122,6 +122,13 @@ let client_id c =
 
 let logc c x = Printf.ksprintf (log "[%s] %s" (client_id c)) x
 
+let logp p x =
+  Printf.ksprintf begin fun x ->
+    match p.pcx with
+      | None -> log "[!:%s:%d] %s" p.name p.pid x
+      | Some _ -> log "[?:%s:%d] %s" p.name p.pid x
+  end x
+
 let player_file_suffix = ".player"
 let players_dir = Config.filename "players"
 let player_file pid =
@@ -226,6 +233,7 @@ let create_new_room players name =
     rname = name;
     rplayers = [];
   } in
+  players.rooms <- room :: players.rooms;
   log "room created: %s (%d)" room.rname room.rid;
   room
 
@@ -244,19 +252,22 @@ let may_start room =
     | [] | [_] -> false
     | l -> List.for_all (fun p -> p.ready) l
 
+let room_players_message room =
+  RoomPlayers (List.map (fun p -> p.name, p.ready) room.rplayers)
+
 let room_send_players room =
-  let m = RoomPlayers (List.map (fun p -> p.name, p.ready) room.rplayers) in
+  let m = room_players_message room in
   List.iter
     (fun p -> send_to p m)
     room.rplayers
 
-let player_join_room c player room =
+let player_join_room ?(send_players = true) player room =
   player.room <- Some room;
   player.ready <- false;
-  logc c "joined room %s (%d)" room.rname room.rid;
+  logp player "joined room %s (%d)" room.rname room.rid;
   room.rplayers <- player :: room.rplayers;
-  Net.send c.cx (JoinedRoom (room.rname, room.rid));
-  room_send_players room
+  send_to player (JoinedRoom (room.rname, room.rid));
+  if send_players then room_send_players room
 
 let start_game players room =
   let game = {
@@ -267,8 +278,12 @@ let start_game players room =
   Hashtbl.add players.games game.gid game;
   List.iter (fun p -> p.game <- Some game) game.gplayers;
   destroy_room players room;
+  List.iter
+    (fun p ->
+       p.garbage <- 0;
+       p.game_over <- false)
+    game.gplayers;
   List.iter (fun p -> send_to p StartGame) game.gplayers;
-  List.iter (fun p -> p.garbage <- 0) game.gplayers;
   log "game %d started for room %s (%d)" game.gid room.rname room.rid
 
 let player_ready players c player =
@@ -328,6 +343,14 @@ let player_game_over players player game =
   if List.length still_playing <= 1 then begin
     List.iter (fun p -> send_to p YouWin) still_playing;
     destroy_game players game;
+    match List.rev game.gplayers with
+      | [] -> ()
+      | p :: _ ->
+          let room = create_new_room players (p.name ^ "'s room") in
+          List.iter
+            (fun p -> player_join_room ~send_players: false p room)
+            game.gplayers;
+          room_send_players room
   end
 
 let handle_client_message players c m =
@@ -374,8 +397,7 @@ let handle_client_message players c m =
 	      if List.length players.rooms < maximum_room_count then begin
 		let room =
 		  create_new_room players (player.name ^ "'s room") in
-		players.rooms <- room :: players.rooms;
-		player_join_room c player room;
+		player_join_room player room;
 	      end else
 		() (* TODO: tell client the error *)
 	  | Some room, _ ->
@@ -388,12 +410,13 @@ let handle_client_message players c m =
 	  | None, None ->
 	      begin try
 		let room = List.find (fun r -> r.rid = rid) players.rooms in
-		player_join_room c player room
+		player_join_room player room
 	      with Not_found ->
 		() (* TODO: tell client the error *)
 	      end
 	  | Some room, _ ->
-	      Net.send c.cx (JoinedRoom (room.rname, room.rid))
+	      Net.send c.cx (JoinedRoom (room.rname, room.rid));
+              Net.send c.cx (room_players_message room)
 	  | None, Some _ ->
 	      () (* TODO: tell client the error *)
 	end
