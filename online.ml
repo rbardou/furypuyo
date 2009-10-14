@@ -312,8 +312,11 @@ and joined_room cx login rname rid =
           (Printf.sprintf "TEAM: %s"
              (if !team = 0 then "NONE" else string_of_int !team));
         IO.Text.write font ~align: IO.Left handicap_x handicap_y
-          (Printf.sprintf "HANDICAP: %d (%d%%)" !handicap
-             (percent_of_handicap !handicap - 100));
+          (if !handicap = 0 then
+             "HANDICAP: NONE"
+           else
+             Printf.sprintf "HANDICAP: %d (%d%%)" !handicap
+               (percent_of_handicap !handicap - 100));
         IO.Sprite.draw sprite_puyo cursor_x (int_of_float !cursor_y);
 	IO.update ()
       end;
