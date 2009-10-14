@@ -43,7 +43,7 @@ module ToServer = struct
     | Ready
     | SendGarbage of int
     | FinishGarbage
-    | ILose
+    | ILose of bool (* if true, quit the room also *)
     | MyHandicap of int
     | MyTeam of int
 
@@ -60,7 +60,7 @@ module ToServer = struct
     | JoinRoom _
     | LeaveRoom
     | Ready
-    | ILose
+    | ILose _
     | MyHandicap _
     | MyTeam _ ->
         1
@@ -72,6 +72,7 @@ module ToServer = struct
   let encode buf m =
     let w x = Bin.write buf x in
     let wi = w Bin.int in
+    let wb = w Bin.bool in
     let ws = w Bin.string in
     match m with
       | MyName s ->
@@ -102,8 +103,9 @@ module ToServer = struct
           wi i
       | FinishGarbage ->
           wi 10
-      | ILose ->
-          wi 11
+      | ILose b ->
+          wi 11;
+          wb b
       | MyHandicap i ->
           wi 12;
           wi i
@@ -114,6 +116,7 @@ module ToServer = struct
   let decode buf =
     let r x = Bin.read buf x in
     let ri () = r Bin.int in
+    let rb () = r Bin.bool in
     let rs () = r Bin.string in
     match ri () with
       | 0 -> MyName (rs ())
@@ -127,7 +130,7 @@ module ToServer = struct
       | 8 -> Ready
       | 9 -> SendGarbage (ri ())
       | 10 -> FinishGarbage
-      | 11 -> ILose
+      | 11 -> ILose (rb ())
       | 12 -> MyHandicap (ri ())
       | 13 -> MyTeam (ri ())
       | _ -> failwith "Protocol.ToServer.decode"

@@ -460,10 +460,12 @@ let handle_client_message players c m =
           | None -> ()
           | Some game -> player_finish_garbage player game
         end
-    | Logged player, ILose ->
+    | Logged player, ILose quit ->
         begin match player.game with
           | None -> ()
-          | Some game -> player_game_over players player game
+          | Some game ->
+              player_game_over players player game;
+              if quit then player_leave_room players c player
         end
     | Logged player, MyHandicap i ->
         begin match player.game with

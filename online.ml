@@ -420,7 +420,7 @@ and multi_player_game cx login =
       quit := true;
 
     if not !game_over_sent && (game_finished !game || !quit) then begin
-      Net.send cx ILose;
+      Net.send cx (ILose !quit);
       game_over_sent := true
     end;
   done;
