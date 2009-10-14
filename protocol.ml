@@ -43,7 +43,7 @@ module ToServer = struct
     | Ready
     | SendGarbage of int
     | FinishGarbage
-    | GameOver
+    | ILose
     | MyHandicap of int
     | MyTeam of int
 
@@ -60,7 +60,7 @@ module ToServer = struct
     | JoinRoom _
     | LeaveRoom
     | Ready
-    | GameOver
+    | ILose
     | MyHandicap _
     | MyTeam _ ->
         1
@@ -102,7 +102,7 @@ module ToServer = struct
           wi i
       | FinishGarbage ->
           wi 10
-      | GameOver ->
+      | ILose ->
           wi 11
       | MyHandicap i ->
           wi 12;
@@ -127,7 +127,7 @@ module ToServer = struct
       | 8 -> Ready
       | 9 -> SendGarbage (ri ())
       | 10 -> FinishGarbage
-      | 11 -> GameOver
+      | 11 -> ILose
       | 12 -> MyHandicap (ri ())
       | 13 -> MyTeam (ri ())
       | _ -> failwith "Protocol.ToServer.decode"
@@ -149,7 +149,7 @@ module ToClient = struct
     | StartGame
     | PrepareGarbage of int * int (* player id, garbage count *)
     | ReadyGarbage of int (* player id *)
-    | YouWin
+    | GameOver of bool (* win? *)
     | YourHandicap of int
     | YourTeam of int
 
@@ -162,7 +162,7 @@ module ToClient = struct
     | StartGame
     | PrepareGarbage _
     | ReadyGarbage _
-    | YouWin
+    | GameOver _
     | YourHandicap _
     | YourTeam _ ->
         0
@@ -211,8 +211,9 @@ module ToClient = struct
       | ReadyGarbage i ->
           wi 9;
           wi i
-      | YouWin ->
-          wi 10
+      | GameOver b ->
+          wi 10;
+          wb b
       | YourHandicap i ->
           wi 11;
           wi i
@@ -248,7 +249,7 @@ module ToClient = struct
           let j = ri () in
           PrepareGarbage (i, j)
       | 9 -> ReadyGarbage (ri ())
-      | 10 -> YouWin
+      | 10 -> GameOver (rb ())
       | 11 -> YourHandicap (ri ())
       | 12 -> YourTeam (ri ())
       | _ -> failwith "Protocol.ToClient.decode"

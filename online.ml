@@ -380,9 +380,11 @@ and multi_player_game cx login =
   let game = ref (Game.start ()) in
   let replay = Replay.record !game in
   IO.timer_start ();
+  let game_over = ref false in
   let won = ref false in
   let quit = ref false in
-  while not (game_finished !game || !won || !quit) do
+  let game_over_sent = ref false in
+  while not (!game_over || !quit) do
     let actions = ref (Reader.read ()) in
     if IO.frame_delay 10 then Draw.draw !game;
 
@@ -392,8 +394,9 @@ and multi_player_game cx login =
              actions := (Action.SendGarbage (pid, g)) :: !actions
          | ReadyGarbage pid ->
              actions := (Action.FinishGarbage pid) :: !actions
-         | YouWin ->
-             won := true;
+         | GameOver b ->
+             game_over := true;
+             won := b;
              raise StopMessageIteration
          | _ -> ())
       cx;
@@ -415,7 +418,11 @@ and multi_player_game cx login =
     (* TODO: pause menu *)
     if List.mem Action.Escape !actions then
       quit := true;
+
+    if not !game_over_sent && (game_finished !game || !quit) then begin
+      Net.send cx ILose;
+      game_over_sent := true
+    end;
   done;
-  if not !won then Net.send cx GameOver;
   save_replay replay (login ^ "_online");
   menu cx login

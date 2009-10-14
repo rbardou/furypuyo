@@ -356,9 +356,14 @@ let player_finish_garbage player game =
 
 let player_game_over players player game =
   player.game_over <- true;
-  let still_playing = List.filter (fun p -> not p.game_over) game.gplayers in
+  let still_playing, others =
+    List.partition
+      (fun p -> not p.game_over)
+      game.gplayers
+  in
   if List.length still_playing <= 1 then begin
-    List.iter (fun p -> send_to p YouWin) still_playing;
+    List.iter (fun p -> send_to p (GameOver true)) still_playing;
+    List.iter (fun p -> send_to p (GameOver false)) others;
     destroy_game players game;
     match List.rev game.gplayers with
       | [] -> ()
@@ -455,7 +460,7 @@ let handle_client_message players c m =
           | None -> ()
           | Some game -> player_finish_garbage player game
         end
-    | Logged player, GameOver ->
+    | Logged player, ILose ->
         begin match player.game with
           | None -> ()
           | Some game -> player_game_over players player game
