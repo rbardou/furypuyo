@@ -380,7 +380,7 @@ and joined_room cx login rname rid =
 	multi_player_game cx login
 
 and multi_player_game cx login =
-  let game = ref (Game.start ()) in
+  let game = ref (Game.start_multiplayer ()) in
   let replay = Replay.record !game in
   IO.timer_start ();
   let game_over = ref false in

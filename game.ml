@@ -117,6 +117,12 @@ type speed = {
     (** acceleration (smoothed y per frame per frame) for falling blocks *)
   sp_fury_pop_delay: int;
     (** time puyos take to pop *)
+  sp_garbage_initial: int;
+    (** time before garbage starts to be sent in greater numbers *)
+  sp_garbage_acceleration_delay: int;
+    (** delay between two accelerations of garbage sending speed
+        (one percent of normal garbage count each time)
+        (0 or less means no acceleration) *)
 }
 
 type fury_state =
@@ -604,6 +610,17 @@ let rec remove_incoming_garbage g = function
       else
         remove_incoming_garbage (g - x) r
 
+let apply_garbage_acceleration game g =
+  if game.now < game.speed.sp_garbage_initial
+    || game.speed.sp_garbage_acceleration_delay <= 0 then
+      g
+  else
+    (100
+     + (game.now - game.speed.sp_garbage_initial)
+     / game.speed.sp_garbage_acceleration_delay)
+    * g
+    / 100
+
 let think_popping game ps =
   if game.now >= ps.pop_end then
     let offsets =
@@ -629,6 +646,7 @@ let think_popping game ps =
     let gfx = gfx_pop game gfx ps.pop_puyos add_score in
     let gfx = gfx_chain game gfx ps.pop_chain ps.pop_puyos in
     let garbage = ceil_div add_score 120 in
+    let garbage = apply_garbage_acceleration game garbage in
     let garbage, garbage_ready =
       if game.garbage_ready >= garbage then 0, game.garbage_ready - garbage
       else garbage - game.garbage_ready, 0
@@ -837,6 +855,8 @@ let start () =
       sp_fury_initial = 500;
       sp_fury_gravity = 20;
       sp_fury_pop_delay = 30;
+      sp_garbage_initial = 0;
+      sp_garbage_acceleration_delay = 0;
     };
     next_blocks = [ block1; block2 ];
     garbage_incoming = [];
@@ -848,4 +868,14 @@ let start () =
     offsets = 0;
     fury = FNone;
     gfx = Gfx.empty;
+  }
+
+let start_multiplayer () =
+  let game = start () in
+  { game with
+      speed = {
+        game.speed with
+          sp_garbage_initial = 6000; (* 1 minute *)
+          sp_garbage_acceleration_delay = 60; (* +100% per minute *)
+      }
   }

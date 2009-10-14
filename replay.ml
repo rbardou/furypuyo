@@ -31,7 +31,7 @@
 open Game
 open Puyo
 
-let identifier = Bin.identifier "PUYOREPLAY00"
+let identifier = Bin.identifier "PUYOREPLAY01"
 
 type t = {
   start: Game.game;
@@ -185,7 +185,9 @@ let encode_game_speed buf s =
   w Bin.int s.sp_fury_minimum_delay;
   w Bin.int s.sp_fury_initial;
   w Bin.int s.sp_fury_gravity;
-  w Bin.int s.sp_fury_pop_delay
+  w Bin.int s.sp_fury_pop_delay;
+  w Bin.int s.sp_garbage_initial;
+  w Bin.int s.sp_garbage_acceleration_delay
 
 let decode_game_speed buf =
   let r x = Bin.read buf x in
@@ -201,6 +203,8 @@ let decode_game_speed buf =
   let sp_fury_initial = r Bin.int in
   let sp_fury_gravity = r Bin.int in
   let sp_fury_pop_delay = r Bin.int in
+  let sp_garbage_initial = r Bin.int in
+  let sp_garbage_acceleration_delay = r Bin.int in
   {
     sp_fall_absorb = sp_fall_absorb;
     sp_fall = sp_fall;
@@ -214,6 +218,8 @@ let decode_game_speed buf =
     sp_fury_initial = sp_fury_initial;
     sp_fury_gravity = sp_fury_gravity;
     sp_fury_pop_delay = sp_fury_pop_delay;
+    sp_garbage_initial = sp_garbage_initial;
+    sp_garbage_acceleration_delay = sp_garbage_acceleration_delay;
   }
 
 let codec_game_speed =
