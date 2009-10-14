@@ -15,10 +15,8 @@ General
 Multiplayer
 ===========
 
-* bugfix: wait for game to end when game over (especially in >2-player games),
-  allow escape to quit game and room when waiting
 * pause menu
-* let the winner know he won
+* let the winners know they won
 * view other players' field
 
 Network

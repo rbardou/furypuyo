@@ -361,7 +361,11 @@ let player_game_over players player game =
       (fun p -> not p.game_over)
       game.gplayers
   in
-  if List.length still_playing <= 1 then begin
+  let finished = match still_playing with
+    | [] | [_] -> true
+    | x :: r -> x.team = 0 || List.for_all (fun p -> p.team = x.team) r
+  in
+  if finished then begin
     List.iter (fun p -> send_to p (GameOver true)) still_playing;
     List.iter (fun p -> send_to p (GameOver false)) others;
     destroy_game players game;
