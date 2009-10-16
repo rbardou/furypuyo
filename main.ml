@@ -70,6 +70,17 @@ let rec single_player_loop game cpu replay: unit =
     single_player_loop game cpu replay
   end
 
+and sandbox_loop game: unit =
+  let actions = Reader.read () in
+  if game_over game || List.mem Action.Escape actions then
+    main_menu ()
+  else begin
+    let game = Game.think_frame game actions in
+    if !draw then Draw.draw game;
+    draw := IO.frame_delay 10;
+    sandbox_loop game
+  end
+
 and replay_loop replay: unit =
   let actions = Reader.read () in
   if List.mem Action.Escape actions then
@@ -133,6 +144,11 @@ and single_player_game (): unit =
   IO.timer_start ();
   single_player_loop game cpu replay
 
+and sandbox (): unit =
+  let game = Game.start_sandbox () in
+  IO.timer_start ();
+  sandbox_loop game
+
 and replay r: unit =
   Replay.play r;
   IO.timer_start ();
@@ -150,6 +166,7 @@ and main_menu (): unit =
     Menu.string_choices [
       "SINGLE PLAYER", `Single;
       "PLAY ONLINE", `PlayOnline;
+      "SANDBOX", `Sandbox;
       "HIGH SCORES", `HighScores;
       "QUIT", `Quit;
     ]
@@ -157,6 +174,8 @@ and main_menu (): unit =
   match choice with
     | `Single ->
         single_player_game ()
+    | `Sandbox ->
+        sandbox ()
     | `PlayOnline ->
         play_online ()
     | `HighScores ->

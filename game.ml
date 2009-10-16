@@ -879,3 +879,13 @@ let start_multiplayer () =
           sp_garbage_acceleration_delay = 60; (* +100% per minute *)
       }
   }
+
+let start_sandbox () =
+  let game = start () in
+  { game with
+      speed = {
+        game.speed with
+          sp_fall = 0;
+          sp_fall_fast = 100;
+      }
+  }
