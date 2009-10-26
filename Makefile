@@ -21,11 +21,6 @@ doc:
 	ln -f -s _build/furypuyo.docdir doc
 	ln -f -s _build/net/network.docdir docnet
 
-nettest:
-	$(OCAMLBUILD) client.native server.native
-	ln -f -s ../../_build/net/test/client.native net/test/client
-	ln -f -s ../../_build/net/test/server.native net/test/server
-
 server:
 	$(OCAMLBUILD) server.native
 	ln -f -s _build/server/server.native furypuyo_srv
@@ -51,4 +46,4 @@ distbin: furypuyo
 	rm $$DIR/furypuyo; \
 	rmdir $$DIR
 
-.PHONY: furypuyo doc clean distclean dist-clean dist all world server distbin nettest convert
+.PHONY: furypuyo doc clean distclean dist-clean dist all world server distbin convert
