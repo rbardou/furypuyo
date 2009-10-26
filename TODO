@@ -25,9 +25,7 @@ Multiplayer
 Network
 =======
 
-* test2 bugs at packet frame.size+1
 * FastOrdered does not work at all
-
 * find out ping to change initial resend delay
 * split packets which are too big
 * finish sending important packets before closing

@@ -36,7 +36,7 @@ type state =
 module F: sig
   type 'a t
   val make: int -> 'a -> 'a -> 'a t (* size, young / in default, old default *)
-  val get: 'a t -> int -> 'a (* unspecified if out of frame *)
+  val get: 'a t -> int -> 'a
   val set: 'a t -> int -> 'a -> unit (* same *)
   val shift: 'a t -> int -> unit (* only applied if move forward *)
   val position: 'a t -> int
@@ -68,7 +68,7 @@ end = struct
     state frame pos = InFrame
 
   let apos frame pos =
-    (pos - frame.position) mod frame.size
+    pos mod frame.size
 
   let get frame pos =
     match state frame pos with
