@@ -83,6 +83,7 @@ struct
         * 'b Order.orderer
 
   type ('a, 'b) connection = {
+    is_server: bool;
     connection: ('a Frame.m Channel.m, 'b Frame.m Channel.m) Connect.connection;
     frames_send: (int * ('a, 'b) frame) list;
     frames_receive: (int * ('a, 'b) frame) list;
@@ -101,7 +102,13 @@ struct
   let listen ?addr port =
     Connect.listen ?addr port codec_to_client codec_to_server
 
-  let make_frame cx (ch, kind) =
+  let real_channel ch mode is_server =
+    match mode, is_server with
+      | `S, true | `R, false -> 2 * ch
+      | `R, true | `S, false -> 2 * ch + 1
+
+  let make_frame is_server mode cx (ch, kind) =
+    let ch = real_channel ch mode is_server in
     let frame = Frame.start (Channel.channel cx ch) in
     let frame =
       match kind with
@@ -120,11 +127,13 @@ struct
     in
     ch, frame
 
-  let make_connection channels_send channels_receive ch_send ch_receive cx =
+  let make_connection is_server channels_send channels_receive
+      ch_send ch_receive cx =
     {
+      is_server = is_server;
       connection = cx;
-      frames_send = List.map (make_frame cx) channels_send;
-      frames_receive = List.map (make_frame cx) channels_receive;
+      frames_send = List.map (make_frame is_server `S cx) channels_send;
+      frames_receive = List.map (make_frame is_server `R cx) channels_receive;
       channel_send = ch_send;
       channel_receive = ch_receive;
       reception = [];
@@ -133,6 +142,7 @@ struct
   let accept ?max (serv: server) =
     let make_connection =
       make_connection
+        true
         ToClient.channels
         ToServer.channels
         ToClient.channel
@@ -142,6 +152,7 @@ struct
 
   let connect addr port =
     make_connection
+      false
       ToServer.channels
       ToClient.channels
       ToServer.channel      
@@ -161,10 +172,14 @@ struct
   let remote_port cx = Connect.remote_port cx.connection
 
   let frame_send cx msg =
-    List.assoc (cx.channel_send msg) cx.frames_send
+    List.assoc
+      (real_channel (cx.channel_send msg) `S cx.is_server)
+      cx.frames_send
 
   let frame_receive cx msg =
-    List.assoc (cx.channel_receive msg) cx.frames_receive
+    List.assoc
+      (real_channel (cx.channel_receive msg) `R cx.is_server)
+      cx.frames_receive
 
   let update_frame = function
     | FFast _

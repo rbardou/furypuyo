@@ -79,7 +79,7 @@ let bind sock ?addr port =
   Unix.bind sock.fd addr
 
 let close sock =
-  Hashtbl.remove file_descriptors sock.id;
+  begin try Hashtbl.remove file_descriptors sock.id with Not_found -> () end;
   Unix.close sock.fd
 
 let maximum_packet_size = 512
