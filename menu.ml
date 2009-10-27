@@ -318,7 +318,7 @@ let show_high_scores pages =
   with Exit ->
     ()
 
-let waiting_string msg test =
+let waiting_string_gen ?(escape = [ Escape ]) msg test =
   let background = IO.Sprite.screenshot () in
   let text_x = screen_width / 2 in
   let text_y = screen_height / 2 in
@@ -332,9 +332,7 @@ let waiting_string msg test =
     end;
 
     List.iter
-      (function
-         | Escape -> raise Exit
-         | _ -> ())
+      (fun x -> if List.mem x escape then raise Exit)
       (MenuReader.read ());
 
     test_result := test ()
@@ -343,23 +341,10 @@ let waiting_string msg test =
     | Some x -> x
     | None -> assert false
 
-let show_message msg =
-  let background = IO.Sprite.screenshot () in
-  let text_x = screen_width / 2 in
-  let text_y = screen_height / 2 in
-  MenuReader.reset ();
-  try
-    while true do
-      if IO.frame_delay 10 then begin
-        IO.Sprite.draw background 0 0;
-        IO.Text.write font ~align: IO.Center text_x text_y msg;
-        IO.update ()
-      end;
+let waiting_string msg test = waiting_string_gen msg test
 
-      List.iter
-        (function
-           | Escape | Return -> raise Exit
-           | _ -> ())
-        (MenuReader.read ())
-    done
-  with Exit -> ()
+let show_message msg =
+  try
+    waiting_string_gen ~escape: [ Escape; Return ] msg (fun () -> None)
+  with Exit ->
+    ()
