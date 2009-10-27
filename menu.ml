@@ -327,7 +327,7 @@ let waiting_string msg test =
   while !test_result = None do
     if IO.frame_delay 10 then begin
       IO.Sprite.draw background 0 0;
-      IO.Text.write font ~align: IO.Top text_x text_y msg;
+      IO.Text.write font ~align: IO.Center text_x text_y msg;
       IO.update ()
     end;
 
@@ -342,3 +342,24 @@ let waiting_string msg test =
   match !test_result with
     | Some x -> x
     | None -> assert false
+
+let show_message msg =
+  let background = IO.Sprite.screenshot () in
+  let text_x = screen_width / 2 in
+  let text_y = screen_height / 2 in
+  MenuReader.reset ();
+  try
+    while true do
+      if IO.frame_delay 10 then begin
+        IO.Sprite.draw background 0 0;
+        IO.Text.write font ~align: IO.Center text_x text_y msg;
+        IO.update ()
+      end;
+
+      List.iter
+        (function
+           | Escape | Return -> raise Exit
+           | _ -> ())
+        (MenuReader.read ())
+    done
+  with Exit -> ()

@@ -44,10 +44,22 @@ let connection_screen () =
       "ENTER SERVER ADDRESS:"
   in
   Config.set server_address host;
-  let cx = Net.connect host (Config.get server_port) in
+  let cx =
+    try
+      Some (Net.connect host (Config.get server_port))
+    with Udp.Network_error (_, s) ->
+      Draw.draw_empty ();
+      Menu.show_message (String.uppercase s);
+      None
+  in
   try
+    let cx = match cx with
+      | Some cx -> cx
+      | None -> raise Exit
+    in
     Draw.draw_empty ();
-    Menu.waiting_string "CONNECTING" (fun () -> option_of_bool (Net.ready cx));
+    Menu.waiting_string "CONNECTING..."
+      (fun () -> option_of_bool (Net.ready cx));
     Draw.draw_empty ();
     let name =
       Menu.input_string
@@ -59,7 +71,7 @@ let connection_screen () =
     Draw.draw_empty ();
     let name_exists =
       Menu.waiting_string
-        "CONNECTING"
+        "CONNECTING..."
         (check_message cx (function YourNameExists e -> Some e | _ -> None))
     in
     if name_exists then begin
@@ -73,7 +85,7 @@ let connection_screen () =
       Net.send cx (MyPassword pass);
       let ok =
         Menu.waiting_string
-          "CONNECTING"
+          "CONNECTING..."
           (check_message cx (function
                                | YouAreConnected -> Some true
                                | WrongPassword -> Some false
@@ -113,15 +125,19 @@ let connection_screen () =
       Net.send cx (MyPassword !pass);
       Draw.draw_empty ();
       Menu.waiting_string
-        "CONNECTING"
+        "CONNECTING..."
         (check_message cx (function
                              | YouAreConnected -> Some ()
                              | _ -> None))
     end;
     Some (cx, name)
-  with Exit ->
-    Net.close cx;
-    None
+  with
+    | Exit ->
+        begin match cx with
+          | Some cx -> Net.close cx
+          | None -> ()
+        end;
+        None
 
 let send_score cx scores =
   begin match scores with

@@ -57,6 +57,12 @@ val waiting_string: string -> (unit -> 'a option) -> 'a
       key, exception [Exit] is raised instead of returning normally.
       If [f ()] returns [Some x], this [x] value is returned. *)
 
+val show_message: string -> unit
+  (** Show a message to the user.
+
+      [show_message message]: show [message] until the user hits either escape
+      or return. *)
+
 type page
 
 val draw_high_scores_page: page -> unit
