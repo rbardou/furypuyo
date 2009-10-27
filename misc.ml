@@ -33,6 +33,8 @@
 open Printf
 open Unix
 
+let (|>) x f = f x
+
 let rec list_mapi acc i f = function
   | [] -> List.rev acc
   | x :: rem -> list_mapi (f i x :: acc) (i + 1) f rem
@@ -65,6 +67,22 @@ let rec list_trunc acc l = function
         | x :: rem ->
             list_trunc (x :: acc) rem (n - 1)
 let list_trunc x = list_trunc [] x
+
+let rec str_split_char ?(acc = []) ?(pos = 0) c s =
+  let len = String.length s in
+  if pos > len then
+    List.rev acc
+  else if pos = len then
+    List.rev ("" :: acc)
+  else
+    let index =
+      try
+        String.index_from s pos c
+      with Not_found ->
+        len
+    in
+    let sub = String.sub s pos (index - pos) in
+    str_split_char ~acc: (sub :: acc) ~pos: (index + 1) c s
 
 let rec new_file_name i base ext =
   let name =

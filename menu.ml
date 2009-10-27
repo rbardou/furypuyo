@@ -318,16 +318,72 @@ let show_high_scores pages =
   with Exit ->
     ()
 
+let split_lines ?(w = screen_width) ?(h = screen_height) ?(font = font) s =
+  let space_width, _ = IO.Text.size font " " in
+  let rec split_inside acc current_line current_width = function
+    | [] ->
+        begin match current_line with
+          | [] -> List.rev acc
+          | _ :: _ -> List.rev (List.rev current_line :: acc)
+        end
+    | word :: rem ->
+        let word_width, _ = IO.Text.size font word in
+        begin match current_line with
+          | [] ->
+              split_inside
+                acc
+                (word :: current_line)
+                word_width
+                rem
+          | _ :: _ ->
+              let new_width = current_width + space_width + word_width in
+              if new_width <= w then
+                split_inside
+                  acc
+                  (word :: current_line)
+                  new_width
+                  rem
+              else
+                split_inside
+                  (List.rev current_line :: acc)
+                  [ word ]
+                  word_width
+                  rem
+        end
+  in
+  str_split_char '\n' s
+    |> List.map (str_split_char ' ')
+    |> List.map (split_inside [] [] 0)
+    |> List.flatten
+    |> List.map (String.concat " ")
+
 let waiting_string_gen ?(escape = [ Escape ]) msg test =
+  let lines = split_lines ~font msg in
+  let dy = 10 in
+  let total_height =
+    List.fold_left
+      (fun a l -> a + snd (IO.Text.size font l) + dy)
+      0
+      lines
+  in
   let background = IO.Sprite.screenshot () in
   let text_x = screen_width / 2 in
-  let text_y = screen_height / 2 in
+  let text_y = screen_height / 2 - total_height / 2 + dy / 2 in
   MenuReader.reset ();
   let test_result = ref (test ()) in
   while !test_result = None do
     if IO.frame_delay 10 then begin
       IO.Sprite.draw background 0 0;
-      IO.Text.write font ~align: IO.Center text_x text_y msg;
+
+      List.fold_left
+        (fun y s ->
+           let _, h = IO.Text.size font s in
+           IO.Text.write font ~align: IO.Top text_x y s;
+           y + h + dy)
+        text_y
+        lines
+      |> ignore;
+
       IO.update ()
     end;
 
