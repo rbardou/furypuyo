@@ -67,7 +67,7 @@ let connection_screen () =
       let pass =
         Menu.input_string
           ~default: ""
-          ~passchar: ':'
+          ~passchar: '*'
           "ENTER YOUR PASSWORD:"
       in
       Net.send cx (MyPassword pass);
@@ -92,14 +92,14 @@ let connection_screen () =
             let pass1 =
               Menu.input_string
                 ~default: ""
-                ~passchar: ':'
+                ~passchar: '*'
                 "ENTER NEW PASSWORD:"
             in
             Draw.draw_empty ();
             let pass2 =
               Menu.input_string
                 ~default: ""
-                ~passchar: ':'
+                ~passchar: '*'
                 "CONFIRM NEW PASSWORD:"
             in
             if pass1 = pass2 then begin
