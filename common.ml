@@ -28,6 +28,18 @@ let quit () =
   ignore (on_quit ());
   IO.close ()
 
+(* don't use Sys.executable_name because it won't work with symbolic links *)
+let data_directory =
+  let ed = Filename.dirname Sys.argv.(0) in
+  let ed =
+    if Filename.is_relative ed then
+      Filename.concat (Sys.getcwd ()) ed
+    else
+      ed
+  in
+  let def = Filename.concat ed "data" in
+  Config.string config "DATADIR" "Game data directory (sprites, ...)" def
+
 let player_name =
   Config.string config "PLAYERNAME" "Player name"
     (try Unix.getlogin () with Unix.Unix_error _ ->
