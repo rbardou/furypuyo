@@ -15,7 +15,6 @@ General
 Multiplayer
 ===========
 
-* do not allow multiple connections for the same player
 * pause menu
 * let the winners know they won
 * view other players' field
@@ -24,6 +23,7 @@ Multiplayer
 Network
 =======
 
+* timeouts
 * FastOrdered does not work at all
 * find out ping to change initial resend delay
 * split packets which are too big

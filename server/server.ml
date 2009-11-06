@@ -387,6 +387,10 @@ let handle_client_message players c m =
     | Logging name, MyPassword pass ->
         let accept_login player =
           c.state <- Logged player;
+          begin match player.pcx with
+            | None -> ()
+            | Some pcx -> Net.close pcx
+          end;
 	  player.pcx <- Some c.cx;
           logc c "logged in";
           Net.send c.cx YouAreConnected
