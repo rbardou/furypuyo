@@ -96,9 +96,8 @@ module Make(C: SCORE) = struct
     Bin.custom encode decode
 
   let save scores file =
-    let file = Config.filename file in
     try
-      let ch = open_out file in
+      let ch = Config.open_out file in
       let buf = Bin.to_channel ch in
       Bin.write buf codec scores;
       close_out ch;

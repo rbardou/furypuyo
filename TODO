@@ -15,7 +15,6 @@ General
 Multiplayer
 ===========
 
-* network bugs (player list not received, ...)
 * do not allow multiple connections for the same player
 * pause menu
 * let the winners know they won

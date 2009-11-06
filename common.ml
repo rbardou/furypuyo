@@ -77,7 +77,7 @@ module HighScores = Highscores.Make(Score)
 
 let save_replay replay file =
   let file = new_file_name (Config.filename file) ".replay" in
-  let ch = open_out file in
+  let ch = Config.open_out file in
   let buf = Bin.to_channel ch in
   Bin.write buf Replay.codec replay;
   close_out ch

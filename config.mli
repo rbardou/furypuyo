@@ -64,7 +64,7 @@ val open_in: string -> in_channel
 val open_out: string -> out_channel
   (** Open a configuration file for writing.
 
-      [open_in file]: open [filename file] for writing.
+      [open_out file]: open [filename file] for writing.
       Create parent directories if necessary.
       If the file does not exist, it is created. Else, it is truncated to
       length [0].
