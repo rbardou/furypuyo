@@ -122,11 +122,24 @@ let draw_falling game fs =
   List.iter (fun (x, y, p) -> draw_puyo p x y) fs.f_puyos
 
 let draw_garbage count =
+  let c720 = count / 720 in
+  let count = count mod 720 in
+  let c360 = count / 360 in
+  let count = count mod 360 in
+  let c180 = count / 180 in
+  let count = count mod 180 in
   let c30 = count / 30 in
   let count = count mod 30 in
   let c6 = count / 6 in
   let count = count mod 6 in
-  let list = [ c30, garbage30; c6, garbage6; count, garbage1 ] in
+  let list = [
+    c720, garbage720;
+    c360, garbage360;
+    c180, garbage180;
+    c30, garbage30;
+    c6, garbage6;
+    count, garbage1;
+  ] in
   let draw x s = Sprite.draw s (x * cellw + garbage_x) garbage_y in
   let rec go x l =
     if x < 6 then match l with
