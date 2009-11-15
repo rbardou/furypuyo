@@ -877,6 +877,9 @@ let start_multiplayer () =
         game.speed with
           sp_garbage_initial = 6000; (* 1 minute *)
           sp_garbage_acceleration_delay = 60; (* +100% per minute *)
+	  sp_gravity = 7;
+	  sp_pop_delay = 70;
+	  sp_fury_pop_delay = 25;
       }
   }
 
