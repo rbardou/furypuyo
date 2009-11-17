@@ -46,4 +46,7 @@ distbin: furypuyo
 	rm $$DIR/furypuyo; \
 	rmdir $$DIR
 
+wc:
+	ocamlwc `darcs query manifest | grep "\.ml"`
+
 .PHONY: furypuyo doc clean distclean dist-clean dist all world server distbin convert

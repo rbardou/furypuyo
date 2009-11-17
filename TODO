@@ -1,6 +1,8 @@
 General
 =======
 
+* look for data directory in more locations
+* view last replay menu
 * bottom foreground for game over
 * puyo connection images
 * rotation animation
@@ -29,6 +31,9 @@ Network
 * finish sending important packets before closing
 * put Channel before Connect
 * change Connect to split sent and received messages (Hello and Accept)
+* use TCP for important ordered channels
+* replace Bin with a more general setting
+* do not crash if a message cannot be read
 
 Other
 =====
