@@ -1,6 +1,7 @@
 General
 =======
 
+* only one line of ghost
 * look for data directory in more locations
 * view last replay menu
 * bottom foreground for game over
@@ -11,7 +12,7 @@ General
 * less random generator
 * background image(s)
 * sound
-* better rotations to insert in the rightmost column
+* prevent puyo rotations which allow to go up a two-space high wall
 
 Multiplayer
 ===========
