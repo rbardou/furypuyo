@@ -1,3 +1,3 @@
 (** Game version information *)
 
-let string = "0.4"
+let string = "0.5dev"

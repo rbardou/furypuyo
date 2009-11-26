@@ -35,6 +35,11 @@ open Unix
 
 let (|>) x f = f x
 
+(** Use [enumerate a b] to get the list of integers from [a] to [b] (included)
+    in increasing order. *)
+let rec enumerate ?(acc = []) a b =
+  if a > b then acc else enumerate ~acc: (b :: acc) a (b - 1)
+
 let rec list_mapi acc i f = function
   | [] -> List.rev acc
   | x :: rem -> list_mapi (f i x :: acc) (i + 1) f rem

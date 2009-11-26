@@ -89,7 +89,7 @@ let draw_puyo p =
   Sprite.draw (sprite_of_puyo p)
 
 let field_puyo_x x = cellw * x + field_x
-let field_puyo_y y = cellh * (y - 2) + field_y
+let field_puyo_y y = cellh * (y - Game.invisible_lines) + field_y
 
 let draw_field_puyo p x y y_offset =
   Sprite.draw

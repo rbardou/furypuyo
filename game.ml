@@ -37,9 +37,22 @@ open Cell
 
 let ready_set_go_delay = 75
 
-let invisible_lines = 2
+(** Lines above the field where the user can move, rotate and place puyos,
+    but without seeing them. *)
+let invisible_lines = 3
+
+(** Puyos which are placed in the first [no_puyo_lines] lines
+    (which are included in the invisible lines) are destroyed when they
+    are placed.
+
+    This should be lesser or equal that [invisible_lines], as these puyo
+    should not be taken into account when looking for puyo connections. *)
+let no_puyo_lines = 2
 
 let smooth_factor = 1024
+
+let incoming_blocks_origin_x = 2
+let incoming_blocks_origin_y = smooth_factor
 
 let unsmooth_y y =
   y / smooth_factor + (if y mod smooth_factor = 0 then 0 else 1)
@@ -274,7 +287,8 @@ let start_game_over game =
 
 let check_game_over game =
   let f = game.field in
-  not (Cell.is_empty (Matrix.get f 2 2) && Cell.is_empty (Matrix.get f 3 2))
+  not (Cell.is_empty (Matrix.get f 2 invisible_lines)
+       && Cell.is_empty (Matrix.get f 3 invisible_lines))
 
 let start_falling game puyos =
   let fs = {
@@ -343,8 +357,8 @@ let start_incoming game =
     in
     let is = {
       inc_block = block;
-      inc_x = 2;
-      inc_y = 0;
+      inc_x = incoming_blocks_origin_x;
+      inc_y = incoming_blocks_origin_y;
       inc_insert_time = game.speed.sp_fall_absorb;
       inc_fast_fall = false;
     } in
@@ -425,7 +439,18 @@ let start_popping game puyos groups =
       chain = game.chain + 1;
       garbage_protection = true }
 
+let erase_no_puyo_lines f =
+  List.fold_left
+    (fun f x ->
+       List.fold_left
+         (fun f y -> Matrix.set f x y Cell.empty)
+         f
+         (enumerate 0 (no_puyo_lines - 1)))
+    f
+    (enumerate 0 (Matrix.width f - 1))
+
 let check_and_start_popping game =
+  let game = { game with field = erase_no_puyo_lines game.field } in
   let puyos, groups = matrix_big_groups game.field in
   match puyos with
     | [] ->
@@ -729,6 +754,20 @@ let debug game =
       offsets = 6;
       garbage_ready = game.garbage_ready + 1;
       gfx = gfx }*)
+  (* stairs, to test puyo rotations *)
+  (*let field =
+    List.fold_left
+      (fun f x ->
+         List.fold_left
+           (fun f y ->
+              if (*y < x ||*) y < (5 - x) then f else
+                Matrix.set f x (y + 8) (Cell.make Puyo.gray))
+           f
+           [ 0; 1; 2; 3; 4; 5 ])
+      game.field
+      [ 0; 1; 2; 3; 4 ]
+  in
+  { game with field = field }*)
   game
 
 let act_incoming game is = function
@@ -835,7 +874,7 @@ let start () =
   let rand, generator, block2 = Generator.next generator rand in
   {
     now = -ready_set_go_delay * 2;
-    field = Matrix.make 6 14 Cell.empty;
+    field = Matrix.make 6 (12 + invisible_lines) Cell.empty;
     rand = rand;
     generator = generator;
     state = Starting {
