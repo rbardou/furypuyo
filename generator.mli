@@ -32,6 +32,10 @@
 
 type t
 
+(** 2222222222222222 *)
+val classic: t
+
+(** 2223222B22232224 *)
 val nice: t
 
 val next: t -> Rand.t -> Rand.t * t * Block.t

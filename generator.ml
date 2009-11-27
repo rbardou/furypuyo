@@ -105,6 +105,12 @@ let next gen rand =
   let rand, block = random_block rand gen.sequence.(pos) in
   rand, gen, block
 
+let classic =
+  {
+    sequence = [| Two |];
+    position = 0;
+  }
+
 let nice =
   {
     sequence = [| Two; Two; Two; Three;
