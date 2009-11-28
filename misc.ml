@@ -52,6 +52,14 @@ let rec list_iteri i f = function
       list_iteri (i + 1) f rem
 let list_iteri f l = list_iteri 0 f l
 
+let array_find f a =
+  let r = ref 0 in
+  try
+    Array.iteri (fun i x -> if f x then (r := i; raise Exit)) a;
+    raise Not_found
+  with Exit ->
+    !r
+
 let rec split_when f ?(acc = []) = function
   | [] -> raise Not_found
   | x :: r ->

@@ -70,3 +70,17 @@ val draw_high_scores_page: page -> unit
 val high_scores_top_players_page: ?pos: int -> (string * Score.t) list -> page
 
 val high_scores_player_page: string -> Score.t list -> page
+
+type menu_option = string * (unit -> unit) * (unit -> unit) * (unit -> string)
+  (** The type of game options.
+      
+      A menu option [(name, prev, next, print)] defines an
+      option whose description is [name].
+      The user will be able to select the option by applying
+      [next] and [prev] using the arrow keys. The value will be
+      printed using [print]. *)
+
+val option_menu: menu_option list -> bool
+  (** Show a menu to select options.
+
+      Return [true] if the user has accepted the changes, [false] otherwise. *)

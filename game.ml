@@ -923,12 +923,32 @@ let start_multiplayer ?generator () =
       }
   }
 
-let start_sandbox ?generator () =
+let start_sandbox ?generator speed () =
   let game = start ?generator () in
-  { game with
-      speed = {
-        game.speed with
-          sp_fall = 0;
-          sp_fall_fast = 100;
-      }
-  }
+  let speed = match speed with
+    | `None ->
+	{
+          game.speed with
+            sp_fall = 0;
+            sp_fall_fast = 100;
+	}
+    | `Slow ->
+	{
+          game.speed with
+	    sp_fall = game.speed.sp_fall / 4;
+            sp_fall_fast = 100;
+	}
+    | `Normal ->
+	game.speed
+    | `Fast ->
+	{
+          game.speed with
+	    sp_fall = game.speed.sp_fall * 3;
+	}
+    | `VeryFast ->
+	{
+          game.speed with
+	    sp_fall = game.speed.sp_fall * 10;
+	}
+  in
+  { game with speed = speed }

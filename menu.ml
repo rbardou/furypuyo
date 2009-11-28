@@ -404,3 +404,60 @@ let show_message msg =
     waiting_string_gen ~escape: [ Escape; Return ] msg (fun () -> None)
   with Exit ->
     ()
+
+type menu_option = string * (unit -> unit) * (unit -> unit) * (unit -> string)
+
+let option_menu opts =
+  MenuReader.reset ();
+  let background = IO.Sprite.screenshot () in
+  let continue = ref true in
+  let result = ref false in
+  let opts = Array.of_list opts in
+  let count = Array.length opts in
+  let choice_y i = (i + 1) * screen_height / (count + 1) in
+  let choice_x = 50 in
+  let pos = ref 0 in
+  let puyo_x = 20 in
+  let puyo_y = ref (float_of_int (choice_y !pos)) in
+  while !continue do
+    if IO.frame_delay 10 then begin
+      IO.Sprite.draw background 0 0;
+
+      IO.Sprite.draw sprite_puyo puyo_x (int_of_float !puyo_y);
+
+      Array.iteri
+	(fun i (name, _, _, print) ->
+	   IO.Text.write font ~align: IO.Left choice_x (choice_y i)
+	     (name ^ ": " ^ print ()))
+	opts;
+
+      IO.update ()
+    end;
+
+    List.iter
+      (function
+	 | Escape ->
+	     continue := false;
+	     result := false
+	 | Return ->
+	     continue := false;
+	     result := true
+	 | Up ->
+	     pos := !pos - 1;
+	     if !pos < 0 then pos := count - 1
+	 | Down ->
+	     pos := !pos + 1;
+	     if !pos >= count then pos := 0
+	 | Left ->
+	     let _, prev, _, _ = opts.(!pos) in
+	     prev ()
+	 | Right ->
+	     let _, _, next, _ = opts.(!pos) in
+	     next ()
+	 | _ ->
+	     ())
+      (MenuReader.read ());
+
+    puyo_y := !puyo_y +. (float_of_int (choice_y !pos) -. !puyo_y) /. 10.
+  done;
+  !result
