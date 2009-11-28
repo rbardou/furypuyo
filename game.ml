@@ -932,10 +932,16 @@ let start_sandbox ?generator speed () =
             sp_fall = 0;
             sp_fall_fast = 100;
 	}
+    | `VerySlow ->
+	{
+          game.speed with
+	    sp_fall = game.speed.sp_fall / 5;
+            sp_fall_fast = 100;
+	}
     | `Slow ->
 	{
           game.speed with
-	    sp_fall = game.speed.sp_fall / 4;
+	    sp_fall = game.speed.sp_fall / 2;
             sp_fall_fast = 100;
 	}
     | `Normal ->

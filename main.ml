@@ -54,6 +54,10 @@ let high_scores = ref (HighScores.load high_scores_file 10)
 
 let draw = ref true
 
+(* sandbox configuration *)
+let sandbox_speed = ref `None
+let sandbox_dropset = ref `Nice
+
 let rec single_player_loop game cpu replay: unit =
   let actions = Reader.read () in
   if not (game_over game) && List.mem Action.Escape actions then
@@ -155,9 +159,9 @@ and sandbox speed dropset (): unit =
 
 and sandbox_menu (): unit =
   Draw.draw_empty ();
-  let speed = ref `None in
-  let dropset = ref `Nice in
-  let speeds = [| `None; `Slow; `Normal; `Fast; `VeryFast |] in
+  let speed = ref !sandbox_speed in
+  let dropset = ref !sandbox_dropset in
+  let speeds = [| `None; `VerySlow; `Slow; `Normal; `Fast; `VeryFast |] in
   let dropsets = [| `Nice; `Classic |] in
   let next r a () =
     let i = array_find ((=) !r) a in
@@ -172,6 +176,7 @@ and sandbox_menu (): unit =
   let print_speed () =
     match !speed with
       | `None -> "NONE"
+      | `VerySlow -> "VERY SLOW"
       | `Slow -> "SLOW"
       | `Normal -> "NORMAL"
       | `Fast -> "FAST"
@@ -185,9 +190,11 @@ and sandbox_menu (): unit =
   if Menu.option_menu [
     "SPEED", prev speed speeds, next speed speeds, print_speed;
     "DROPSET", prev dropset dropsets, next dropset dropsets, print_dropset;
-  ] then
+  ] then begin
+    sandbox_speed := !speed;
+    sandbox_dropset := !dropset;
     sandbox !speed !dropset ()
-  else
+  end else
     main_menu ()
 
 and replay r: unit =
