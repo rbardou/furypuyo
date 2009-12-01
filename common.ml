@@ -86,6 +86,21 @@ let server_address =
 let server_port =
   Config.int config "SERVERPORT" "Server port for online play" 4269
 
+let player_dropset =
+  Config.custom
+    (fun s ->
+       match String.uppercase s with
+         | "CLASSIC" -> Some `Classic
+         | "SINGLE" -> Some `Nice
+         | _ -> None)
+    (function
+       | `Classic -> "CLASSIC"
+       | `Nice -> "SINGLE")
+    config
+    "DROPSET"
+    "Player dropset (classic or single)"
+    `Nice
+
 module MenuAction = struct
   type t = Up | Down | Return | Escape | Left | Right | PageUp | PageDown
 end

@@ -337,7 +337,7 @@ and joined_room cx login rname rid =
   let players = ref [] in
   let handicap = ref 0 in
   let team = ref 0 in
-  let dropset = ref `Nice in
+  let dropset = ref (Config.get player_dropset) in
   let cursor_x = 20 in
   let cursor_y = ref (float_of_int dropset_y) in
   let cursor_positions = [| `Dropset; `Team; `Handicap |] in
@@ -407,7 +407,8 @@ and joined_room cx login rname rid =
                      if !team < 0 then team := 0;
                      Net.send cx (MyTeam !team)
                  | `Dropset ->
-                     Menu.prev dropset dropsets ()
+                     Menu.prev dropset dropsets ();
+                     Config.set player_dropset !dropset
                end
            | Right ->
                begin match !cursor_pos with
@@ -420,7 +421,8 @@ and joined_room cx login rname rid =
                      if !team > 9 then team := 9;
                      Net.send cx (MyTeam !team)
                  | `Dropset ->
-                     Menu.next dropset dropsets ()
+                     Menu.next dropset dropsets ();
+                     Config.set player_dropset !dropset
                end
            | Up ->
                Menu.prev cursor_pos cursor_positions ()
