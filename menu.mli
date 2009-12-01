@@ -84,3 +84,9 @@ val option_menu: menu_option list -> bool
   (** Show a menu to select options.
 
       Return [true] if the user has accepted the changes, [false] otherwise. *)
+
+val next: 'a ref -> 'a array -> unit -> unit
+  (** Used to construct a [next] argument for [menu_option]. *)
+
+val prev: 'a ref -> 'a array -> unit -> unit
+  (** Used to construct a [prev] argument for [menu_option]. *)

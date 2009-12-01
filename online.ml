@@ -321,13 +321,18 @@ and joined_room cx login rname rid =
   let handicap_y = screen_height - 40 in
   let team_x = 40 in
   let team_y = screen_height - 70 in
+  let dropset_x = 40 in
+  let dropset_y = screen_height - 100 in
+  let dropsets = [| `Nice; `Classic |] in
   MenuReader.reset ();
   let players = ref [] in
   let handicap = ref 0 in
   let team = ref 0 in
+  let dropset = ref `Nice in
   let cursor_x = 20 in
-  let cursor_y = ref (float_of_int team_y) in
-  let cursor_pos = ref `Team in
+  let cursor_y = ref (float_of_int dropset_y) in
+  let cursor_positions = [| `Dropset; `Team; `Handicap |] in
+  let cursor_pos = ref `Dropset in
   try
     while true do
       if IO.frame_delay 10 then begin
@@ -354,6 +359,9 @@ and joined_room cx login rname rid =
 	       (player_y + i * player_h)
 	       text)
 	  !players;
+        IO.Text.write font ~align: IO.Left dropset_x dropset_y
+          (Printf.sprintf "DROPSET: %s"
+             (print_dropset dropset ()));
         IO.Text.write font ~align: IO.Left team_x team_y
           (Printf.sprintf "TEAM: %s"
              (if !team = 0 then "NONE" else string_of_int !team));
@@ -370,6 +378,7 @@ and joined_room cx login rname rid =
       let d = match !cursor_pos with
         | `Team -> team_y
         | `Handicap -> handicap_y
+        | `Dropset -> dropset_y
       in
       let d = float_of_int d in
       cursor_y := !cursor_y +. (d -. !cursor_y) /. 10.;
@@ -388,6 +397,8 @@ and joined_room cx login rname rid =
                      decr team;
                      if !team < 0 then team := 0;
                      Net.send cx (MyTeam !team)
+                 | `Dropset ->
+                     Menu.prev dropset dropsets ()
                end
            | Right ->
                begin match !cursor_pos with
@@ -399,12 +410,13 @@ and joined_room cx login rname rid =
                      incr team;
                      if !team > 9 then team := 9;
                      Net.send cx (MyTeam !team)
+                 | `Dropset ->
+                     Menu.next dropset dropsets ()
                end
-           | Up | Down ->
-               cursor_pos := begin match !cursor_pos with
-                 | `Team -> `Handicap
-                 | `Handicap -> `Team
-               end
+           | Up ->
+               Menu.prev cursor_pos cursor_positions ()
+           | Down ->
+               Menu.next cursor_pos cursor_positions ()
            | _ -> ())
 	(MenuReader.read ());
 
@@ -423,10 +435,12 @@ and joined_room cx login rname rid =
 	Net.send cx LeaveRoom;
 	menu cx login
     | GameStarts ->
-	multi_player_game cx login
+	multi_player_game cx login !dropset
 
-and multi_player_game cx login =
-  let game = ref (Game.start_multiplayer ()) in
+and multi_player_game cx login dropset =
+  let game =
+    ref (Game.start_multiplayer ~generator: (Generator.of_dropset dropset) ())
+  in
   let replay = Replay.record !game in
   IO.timer_start ();
   let game_over = ref false in

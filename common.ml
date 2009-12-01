@@ -117,3 +117,17 @@ let rec percent_of_handicap = function
   | i ->
       let p = percent_of_handicap (i - 1) in
       p + p / 5
+
+let print_speed speed () =
+  match !speed with
+    | `None -> "NONE"
+    | `VerySlow -> "VERY SLOW"
+    | `Slow -> "SLOW"
+    | `Normal -> "NORMAL"
+    | `Fast -> "FAST"
+    | `VeryFast -> "VERY FAST"
+
+let print_dropset dropset () =
+  match !dropset with
+    | `Nice -> "2223222B22232224"
+    | `Classic -> "2222222222222222"

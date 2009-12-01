@@ -141,3 +141,9 @@ let codec =
     (fun x -> x.sequence, x.position)
     (fun (s, p) -> { sequence = s; position = p })
     (Bin.couple (Bin.array codec_kind) Bin.int)
+
+type dropset = [ `Nice | `Classic ]
+
+let of_dropset = function
+  | `Nice -> nice
+  | `Classic -> classic

@@ -149,10 +149,7 @@ and single_player_game (): unit =
   single_player_loop game cpu replay
 
 and sandbox speed dropset (): unit =
-  let generator = match dropset with
-    | `Nice -> Generator.nice
-    | `Classic -> Generator.classic
-  in
+  let generator = Generator.of_dropset dropset in
   let game = Game.start_sandbox ~generator speed () in
   IO.timer_start ();
   sandbox_loop game
@@ -163,33 +160,10 @@ and sandbox_menu (): unit =
   let dropset = ref !sandbox_dropset in
   let speeds = [| `None; `VerySlow; `Slow; `Normal; `Fast; `VeryFast |] in
   let dropsets = [| `Nice; `Classic |] in
-  let next r a () =
-    let i = array_find ((=) !r) a in
-    let i = if i >= Array.length a - 1 then 0 else i + 1 in
-    r := a.(i)
-  in
-  let prev r a () =
-    let i = array_find ((=) !r) a in
-    let i = if i <= 0 then Array.length a - 1 else i - 1 in
-    r := a.(i)
-  in
-  let print_speed () =
-    match !speed with
-      | `None -> "NONE"
-      | `VerySlow -> "VERY SLOW"
-      | `Slow -> "SLOW"
-      | `Normal -> "NORMAL"
-      | `Fast -> "FAST"
-      | `VeryFast -> "VERY FAST"
-  in
-  let print_dropset () =
-    match !dropset with
-      | `Nice -> "2223222B22232224"
-      | `Classic -> "2222222222222222"
-  in
   if Menu.option_menu [
-    "SPEED", prev speed speeds, next speed speeds, print_speed;
-    "DROPSET", prev dropset dropsets, next dropset dropsets, print_dropset;
+    "SPEED", Menu.prev speed speeds, Menu.next speed speeds, print_speed speed;
+    "DROPSET", Menu.prev dropset dropsets,
+    Menu.next dropset dropsets, print_dropset dropset;
   ] then begin
     sandbox_speed := !speed;
     sandbox_dropset := !dropset;

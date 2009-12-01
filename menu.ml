@@ -461,3 +461,13 @@ let option_menu opts =
     puyo_y := !puyo_y +. (float_of_int (choice_y !pos) -. !puyo_y) /. 10.
   done;
   !result
+
+let next r a () =
+  let i = array_find ((=) !r) a in
+  let i = if i >= Array.length a - 1 then 0 else i + 1 in
+  r := a.(i)
+
+let prev r a () =
+  let i = array_find ((=) !r) a in
+  let i = if i <= 0 then Array.length a - 1 else i - 1 in
+  r := a.(i)

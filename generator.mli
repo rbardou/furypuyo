@@ -41,3 +41,7 @@ val nice: t
 val next: t -> Rand.t -> Rand.t * t * Block.t
 
 val codec: t Bin.t
+
+type dropset = [ `Nice | `Classic ]
+
+val of_dropset: dropset -> t
