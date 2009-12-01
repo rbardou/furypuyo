@@ -68,22 +68,24 @@ let option_of_bool = function
 
 let connection_screen () =
   Draw.draw_empty ();
-  let host =
-    Menu.input_string
-      ~default: (Config.get server_address)
-      "ENTER SERVER ADDRESS:"
-  in
-  Config.set server_address host;
-  let cx =
-    try
-      Some (Net.connect host (Config.get server_port))
-    with Udp.Network_error (_, s) ->
-      Draw.draw_empty ();
-      Menu.show_message (String.uppercase s);
-      None
-  in
+  let cx = ref None in
   try
-    let cx = match cx with
+    let host =
+      Menu.input_string
+        ~default: (Config.get server_address)
+        ~escape: (fun () -> raise Exit)
+        "ENTER SERVER ADDRESS:"
+    in
+    Config.set server_address host;
+    cx := begin
+      try
+        Some (Net.connect host (Config.get server_port))
+      with Udp.Network_error (_, s) ->
+        Draw.draw_empty ();
+        Menu.show_message (String.uppercase s);
+        None
+    end;
+    let cx = match !cx with
       | Some cx -> cx
       | None -> raise Exit
     in
@@ -94,6 +96,7 @@ let connection_screen () =
     let name =
       Menu.input_string
         ~default: (Config.get player_name)
+        ~escape: (fun () -> raise Exit)
         "ENTER YOUR NAME:"
     in
     Config.set player_name name;
@@ -110,6 +113,7 @@ let connection_screen () =
         Menu.input_string
           ~default: ""
           ~passchar: '*'
+          ~escape: (fun () -> raise Exit)
           "ENTER YOUR PASSWORD:"
       in
       Net.send cx (MyPassword pass);
@@ -135,6 +139,7 @@ let connection_screen () =
               Menu.input_string
                 ~default: ""
                 ~passchar: '*'
+                ~escape: (fun () -> raise Not_found)
                 "ENTER NEW PASSWORD:"
             in
             Draw.draw_empty ();
@@ -142,6 +147,7 @@ let connection_screen () =
               Menu.input_string
                 ~default: ""
                 ~passchar: '*'
+                ~escape: (fun () -> raise Not_found)
                 "CONFIRM NEW PASSWORD:"
             in
             if pass1 = pass2 then begin
@@ -149,8 +155,11 @@ let connection_screen () =
               raise Exit
             end
           done
-        with Exit ->
-          ()
+        with
+          | Exit ->
+              ()
+          | Not_found ->
+              raise Exit
       end;
       Net.send cx (MyPassword !pass);
       Draw.draw_empty ();
@@ -163,7 +172,7 @@ let connection_screen () =
     Some (cx, name)
   with
     | Exit ->
-        begin match cx with
+        begin match !cx with
           | Some cx -> Net.close cx
           | None -> ()
         end;

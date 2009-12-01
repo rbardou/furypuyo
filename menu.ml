@@ -114,6 +114,7 @@ module InputStringAction = struct
   type t =
     | Return
     | BackSpace
+    | Escape
     | Char of char
 end
 module InputStringReader = IO.MakeReader(InputStringAction)
@@ -171,9 +172,10 @@ let () =
   InputStringReader.key_auto 500 50 Sdlkey.KEY_KP_PERIOD (Char '.');
   InputStringReader.key_auto 500 50 Sdlkey.KEY_SPACE (Char ' ');
   InputStringReader.key_auto 500 50 Sdlkey.KEY_BACKSPACE BackSpace;
+  InputStringReader.key_down Sdlkey.KEY_ESCAPE Escape;
   InputStringReader.key_down Sdlkey.KEY_RETURN Return
 
-let input_string ?(default = "") ?passchar query =
+let input_string ?(default = "") ?passchar ?(escape = fun () -> ()) query =
   let result = ref [] in
   for i = 0 to String.length default - 1 do
     result := default.[i] :: !result;
@@ -235,6 +237,8 @@ let input_string ?(default = "") ?passchar query =
                  | _ :: rem -> result := rem
                end;
                update_resultstr ()
+           | Escape ->
+               raise Not_found
            | Return ->
                raise Exit)
         (InputStringReader.read ());
@@ -242,8 +246,12 @@ let input_string ?(default = "") ?passchar query =
       incr now;
     done;
     assert false
-  with Exit ->
-    !resultstr
+  with
+    | Exit ->
+        !resultstr
+    | Not_found ->
+        escape ();
+        !resultstr
 
 open MenuAction
 

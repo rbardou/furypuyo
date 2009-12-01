@@ -35,11 +35,13 @@ val string_choices: ?default: 'a -> (string * 'a) list -> 'a
 
       @param default value to return if the escape key is pressed *)
 
-val input_string: ?default: string -> ?passchar: char -> string -> string
+val input_string: ?default: string -> ?passchar: char ->
+  ?escape: (unit -> unit) -> string -> string
   (** The user inputs a string.
 
       @param default default value
       @param passchar replace characters by this password char (ex: ['*'])
+      @param escape call this function when the user presses the escape key
 
       The other parameter is the input query. *)
 
