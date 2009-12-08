@@ -40,6 +40,7 @@ type kind =
 type t = {
   sequence: kind array;
   position: int;
+  color_probabilities: int list;
 }
 
 let make_two a b =
@@ -79,46 +80,94 @@ let random_in list rand =
 
 let colors = [ Red; Green; Blue; Yellow ]
 
-let random_block rand = function
+let random_in_probs list rand probs =
+  let rec select list probs i =
+    match list, probs with
+      | c :: rc, p :: rp -> if p > i then c else select rc rp (i - p)
+      | _ -> assert false (* impossible *)
+  in
+  let rand, i = Rand.int rand (List.fold_left (+) 0 probs) in
+  rand, select list probs i
+
+let adjust_probs color colors probs =
+  let n = List.length colors - 1 in
+  List.map2
+    (fun c p -> if c = color then p - n else p + 1)
+    colors probs
+
+let min_max_probs probs =
+  List.map (fun p -> max 0 (min 5 p)) probs
+
+let random_color rand probs =
+  let rand, color = random_in_probs colors rand probs in
+  let probs = adjust_probs color colors probs in
+  let probs = min_max_probs probs in
+  rand, probs, color
+
+let random_color_couple_with diff rand probs =
+  let rand, color1 = random_in_probs colors rand probs in
+  let rec filter f a b =
+    match a, b with
+      | x :: ra, y :: rb ->
+          let rem = filter f ra rb in
+          if f x then (x, y) :: rem else rem
+      | _ -> assert false (* impossible *)
+  in
+  let colors2, probs2 =
+    if diff then
+      List.split (filter ((<>) color1) colors probs)
+    else
+      colors, probs
+  in
+  let rand, color2 = random_in_probs colors2 rand probs2 in
+  let probs = adjust_probs color1 colors probs in
+  let probs = adjust_probs color2 colors probs in
+  let probs = min_max_probs probs in
+  rand, probs, color1, color2
+
+let random_color_couple = random_color_couple_with false
+
+let random_different_color_couple = random_color_couple_with true
+
+let random_block rand probs = function
   | Two ->
-      let rand, c1 = random_in colors rand in
-      let rand, c2 = random_in colors rand in
-      rand, make_two c1 c2
+      let rand, probs, c1, c2 = random_color_couple rand probs in
+      rand, probs, make_two c1 c2
   | Three ->
-      let rand, c1 = random_in colors rand in
-      let rand, c2 = random_in colors rand in
+      let rand, probs, c1, c2 = random_color_couple rand probs in
       let rand, b = Rand.bool rand in
-      rand, (if b then make_three1 else make_three2) c1 c2
+      rand, probs, (if b then make_three1 else make_three2) c1 c2
   | Four ->
-      let rand, c1 = random_in colors rand in
-      let rand, c2 = random_in (List.filter ((<>) c1) colors) rand in
-      rand, make_four c1 c2
+      let rand, probs, c1, c2 = random_different_color_couple rand probs in
+      rand, probs, make_four c1 c2
   | Big ->
-      let rand, c1 = random_in colors rand in
-      rand, make_big c1
+      let rand, probs, c1 = random_color rand probs in
+      rand, probs, make_big c1
 
 let next gen rand =
   let pos = gen.position in
   let new_pos = pos + 1 in
   let new_pos = if new_pos >= Array.length gen.sequence then 0 else new_pos in
   let gen = { gen with position = new_pos } in
-  let rand, block = random_block rand gen.sequence.(pos) in
-  rand, gen, block
+  let rand, probs, block =
+    random_block rand gen.color_probabilities gen.sequence.(pos) in
+  rand, { gen with color_probabilities = probs }, block
 
-let classic =
+let make sequence =
   {
-    sequence = [| Two |];
+    sequence = sequence;
     position = 0;
+    color_probabilities = [ 5; 5; 5; 5 ];
   }
 
-let nice =
-  {
-    sequence = [| Two; Two; Two; Three;
-                  Two; Two; Two; Big;
-                  Two; Two; Two; Three;
-                  Two; Two; Two; Four |];
-    position = 0;
-  }
+let classic = make [| Two |]
+
+let nice = make [|
+  Two; Two; Two; Three;
+  Two; Two; Two; Big;
+  Two; Two; Two; Three;
+  Two; Two; Two; Four
+|]
 
 let encode_kind = function
   | Two -> 0
@@ -138,9 +187,9 @@ let codec_kind =
 
 let codec =
   Bin.convert
-    (fun x -> x.sequence, x.position)
-    (fun (s, p) -> { sequence = s; position = p })
-    (Bin.couple (Bin.array codec_kind) Bin.int)
+    (fun x -> x.sequence, x.position, x.color_probabilities)
+    (fun (s, p, c) -> { sequence = s; position = p; color_probabilities = c })
+    (Bin.triple (Bin.array codec_kind) Bin.int (Bin.list Bin.int))
 
 type dropset = [ `Nice | `Classic ]
 

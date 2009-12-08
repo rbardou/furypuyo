@@ -31,7 +31,7 @@
 open Game
 open Puyo
 
-let identifier = Bin.identifier "PUYOREPLAY02"
+let identifier = Bin.identifier "PUYOREPLAY03"
 
 type t = {
   start: Game.game;

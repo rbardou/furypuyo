@@ -8,7 +8,6 @@ General
 * rotation animation
 * replays: control the size of the replay directory somehow, zip replays
 * limit player name size in high scores (and allocate the string only once)
-* less random generator
 * background image(s)
 * sound
 * prevent puyo rotations which allow to go up a two-space high wall
