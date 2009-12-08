@@ -32,18 +32,18 @@ clean:
 distclean dist-clean: clean
 	rm -f *~
 
-dist: furypuyo
+dist: furypuyo server
 	darcs dist -d furypuyo-`./furypuyo -version`
 
-distbin: furypuyo
+distbin: furypuyo server
 	DIR=furypuyo-`./furypuyo -version`-bin; \
 	darcs dist -d $$DIR; \
 	mkdir $$DIR; \
-	cp furypuyo $$DIR; \
+	cp furypuyo furypuyo_srv $$DIR; \
 	gunzip $$DIR.tar.gz; \
-	tar fr $$DIR.tar $$DIR/furypuyo; \
+	tar fr $$DIR.tar $$DIR/furypuyo $$DIR/furypuyo_srv; \
 	gzip $$DIR.tar; \
-	rm $$DIR/furypuyo; \
+	rm $$DIR/furypuyo $$DIR/furypuyo_srv; \
 	rmdir $$DIR
 
 wc:
