@@ -56,7 +56,6 @@ let draw = ref true
 
 (* sandbox configuration *)
 let sandbox_speed = ref `None
-let sandbox_dropset = ref `Nice
 
 let rec single_player_loop game cpu replay: unit =
   let actions = Reader.read () in
@@ -157,7 +156,7 @@ and sandbox speed dropset (): unit =
 and sandbox_menu (): unit =
   Draw.draw_empty ();
   let speed = ref !sandbox_speed in
-  let dropset = ref !sandbox_dropset in
+  let dropset = ref (Config.get player_dropset) in
   let speeds = [| `None; `VerySlow; `Slow; `Normal; `Fast; `VeryFast |] in
   let dropsets = [| `Nice; `Classic |] in
   if Menu.option_menu [
@@ -166,7 +165,7 @@ and sandbox_menu (): unit =
     Menu.next dropset dropsets, print_dropset dropset;
   ] then begin
     sandbox_speed := !speed;
-    sandbox_dropset := !dropset;
+    Config.set player_dropset !dropset;
     sandbox !speed !dropset ()
   end else
     main_menu ()
