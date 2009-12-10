@@ -111,6 +111,8 @@ let random_color_couple_with diff rand probs =
       | x :: ra, y :: rb ->
           let rem = filter f ra rb in
           if f x then (x, y) :: rem else rem
+      | [], [] ->
+          []
       | _ -> assert false (* impossible *)
   in
   let colors2, probs2 =
