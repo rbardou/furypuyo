@@ -73,11 +73,11 @@ Install
 
 Just copy the Fury Puyo executable to your bin directory:
 
-        cp furypuyo /usr/bin
+        cp furypuyo /usr/local/bin
 
 You can also copy the server executable if you want to host games:
 
-        cp furypuyo_srv /usr/bin
+        cp furypuyo_srv /usr/local/bin
 
 Play
 ====
