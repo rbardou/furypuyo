@@ -321,7 +321,8 @@ let start_game players room =
   List.iter (fun p -> p.game <- Some game) game.gplayers;
   destroy_room players room;
   List.iter (fun p -> p.game_over <- false) game.gplayers;
-  List.iter (fun p -> send_to p StartGame) game.gplayers;
+  let rand = Rand.self_init () in
+  List.iter (fun p -> send_to p (StartGame rand)) game.gplayers;
   log "game %d started for room %s (%d)" game.gid room.rname room.rid
 
 let player_ready players c player =

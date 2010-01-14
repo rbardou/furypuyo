@@ -38,7 +38,7 @@ open ToClient
 open Sprites
 open Common
 
-exception GameStarts
+exception GameStarts of Rand.t
 
 let sprite_puyo = IO.Sprite.align sprite_puyo_red IO.Center
 
@@ -434,7 +434,7 @@ and joined_room cx login rname rid =
       List.iter
 	(function
 	   | RoomPlayers l -> players := l
-	   | StartGame -> raise GameStarts
+	   | StartGame r -> raise (GameStarts r)
            | YourHandicap i -> handicap := i
            | YourTeam i -> team := i
 	   | _ -> ())
@@ -445,12 +445,12 @@ and joined_room cx login rname rid =
     | Exit ->
 	Net.send cx LeaveRoom;
 	menu cx login
-    | GameStarts ->
-	multi_player_game cx login !dropset
+    | GameStarts r ->
+	multi_player_game cx login !dropset r
 
-and multi_player_game cx login dropset =
+and multi_player_game cx login dropset rand =
   let game =
-    ref (Game.start_multiplayer ~generator: (Generator.of_dropset dropset) ())
+    ref (Game.start_multiplayer ~generator: (Generator.of_dropset dropset) rand)
   in
   let replay = Replay.record !game in
   IO.timer_start ();

@@ -74,7 +74,7 @@ let frame_delay d =
     fdt := !fdt + delay;
     fdp := !fdp + d;
     if delay > 0 then
-      Sdltimer.delay (d - now + !last_tick)
+      Sdltimer.delay delay
     else
       incr fdb;
     last_tick := !last_tick + d;

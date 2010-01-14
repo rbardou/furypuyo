@@ -149,7 +149,7 @@ module ToClient = struct
     | JoinedRoom of string * int (* room's name, room's identifier *)
     | RoomPlayers of (string * bool * int * int) list
         (* player's name, ready, handicap *)
-    | StartGame
+    | StartGame of Rand.t
     | PrepareGarbage of int * int (* player id, garbage count *)
     | ReadyGarbage of int (* player id *)
     | GameOver of bool (* win? *)
@@ -162,7 +162,7 @@ module ToClient = struct
     | WrongPassword
     | RoomList _
     | JoinedRoom _
-    | StartGame
+    | StartGame _
     | PrepareGarbage _
     | ReadyGarbage _
     | GameOver _
@@ -205,8 +205,9 @@ module ToClient = struct
       | RoomPlayers l ->
 	  wi 6;
 	  w (Bin.list (Bin.quad Bin.string Bin.bool Bin.int Bin.int)) l
-      | StartGame ->
-	  wi 7
+      | StartGame r ->
+	  wi 7;
+          w Rand.codec r
       | PrepareGarbage (i, j) ->
           wi 8;
           wi i;
@@ -246,7 +247,7 @@ module ToClient = struct
       | 6 ->
           RoomPlayers
             (r (Bin.list (Bin.quad Bin.string Bin.bool Bin.int Bin.int)))
-      | 7 -> StartGame
+      | 7 -> StartGame (r Rand.codec)
       | 8 ->
           let i = ri () in
           let j = ri () in

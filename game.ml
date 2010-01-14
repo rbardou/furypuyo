@@ -867,8 +867,12 @@ let think_frame game actions =
   let game = List.fold_left act game actions in
   think game
 
-let start ?(generator = Generator.nice) () =
-  let rand = Rand.self_init () in
+let start ?(generator = Generator.nice) ?rand () =
+  let rand =
+    match rand with
+      | None -> Rand.self_init ()
+      | Some rand -> rand
+  in
   let rand, generator, block1 = Generator.next generator rand in
   let rand, generator, block2 = Generator.next generator rand in
   {
@@ -910,8 +914,8 @@ let start ?(generator = Generator.nice) () =
     gfx = Gfx.empty;
   }
 
-let start_multiplayer ?generator () =
-  let game = start ?generator () in
+let start_multiplayer ?generator rand =
+  let game = start ?generator ~rand () in
   { game with
       speed = {
         game.speed with
