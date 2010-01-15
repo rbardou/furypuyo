@@ -198,3 +198,14 @@ type dropset = [ `Nice | `Classic ]
 let of_dropset = function
   | `Nice -> nice
   | `Classic -> classic
+
+let dropset =
+  Bin.convert
+    (function
+       | `Nice -> 0
+       | `Classic -> 1)
+    (function
+       | 0 -> `Nice
+       | 1 -> `Classic
+       | _ -> failwith "Generator.dropset")
+    Bin.int

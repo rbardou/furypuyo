@@ -33,6 +33,9 @@
 open Printf
 open Unix
 
+module IntMap =
+  Map.Make (struct type t = int let compare = Pervasives.compare end)
+
 let (|>) x f = f x
 
 (** Use [enumerate a b] to get the list of integers from [a] to [b] (included)

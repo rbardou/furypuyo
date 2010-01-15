@@ -28,62 +28,20 @@
 (* OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.   *)
 (**************************************************************************)
 
-open Misc
+(** Handle a list of [Sync.t] *)
 
-type particle_sprite =
-  | GreenStar
-  | YellowStar
-  | RedStar
-  | PurpleStar
+type t
 
-type particle = {
-  sprite: particle_sprite;
-  cx: int;
-  cy: int;
-  mutable x: float;
-  mutable y: float;
-  mutable vx: float;
-  mutable vy: float;
-  ax: float;
-  ay: float;
-}
+val create: Rand.t -> string -> (int * string * Generator.dropset) list -> t
 
-type t =
-  | ClearScreen
-  | Particle of particle
-  | Chain of int * float * float
+val step: t -> t
 
-(* O(1) concatainable lists *)
-type 'a clist =
-  | Empty
-  | Item of 'a
-  | Concat of 'a clist * 'a clist
+val inputs: t -> int -> int -> Action.t list -> t
+  (** [inputs syncs player_id time actions] *)
 
-type set = t clist IntMap.t
+val get: t -> int -> Game.game option
+  (** [get syncs player_id] *)
 
-let empty = IntMap.empty
+val next_player: t -> t
 
-let add set effect ending =
-  let previous = try
-    IntMap.find ending set
-  with Not_found ->
-    Empty
-  in
-  IntMap.add ending (Concat (previous, Item effect)) set
-
-let remove set now =
-  IntMap.remove now set
-
-let rec clist_iter f = function
-  | Empty -> ()
-  | Item x -> f x
-  | Concat (l, r) -> clist_iter f l; clist_iter f r
-
-let iter f = IntMap.iter (fun _ -> clist_iter f)
-
-let rec clist_map f = function
-  | Empty -> Empty
-  | Item x -> Item (f x)
-  | Concat (l, r) -> Concat (clist_map f l, clist_map f r)
-
-let map f = IntMap.map (clist_map f)
+val current_player: t -> Game.game option

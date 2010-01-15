@@ -30,60 +30,52 @@
 
 open Misc
 
-type particle_sprite =
-  | GreenStar
-  | YellowStar
-  | RedStar
-  | PurpleStar
-
-type particle = {
-  sprite: particle_sprite;
-  cx: int;
-  cy: int;
-  mutable x: float;
-  mutable y: float;
-  mutable vx: float;
-  mutable vy: float;
-  ax: float;
-  ay: float;
+type player = {
+  name: string;
+  game: Sync.t;
 }
 
-type t =
-  | ClearScreen
-  | Particle of particle
-  | Chain of int * float * float
+type t = {
+  map: player IntMap.t;
+  pids: int list;
+}
 
-(* O(1) concatainable lists *)
-type 'a clist =
-  | Empty
-  | Item of 'a
-  | Concat of 'a clist * 'a clist
+let start_player rand acc (id, name, dropset) =
+  let player = {
+    name = name;
+    game = Sync.create (Generator.of_dropset dropset) rand;
+  } in
+  IntMap.add id player acc
 
-type set = t clist IntMap.t
+let create rand ignore_login players =
+  let players = List.filter (fun (_, n, _) -> n <> ignore_login) players in
+  { map = List.fold_left (start_player rand) IntMap.empty players;
+    pids = List.map (fun (a, _, _) -> a) players }
 
-let empty = IntMap.empty
+let step m =
+  { m with
+      map = IntMap.map (fun p -> { p with game = Sync.step p.game }) m.map }
 
-let add set effect ending =
-  let previous = try
-    IntMap.find ending set
+let inputs m pid t l =
+  try
+    let p = IntMap.find pid m.map in
+    { m with
+        map = IntMap.add pid { p with game = Sync.inputs p.game t l } m.map }
   with Not_found ->
-    Empty
-  in
-  IntMap.add ending (Concat (previous, Item effect)) set
+    m
 
-let remove set now =
-  IntMap.remove now set
+let get m pid =
+  try
+    Some (Sync.game (IntMap.find pid m.map).game)
+  with Not_found ->
+    None
 
-let rec clist_iter f = function
-  | Empty -> ()
-  | Item x -> f x
-  | Concat (l, r) -> clist_iter f l; clist_iter f r
+let next_player m =
+  match m.pids with
+    | [] -> m
+    | a :: r -> { m with pids = r @ [a] }
 
-let iter f = IntMap.iter (fun _ -> clist_iter f)
-
-let rec clist_map f = function
-  | Empty -> Empty
-  | Item x -> Item (f x)
-  | Concat (l, r) -> Concat (clist_map f l, clist_map f r)
-
-let map f = IntMap.map (clist_map f)
+let current_player m =
+  match m.pids with
+    | [] -> None
+    | a :: _ -> get m a

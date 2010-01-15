@@ -38,7 +38,7 @@ open ToClient
 open Sprites
 open Common
 
-exception GameStarts of Rand.t
+exception GameStarts of Rand.t * (int * string * Generator.dropset) list
 
 let sprite_puyo = IO.Sprite.align sprite_puyo_red IO.Center
 
@@ -338,6 +338,7 @@ and joined_room cx login rname rid =
   let handicap = ref 0 in
   let team = ref 0 in
   let dropset = ref (Config.get player_dropset) in
+  Net.send cx (MyDropset !dropset);
   let cursor_x = 20 in
   let cursor_y = ref (float_of_int dropset_y) in
   let cursor_positions = [| `Dropset; `Team; `Handicap |] in
@@ -408,7 +409,8 @@ and joined_room cx login rname rid =
                      Net.send cx (MyTeam !team)
                  | `Dropset ->
                      Menu.prev dropset dropsets ();
-                     Config.set player_dropset !dropset
+                     Config.set player_dropset !dropset;
+                     Net.send cx (MyDropset !dropset)
                end
            | Right ->
                begin match !cursor_pos with
@@ -422,7 +424,8 @@ and joined_room cx login rname rid =
                      Net.send cx (MyTeam !team)
                  | `Dropset ->
                      Menu.next dropset dropsets ();
-                     Config.set player_dropset !dropset
+                     Config.set player_dropset !dropset;
+                     Net.send cx (MyDropset !dropset)
                end
            | Up ->
                Menu.prev cursor_pos cursor_positions ()
@@ -434,7 +437,7 @@ and joined_room cx login rname rid =
       List.iter
 	(function
 	   | RoomPlayers l -> players := l
-	   | StartGame r -> raise (GameStarts r)
+	   | StartGame (r, pl) -> raise (GameStarts (r, pl))
            | YourHandicap i -> handicap := i
            | YourTeam i -> team := i
 	   | _ -> ())
@@ -445,10 +448,10 @@ and joined_room cx login rname rid =
     | Exit ->
 	Net.send cx LeaveRoom;
 	menu cx login
-    | GameStarts r ->
-	multi_player_game cx login !dropset r
+    | GameStarts (r, pl) ->
+	multi_player_game cx login !dropset r pl
 
-and multi_player_game cx login dropset rand =
+and multi_player_game cx login dropset rand players =
   let game =
     ref (Game.start_multiplayer ~generator: (Generator.of_dropset dropset) rand)
   in
@@ -458,9 +461,11 @@ and multi_player_game cx login dropset rand =
   let won = ref false in
   let quit = ref false in
   let game_over_sent = ref false in
+  let other_players = ref (Syncs.create rand login players) in
   while not (!game_over || !quit) do
     let actions = ref (Reader.read ()) in
-    if IO.frame_delay 10 then Draw.draw !game;
+    if IO.frame_delay 10 then
+      Draw.draw_multiplayer !game (Syncs.current_player !other_players);
 
     iterate_messages
       (function
@@ -472,11 +477,15 @@ and multi_player_game cx login dropset rand =
              game_over := true;
              won := b;
              raise StopMessageIteration
+         | PlayerInputs (pid, t, l) ->
+             other_players := Syncs.inputs !other_players pid t l
          | _ -> ())
       cx;
 
     Replay.frame replay !actions;
+    Net.send cx (MyInputs (!game.now, !actions));
     game := Game.think_frame !game !actions;
+    other_players := Syncs.step !other_players;
 
     (* send garbage *)
     let garbage = !game.garbage_sent in
@@ -492,6 +501,9 @@ and multi_player_game cx login dropset rand =
     (* TODO: pause menu *)
     if List.mem Action.Escape !actions then
       quit := true;
+
+    if List.mem Action.ViewOtherPlayer !actions then
+      other_players := Syncs.next_player !other_players;
 
     if not !game_over_sent && (game_finished !game || !quit) then begin
       Net.send cx (ILose !quit);

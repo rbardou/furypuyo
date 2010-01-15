@@ -45,3 +45,5 @@ val codec: t Bin.t
 type dropset = [ `Nice | `Classic ]
 
 val of_dropset: dropset -> t
+
+val dropset: dropset Bin.t

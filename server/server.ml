@@ -63,6 +63,7 @@ type player = {
   mutable game_over: bool;
   mutable handicap: int;
   mutable team: int;
+  mutable dropset: Generator.dropset;
 }
 
 and room = {
@@ -113,6 +114,7 @@ let decode_player buf =
           game_over = false;
           handicap = 0;
           team = 0;
+          dropset = `Nice;
         }
     | _ -> raise Unknown_file_format
 
@@ -237,6 +239,7 @@ let new_player players name pass =
     game_over = false;
     handicap = 0;
     team = 0;
+    dropset = `Nice;
   } in
   players.next <- players.next + 1;
   Hashtbl.add players.players name player;
@@ -301,6 +304,12 @@ let room_send_players room =
     (fun p -> send_to p m)
     room.rplayers
 
+let game_send_inputs room pid t l =
+  let m = PlayerInputs (pid, t, l) in
+  List.iter
+    (fun p -> if p.pid <> pid then send_to p m)
+    room.gplayers
+
 let player_join_room ?(send_players = true) player room =
   player.room <- Some room;
   player.ready <- false;
@@ -322,7 +331,8 @@ let start_game players room =
   destroy_room players room;
   List.iter (fun p -> p.game_over <- false) game.gplayers;
   let rand = Rand.self_init () in
-  List.iter (fun p -> send_to p (StartGame rand)) game.gplayers;
+  let pl = List.map (fun p -> p.pid, p.name, p.dropset) game.gplayers in
+  List.iter (fun p -> send_to p (StartGame (rand, pl))) game.gplayers;
   log "game %d started for room %s (%d)" game.gid room.rname room.rid
 
 let player_ready players c player =
@@ -529,6 +539,15 @@ let handle_client_message players c m =
               end;
               Net.send c.cx (YourTeam player.team)
           | Some _ -> () (* cheater? *)
+        end
+    | Logged player, MyDropset d ->
+        player.dropset <- d
+    | Logged player, MyInputs (t, l) ->
+        begin match player.game with
+          | None ->
+              ()
+          | Some game ->
+              game_send_inputs game player.pid t l
         end
     | _ ->
         ()

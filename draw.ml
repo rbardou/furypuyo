@@ -77,6 +77,22 @@ let oy3 = offsets_y + offset_scale_y * 4
 let oy2 = offsets_y + offset_scale_y * 5
 let oy1 = offsets_y + offset_scale_y * 6
 
+let general_offset_x = ref 0
+let general_offset_y = ref 0
+let second_x = 390
+let second_y = 0
+
+module Sprite = struct
+  include Sprite
+  let draw a x y = draw a (x + !general_offset_x) (y + !general_offset_y)
+end
+
+module Text = struct
+  include Text
+  let write a ?align x y =
+    write a ?align (x + !general_offset_x) (y + !general_offset_y)
+end
+
 let sprite_of_puyo p =
   match p.color with
     | Red -> sprite_puyo_red
@@ -208,11 +224,25 @@ let draw_ready_set_go now =
   else if now < Game.ready_set_go_delay then
     draw sprite_go
 
-let draw_empty () =
+let draw_empty_1 () =
+  general_offset_x := 0;
+  general_offset_y := 0;
   Sprite.draw background 0 0;
   Sprite.draw foreground 0 0
 
-let draw game =
+let draw_empty_2 () =
+  general_offset_x := second_x;
+  general_offset_y := second_y;
+  Sprite.draw background 0 0;
+  Sprite.draw foreground 0 0
+
+let draw_empty () =
+  draw_empty_1 ();
+  draw_empty_2 ()
+
+let draw_game_at game game_x game_y =
+  general_offset_x := game_x;
+  general_offset_y := game_y;
   let blit = game.now / 2 mod 2 = 0 in
   Sprite.draw background 0 0;
   let y_offset = ref 0 in
@@ -264,3 +294,13 @@ let draw game =
   draw_timer now;
   Gfx.iter gfx game.gfx;
   update ()
+
+let draw game =
+  draw_empty_2 ();
+  draw_game_at game 0 0
+
+let draw_multiplayer game1 game2 =
+  draw_game_at game1 0 0;
+  match game2 with
+    | None -> ()
+    | Some game2 -> draw_game_at game2 second_x second_y

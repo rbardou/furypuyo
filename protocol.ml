@@ -46,23 +46,27 @@ module ToServer = struct
     | ILose of bool (* if true, quit the room also *)
     | MyHandicap of int
     | MyTeam of int
+    | MyDropset of Generator.dropset
+    | MyInputs of int * Action.t list
 
   let channel = function
     | MyName _
     | MyPassword _
     | SendGarbage _
-    | FinishGarbage ->
-        0
-    | MyScore _
-    | GetScores _
-    | GetRoomList
-    | NewRoom
-    | JoinRoom _
-    | LeaveRoom
+    | FinishGarbage
+    | MyInputs _
     | Ready
     | ILose _
     | MyHandicap _
-    | MyTeam _ ->
+    | MyTeam _
+    | MyDropset _
+    | GetRoomList
+    | NewRoom
+    | JoinRoom _
+    | LeaveRoom ->
+        0
+    | MyScore _
+    | GetScores _ ->
         1
 
   let channels =
@@ -112,6 +116,13 @@ module ToServer = struct
       | MyTeam i ->
           wi 13;
           wi i
+      | MyDropset d ->
+          wi 14;
+          w Generator.dropset d
+      | MyInputs (t, l) ->
+          wi 15;
+          wi t;
+          w (Bin.list Action.codec) l
 
   let decode buf =
     let r x = Bin.read buf x in
@@ -133,6 +144,11 @@ module ToServer = struct
       | 11 -> ILose (rb ())
       | 12 -> MyHandicap (ri ())
       | 13 -> MyTeam (ri ())
+      | 14 -> MyDropset (r Generator.dropset)
+      | 15 ->
+          let t = ri () in
+          let l = r (Bin.list Action.codec) in
+          MyInputs (t, l)
       | _ -> failwith "Protocol.ToServer.decode"
 
   let codec =
@@ -149,12 +165,14 @@ module ToClient = struct
     | JoinedRoom of string * int (* room's name, room's identifier *)
     | RoomPlayers of (string * bool * int * int) list
         (* player's name, ready, handicap *)
-    | StartGame of Rand.t
+    | StartGame of Rand.t * (int * string * Generator.dropset) list
+        (* player id, player name, player dropset *)
     | PrepareGarbage of int * int (* player id, garbage count *)
     | ReadyGarbage of int (* player id *)
     | GameOver of bool (* win? *)
     | YourHandicap of int
     | YourTeam of int
+    | PlayerInputs of int * int * Action.t list (* player id, time, actions *)
 
   let channel = function
     | YourNameExists _
@@ -167,7 +185,8 @@ module ToClient = struct
     | ReadyGarbage _
     | GameOver _
     | YourHandicap _
-    | YourTeam _ ->
+    | YourTeam _
+    | PlayerInputs _ ->
         0
     | Score _
     | RoomPlayers _ ->
@@ -205,9 +224,10 @@ module ToClient = struct
       | RoomPlayers l ->
 	  wi 6;
 	  w (Bin.list (Bin.quad Bin.string Bin.bool Bin.int Bin.int)) l
-      | StartGame r ->
+      | StartGame (r, pl) ->
 	  wi 7;
-          w Rand.codec r
+          w Rand.codec r;
+          w (Bin.list (Bin.triple Bin.int Bin.string Generator.dropset)) pl
       | PrepareGarbage (i, j) ->
           wi 8;
           wi i;
@@ -224,6 +244,11 @@ module ToClient = struct
       | YourTeam i ->
           wi 12;
           wi i
+      | PlayerInputs (pid, t, l) ->
+          wi 13;
+          wi pid;
+          wi t;
+          w (Bin.list Action.codec) l
 
   let decode buf =
     let r x = Bin.read buf x in
@@ -247,7 +272,11 @@ module ToClient = struct
       | 6 ->
           RoomPlayers
             (r (Bin.list (Bin.quad Bin.string Bin.bool Bin.int Bin.int)))
-      | 7 -> StartGame (r Rand.codec)
+      | 7 ->
+          let rand = r Rand.codec in
+          let pl =
+            r (Bin.list (Bin.triple Bin.int Bin.string Generator.dropset)) in
+          StartGame (rand, pl)
       | 8 ->
           let i = ri () in
           let j = ri () in
@@ -256,6 +285,11 @@ module ToClient = struct
       | 10 -> GameOver (rb ())
       | 11 -> YourHandicap (ri ())
       | 12 -> YourTeam (ri ())
+      | 13 ->
+          let pid = ri () in
+          let t = ri () in
+          let l = r (Bin.list Action.codec) in
+          PlayerInputs (pid, t, l)
       | _ -> failwith "Protocol.ToClient.decode"
 
   let codec =

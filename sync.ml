@@ -28,10 +28,8 @@
 (* OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.   *)
 (**************************************************************************)
 
+open Misc
 open Game
-
-module IntMap =
-  Map.Make (struct type t = int let compare = Pervasives.compare end)
 
 type t = {
   game: game;
@@ -65,7 +63,7 @@ let one_step g =
     inputs = IntMap.remove now g.inputs }
 
 let step g =
-  let diff = g.game.now - g.safe in
+  let diff = g.safe - g.game.now in
   if diff > 10 then
     one_step (one_step g)
   else if diff > 0 then

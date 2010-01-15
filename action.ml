@@ -43,6 +43,8 @@ type t =
   | SendGarbage of int * int (** player id, garbage count *)
   | FinishGarbage of int (** player id *)
 
+  | ViewOtherPlayer
+
   | Debug
 
 let encode buf v =
@@ -64,6 +66,7 @@ let encode buf v =
     | FinishGarbage i ->
         w Bin.int 10;
         w Bin.int i
+    | ViewOtherPlayer -> w Bin.int 11
 
 let decode buf =
   let r x = Bin.read buf x in
@@ -82,6 +85,7 @@ let decode buf =
         let j = r Bin.int in
         SendGarbage (i, j)
     | 10 -> FinishGarbage (r Bin.int)
+    | 11 -> ViewOtherPlayer
     | _ -> failwith "Action.decode"
 
 let codec = Bin.custom encode decode
