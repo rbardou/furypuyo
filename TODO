@@ -17,8 +17,10 @@ Multiplayer
 
 * pause menu
 * let the winners know they won
-* view other players' field
 * end replays
+* garbages do not seem to be sent before the next puyo of the SENDER falls
+* change garbage rules for games with 3 players or more
+* save other players in replays
 
 Network
 =======

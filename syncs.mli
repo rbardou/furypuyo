@@ -39,9 +39,9 @@ val step: t -> t
 val inputs: t -> int -> int -> Action.t list -> t
   (** [inputs syncs player_id time actions] *)
 
-val get: t -> int -> Game.game option
+val get: t -> int -> (string * Game.game) option
   (** [get syncs player_id] *)
 
 val next_player: t -> t
 
-val current_player: t -> Game.game option
+val current_player: t -> (string * Game.game) option

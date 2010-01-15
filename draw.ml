@@ -240,7 +240,7 @@ let draw_empty () =
   draw_empty_1 ();
   draw_empty_2 ()
 
-let draw_game_at game game_x game_y =
+let draw_game_at ?(name = "") game game_x game_y =
   general_offset_x := game_x;
   general_offset_y := game_y;
   let blit = game.now / 2 mod 2 = 0 in
@@ -280,11 +280,13 @@ let draw_game_at game game_x game_y =
   in
   draw_garbage garbage_count;
   Text.write font score_x score_y (string_of_int game.score);
-  begin match game.state with
-    | Popping ps ->
+  begin match name, game.state with
+    | "", Popping ps ->
         Text.write font ~align: score_plus_align score_plus_x score_plus_y
           (Printf.sprintf "+ %d x %d" ps.pop_score_base ps.pop_score_mult);
-    | _ -> ()
+    | _ ->
+        Text.write font ~align: score_plus_align score_plus_x score_plus_y
+          (String.uppercase name)
   end;
   let now = match game.state with
     | GameOver s -> s.go_end
@@ -303,4 +305,5 @@ let draw_multiplayer game1 game2 =
   draw_game_at game1 0 0;
   match game2 with
     | None -> ()
-    | Some game2 -> draw_game_at game2 second_x second_y
+    | Some (name, game2) ->
+        draw_game_at ~name game2 second_x second_y

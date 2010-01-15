@@ -66,7 +66,8 @@ let inputs m pid t l =
 
 let get m pid =
   try
-    Some (Sync.game (IntMap.find pid m.map).game)
+    let p = IntMap.find pid m.map in
+    Some (p.name, Sync.game p.game)
   with Not_found ->
     None
 
