@@ -47,6 +47,7 @@ let () =
   Reader.key_down Sdlkey.KEY_d Action.Debug;
   Reader.key_down Sdlkey.KEY_DOWN Action.MDown;
   Reader.key_up Sdlkey.KEY_DOWN Action.MDownRelease;
+  Reader.key_down Sdlkey.KEY_TAB Action.ViewOtherPlayer;
   IO.on_quit on_quit
 
 let high_scores_file = "single_player.scores"
