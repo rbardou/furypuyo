@@ -101,6 +101,9 @@ let player_dropset =
     "Player dropset (classic or single)"
     `Nice
 
+let alpha =
+  Config.bool config "ALPHA" "Enable sprite transparency" true
+
 module MenuAction = struct
   type t = Up | Down | Return | Escape | Left | Right | PageUp | PageDown
 end

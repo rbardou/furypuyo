@@ -38,7 +38,11 @@ let screen_height = 600
 
 let () = IO.init screen_width screen_height
 
-let load_alpha = Sprite.load ~transparency: `ALPHA
+let load_alpha =
+  if Config.get alpha then
+    Sprite.load ~transparency: `ALPHA
+  else
+    Sprite.load ~transparency: `BLACK
 let load_black = Sprite.load ~transparency: `BLACK
 
 let file =
