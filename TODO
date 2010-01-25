@@ -11,6 +11,7 @@ General
 * background image(s)
 * sound
 * prevent puyo rotations which allow to go up a two-space high wall
+* tutorials
 
 Multiplayer
 ===========
@@ -21,6 +22,7 @@ Multiplayer
 * garbages do not seem to be sent before the next puyo of the SENDER falls
 * change garbage rules for games with 3 players or more
 * save other players in replays
+* server should check the version of the protocol of the client
 
 Network
 =======
@@ -35,6 +37,9 @@ Network
 * use TCP for important ordered channels
 * replace Bin with a more general setting
 * do not crash if a message cannot be read
+* catch unix errors
+* on bad quality connections (e.g. wifi), unix error on send_to or connection
+loss may happen after some time
 
 Other
 =====

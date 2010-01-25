@@ -1,0 +1,60 @@
+This file is only intended for developpers as a reminder of how to
+make a release.
+
+* Check that all text files are LICENSEd.
+
+grep -L Copyright `darcs query manifest` | grep -v .png | grep -v .xcf         
+
+Don't bother adding the LICENSE to very small files or files for which
+licensing does not really make sense. For instance, the following
+files are ok:
+
+./HOWTO-dist.txt
+./TODO
+./_tags
+./furypuyo.odocl
+./myocamlbuild.ml
+./net/Makefile
+./net/_tags
+./net/idea.txt
+./net/network.mllib
+./net/network.odocl
+./server/Makefile
+./server/_tags
+./version.ml
+./net/test1/Makefile
+./net/test2/Makefile
+
+* Check the README.
+
+* Check that there is no new, unrecorded file.
+
+darcs whatsnew -ls
+
+* Open version.ml and update the version number. Usually this means:
+  remove the "dev" suffix.
+
+* Make the .tar.gz and check that it compiles and executes.
+
+make dist
+tar xf (the newly created archive)
+cd (the newly created directory)
+make
+./furypuyo
+cd ..
+rm -rf (the newly created directory)
+
+This should also be done with no ~/.furypuyo directory.
+
+* Check the list of changes and prepare a summary.
+
+darcs changes --from-tag x.y
+
+* TAG the version.
+
+darcs tag x.y
+
+* Create a new version on the forge with the summary of changes, and
+  upload the .tar.gz to the OCaml Forge.
+
+* Anounce the new version with the summary of changes.
