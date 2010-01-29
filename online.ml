@@ -457,6 +457,7 @@ and multi_player_game cx login dropset rand players =
   in
   let replay = Replay.record !game in
   IO.timer_start ();
+  Reader.reset ();
   let game_over = ref false in
   let won = ref false in
   let quit = ref false in

@@ -146,12 +146,14 @@ and single_player_game (): unit =
   let replay = Replay.record game in
   let cpu = Cpu.start in
   IO.timer_start ();
+  Reader.reset ();
   single_player_loop game cpu replay
 
 and sandbox speed dropset (): unit =
   let generator = Generator.of_dropset dropset in
   let game = Game.start_sandbox ~generator speed () in
   IO.timer_start ();
+  Reader.reset ();
   sandbox_loop game
 
 and sandbox_menu (): unit =
@@ -174,6 +176,7 @@ and sandbox_menu (): unit =
 and replay r: unit =
   Replay.play r;
   IO.timer_start ();
+  Reader.reset ();
   replay_loop r
 
 and replay_file file: unit =
