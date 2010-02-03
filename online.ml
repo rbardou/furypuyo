@@ -340,9 +340,9 @@ and joined_room cx login rname rid =
   let dropset = ref (Config.get player_dropset) in
   Net.send cx (MyDropset !dropset);
   let cursor_x = 20 in
-  let cursor_y = ref (float_of_int dropset_y) in
+  let cursor_y = ref (float_of_int handicap_y) in
   let cursor_positions = [| `Dropset; `Team; `Handicap |] in
-  let cursor_pos = ref `Dropset in
+  let cursor_pos = ref `Handicap in
   let time = ref 0 in
   try
     while true do
