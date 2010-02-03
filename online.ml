@@ -343,8 +343,11 @@ and joined_room cx login rname rid =
   let cursor_y = ref (float_of_int dropset_y) in
   let cursor_positions = [| `Dropset; `Team; `Handicap |] in
   let cursor_pos = ref `Dropset in
+  let time = ref 0 in
   try
     while true do
+      incr time;
+
       if IO.frame_delay 10 then begin
 	IO.Sprite.draw background 0 0;
 	IO.Text.write font ~align: IO.Top title_x title_y rname;
@@ -393,46 +396,49 @@ and joined_room cx login rname rid =
       let d = float_of_int d in
       cursor_y := !cursor_y +. (d -. !cursor_y) /. 10.;
 
-      List.iter
-	(function
-           | Escape -> raise Exit
-	   | Return -> Net.send cx Ready
-           | Left ->
-               begin match !cursor_pos with
-                 | `Handicap ->
-                     decr handicap;
-                     if !handicap < 0 then handicap := 0;
-                     Net.send cx (MyHandicap !handicap)
-                 | `Team ->
-                     decr team;
-                     if !team < 0 then team := 0;
-                     Net.send cx (MyTeam !team)
-                 | `Dropset ->
-                     Menu.prev dropset dropsets ();
-                     Config.set player_dropset !dropset;
-                     Net.send cx (MyDropset !dropset)
-               end
-           | Right ->
-               begin match !cursor_pos with
-                 | `Handicap ->
-                     incr handicap;
-                     if !handicap > 20 then handicap := 20;
-                     Net.send cx (MyHandicap !handicap)
-                 | `Team ->
-                     incr team;
-                     if !team > 9 then team := 9;
-                     Net.send cx (MyTeam !team)
-                 | `Dropset ->
-                     Menu.next dropset dropsets ();
-                     Config.set player_dropset !dropset;
-                     Net.send cx (MyDropset !dropset)
-               end
-           | Up ->
-               Menu.prev cursor_pos cursor_positions ()
-           | Down ->
-               Menu.next cursor_pos cursor_positions ()
-           | _ -> ())
-	(MenuReader.read ());
+      if !time >= 50 then
+        List.iter
+	  (function
+             | Escape -> raise Exit
+	     | Return -> Net.send cx Ready
+             | Left ->
+                 begin match !cursor_pos with
+                   | `Handicap ->
+                       decr handicap;
+                       if !handicap < 0 then handicap := 0;
+                       Net.send cx (MyHandicap !handicap)
+                   | `Team ->
+                       decr team;
+                       if !team < 0 then team := 0;
+                       Net.send cx (MyTeam !team)
+                   | `Dropset ->
+                       Menu.prev dropset dropsets ();
+                       Config.set player_dropset !dropset;
+                       Net.send cx (MyDropset !dropset)
+                 end
+             | Right ->
+                 begin match !cursor_pos with
+                   | `Handicap ->
+                       incr handicap;
+                       if !handicap > 20 then handicap := 20;
+                       Net.send cx (MyHandicap !handicap)
+                   | `Team ->
+                       incr team;
+                       if !team > 9 then team := 9;
+                       Net.send cx (MyTeam !team)
+                   | `Dropset ->
+                       Menu.next dropset dropsets ();
+                       Config.set player_dropset !dropset;
+                       Net.send cx (MyDropset !dropset)
+                 end
+             | Up ->
+                 Menu.prev cursor_pos cursor_positions ()
+             | Down ->
+                 Menu.next cursor_pos cursor_positions ()
+             | _ -> ())
+	  (MenuReader.read ())
+      else
+        ignore (MenuReader.read ());
 
       List.iter
 	(function
