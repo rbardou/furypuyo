@@ -117,6 +117,11 @@ let char_sprite font size width char =
       | '.' -> "dot"
       | '*' -> "star"
       | 'x' -> "x"
+      | '\'' -> "quote"
+      | '(' -> "lpar"
+      | ')' -> "rpar"
+      | '%' -> "percent"
+      | ',' -> "comma"
       | _ -> raise Not_found
     in
     let file = Printf.sprintf "%s_%d_%s.png" font size char in
