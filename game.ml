@@ -161,9 +161,10 @@ type game = {
   garbage_ready: int;
     (** garbage ready to fall *)
   garbage_sent: int;
-    (** used by online games *)
+    (** used by online games to count how much garbage should be sent
+        to other players once [garbage_finished] is [true] *)
   garbage_finished: bool;
-    (** used by online games *)
+    (** see above *)
   garbage_protection: bool;
   garbage_position: int;
   offsets: int;

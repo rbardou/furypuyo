@@ -137,7 +137,7 @@ let draw_falling game fs =
   in
   List.iter (fun (x, y, p) -> draw_puyo p x y) fs.f_puyos
 
-let draw_garbage count =
+let actually_draw_garbage count =
   let c720 = count / 720 in
   let count = count mod 720 in
   let c360 = count / 360 in
@@ -167,6 +167,14 @@ let draw_garbage count =
 	  go (x + 1) ((n - 1, sprite) :: rem)
   in
   go 0 list
+
+let draw_garbage game blit =
+  let count =
+    List.fold_left (fun a (_, g) -> a + g) 0 game.garbage_incoming
+    + game.garbage_ready
+  in
+  if game.garbage_ready <= 0 || blit then
+    actually_draw_garbage count
 
 let draw_offsets n fury blit =
   let draw m x y =
@@ -274,11 +282,7 @@ let draw_game_at ?(name = "") game game_x game_y =
   end;
   draw_offsets game.offsets (game.fury <> FNone) blit;
   Sprite.draw foreground 0 0;
-  let garbage_count =
-    List.fold_left (fun a (_, g) -> a + g) 0 game.garbage_incoming
-    + game.garbage_ready
-  in
-  draw_garbage garbage_count;
+  draw_garbage game blit;
   Text.write font score_x score_y (string_of_int game.score);
   begin match name, game.state with
     | "", Popping ps ->
