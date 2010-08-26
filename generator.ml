@@ -39,7 +39,8 @@ type kind =
 
 type color_generator =
   | CGFury of int list (* color probabilities *)
-  | CGTGM of Puyo.color list (* last viewed colors *)
+  | CGTGM of (Puyo.color list * int)
+      (* last viewed colors, generated color count (capped at 4) *)
 
 type t = {
   sequence: kind array;
@@ -132,18 +133,30 @@ let fury_random_color_couple_with diff rand probs =
   let probs = min_max_probs probs in
   rand, probs, (color1, color2)
 
-let add_to_tgm_history color history =
-  if List.length history >= tgm_history_size then
-    match List.rev history with
-      | [] -> assert false (* impossible *)
-      | _ :: rem -> color :: List.rev rem
-  else
-    color :: history
+let add_to_tgm_history color (history, gencount) =
+  let history =
+    if List.length history >= tgm_history_size then
+      match List.rev history with
+        | [] -> assert false (* impossible *)
+        | _ :: rem -> color :: List.rev rem
+    else
+      color :: history
+  in
+  history, min 4 (gencount + 1)
 
 let tgm_random_color ?(colors = colors) rand history =
+  let recent_colors, gen_count = history in
+  let colors =
+    if gen_count < 4 then
+      match colors with
+        | [] | [_] | [_; _] | [_; _; _] -> colors
+        | a :: b :: c :: _ -> [a; b; c]
+    else
+      colors
+  in
   let rand, color = random_in colors rand in
   let rand, color =
-    if List.mem color history then
+    if List.mem color recent_colors then
       random_in colors rand
     else
       rand, color
@@ -212,7 +225,7 @@ let make sequence color_generator_kind =
     color_generator =
       match color_generator_kind with
         | `Fury -> CGFury [ 5; 5; 5; 5 ]
-        | `TGM -> CGTGM []
+        | `TGM -> CGTGM ([], 0)
   }
 
 let classic = make [| Two |] `TGM
@@ -240,18 +253,21 @@ let decode_kind = function
 let codec_kind =
   Bin.convert encode_kind decode_kind Bin.int
 
+let codec_history =
+  Bin.couple (Bin.list Puyo.codec_color) Bin.int
+
 let encode_color_generator ch = function
   | CGFury probs ->
       Bin.write ch Bin.int 0;
       Bin.write ch (Bin.list Bin.int) probs
   | CGTGM history ->
       Bin.write ch Bin.int 1;
-      Bin.write ch (Bin.list Puyo.codec_color) history
+      Bin.write ch codec_history history
 
 let decode_color_generator ch =
   match Bin.read ch Bin.int with
     | 0 -> CGFury (Bin.read ch (Bin.list Bin.int))
-    | 1 -> CGTGM (Bin.read ch (Bin.list Puyo.codec_color))
+    | 1 -> CGTGM (Bin.read ch codec_history)
     | _ -> failwith "Generator.decode_color_generator"
 
 let codec_color_generator =
