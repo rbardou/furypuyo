@@ -104,6 +104,23 @@ let player_dropset =
 let alpha =
   Config.bool config "ALPHA" "Enable sprite transparency" true
 
+(*
+let default_color_generator =
+  Config.custom
+    (fun s ->
+       match String.uppercase s with
+         | "FURY" -> Some `Fury
+         | "TGM" -> Some `TGM
+         | _ -> None)
+    (function
+       | `Fury -> "FURY"
+       | `TGM -> "TGM")
+    config
+    "COLORGENERATOR"
+    "Color generator (FURY: flat with lots of unicolors, TGM: default)"
+    `TGM
+*)
+
 module MenuAction = struct
   type t = Up | Down | Return | Escape | Left | Right | PageUp | PageDown
 end
