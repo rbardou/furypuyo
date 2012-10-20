@@ -56,6 +56,7 @@ let incoming_blocks_origin_y = smooth_factor
 
 let initial_move_key_repeat_delay = 10
 let move_key_repeat_delay = 3
+let score_per_garbage = 70 (* Puyo Tsu Rule. Old FuryPuyo value is 120. *)
 
 let unsmooth_y y =
   y / smooth_factor + (if y mod smooth_factor = 0 then 0 else 1)
@@ -413,6 +414,8 @@ let extract_falling_puyos field =
   in
   col [] (Matrix.width field - 1) field
 
+(*
+(* Old FuryPuyo rules *)
 let chain_mult game chain =
   match chain with
     | 1 -> -2
@@ -449,7 +452,78 @@ let start_popping game puyos groups =
   { game with
       state = Popping ps;
       chain = game.chain + 1;
-      garbage_protection = true }
+      garbage_protection = true } (* TODO: what is that last line? *)
+*)
+
+(* Puyo Puyo Tsu rules. *)
+let chain_power chain =
+  match chain with
+    | 1 -> 0
+    | 2 -> 8
+    | 3 -> 16
+    | 4 -> 32
+    | 5 -> 64
+    | 6 -> 96
+    | 7 -> 128
+    | 8 -> 160
+    | 9 -> 192
+    | 10 -> 224
+    | 11 -> 256
+    | 12 -> 288
+    | 13 -> 320
+    | 14 -> 352
+    | 15 -> 384
+    | 16 -> 416
+    | 17 -> 448
+    | 18 -> 480
+    | _ -> 512
+
+(* Puyo Puyo Tsu rules. *)
+let color_bonus color_count =
+  match color_count with
+    | 1 -> 0
+    | 2 -> 3
+    | 3 -> 6
+    | _ -> 12
+
+(* Puyo Puyo Tsu rules. *)
+let group_bonus puyo_count =
+  match puyo_count with
+    | 4 -> 0
+    | 5 -> 2
+    | 6 -> 3
+    | 7 -> 4
+    | 8 -> 5
+    | 9 -> 6
+    | 10 -> 7
+    | _ -> 10
+
+let start_popping game puyos groups =
+  let puyo_cleared =
+    List.fold_left (+) 0 groups
+  in
+  let chain_power = chain_power game.chain in
+  let color_bonus =
+    color_bonus (List.length groups) (* TODO: count the actual colors *)
+  in
+  let group_bonus =
+    List.fold_left (+) 0 (List.map group_bonus groups)
+  in
+  let score_base = 10 * puyo_cleared in
+  let score_mult =
+    max 1 (min 999 (chain_power + color_bonus + group_bonus))
+  in
+  let ps = {
+    pop_end = game.now + pop_delay game;
+    pop_puyos = puyos;
+    pop_score_base = score_base;
+    pop_score_mult = score_mult;
+    pop_chain = game.chain;
+  } in
+  { game with
+      state = Popping ps;
+      chain = game.chain + 1;
+      garbage_protection = true } (* TODO: what is that last line? *)
 
 let erase_no_puyo_lines f =
   List.fold_left
@@ -722,7 +796,7 @@ let think_popping game ps =
     in
     let gfx = gfx_pop game gfx ps.pop_puyos add_score in
     let gfx = gfx_chain game gfx ps.pop_chain ps.pop_puyos in
-    let garbage = ceil_div add_score 120 in
+    let garbage = ceil_div add_score score_per_garbage in
     let garbage = apply_garbage_acceleration game garbage in
     let garbage, garbage_ready =
       if game.garbage_ready >= garbage then 0, game.garbage_ready - garbage

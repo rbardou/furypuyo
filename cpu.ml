@@ -70,7 +70,8 @@ let finish game cpu =
 let send_link game cpu =
   let chain = cpu.chain + 1 in
   let cpu = { cpu with chain = chain } in
-  let garb = ceil_div (40 * (chain_mult game chain + 4)) 120 in
+(*  let garb = ceil_div (40 * (chain_mult game chain + 4)) 120 in*)
+  let garb = ceil_div (40 * (chain_power chain + 4)) score_per_garbage in
   if chain >= cpu.level then
     [ Action.SendGarbage (cpuid, garb);
       Action.FinishGarbage cpuid ], finish game cpu
