@@ -179,7 +179,8 @@ type game = {
       If -1, key is currently released.
       If 0, key was just downed and not taken into account.
       If more, last time key was downed - not changed until released.
-      If negative, the absolute is to be taken, and last time was initial. *)
+      If negative, the absolute minus one is the actual value,
+      and last time was initial. *)
   left_last_press: int;
   right_last_press: int;
 }
@@ -575,9 +576,9 @@ let may_press now last =
   if last = -1 then
     None (* key is not pressed *)
   else if last = 0 then
-    Some (-now) (* first press *)
+    Some (-now-1) (* first press *)
   else if last < 0 then
-    if now + last > initial_move_key_repeat_delay then
+    if now + last + 1 > initial_move_key_repeat_delay then
       Some now
     else
       None
