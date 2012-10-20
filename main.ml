@@ -36,8 +36,10 @@ open Common
 let () =
   Sdlwm.set_caption ~title: "Fury Puyo" ~icon: "Fury Puyo";
   Reader.key_down Sdlkey.KEY_ESCAPE Action.Escape;
-  Reader.key_auto 100 30 Sdlkey.KEY_LEFT Action.MLeft;
-  Reader.key_auto 100 30 Sdlkey.KEY_RIGHT Action.MRight;
+  Reader.key_down Sdlkey.KEY_LEFT Action.MLeft;
+  Reader.key_down Sdlkey.KEY_RIGHT Action.MRight;
+  Reader.key_up Sdlkey.KEY_LEFT Action.MLeftRelease;
+  Reader.key_up Sdlkey.KEY_RIGHT Action.MRightRelease;
   Reader.key_down Sdlkey.KEY_UP Action.RRight;
   Reader.key_down Sdlkey.KEY_RCTRL Action.RLeft;
   Reader.key_down Sdlkey.KEY_LCTRL Action.RLeft;

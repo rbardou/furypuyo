@@ -31,7 +31,7 @@
 open Game
 open Puyo
 
-let identifier = Bin.identifier "PUYOREPLAY04"
+let identifier = Bin.identifier "PUYOREPLAY05"
 
 type t = {
   start: Game.game;
@@ -271,7 +271,9 @@ let encode_game buf game =
   w Bin.bool game.garbage_protection;
   w Bin.int game.garbage_position;
   w Bin.int game.offsets;
-  w codec_fury_state game.fury
+  w codec_fury_state game.fury;
+  w Bin.int game.left_last_press;
+  w Bin.int game.right_last_press
   (* do not save Gfx *)
 
 let decode_game buf =
@@ -291,6 +293,8 @@ let decode_game buf =
   let garbage_position = r Bin.int in
   let offsets = r Bin.int in
   let fury = r codec_fury_state in
+  let left_last_press = r Bin.int in
+  let right_last_press = r Bin.int in
   {
     now = now;
     field = field;
@@ -310,6 +314,8 @@ let decode_game buf =
     offsets = offsets;
     fury = fury;
     gfx = Gfx.empty;
+    left_last_press = left_last_press;
+    right_last_press = right_last_press;
   }
 
 let codec_game =

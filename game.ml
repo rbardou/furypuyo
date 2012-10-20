@@ -54,6 +54,9 @@ let smooth_factor = 1024
 let incoming_blocks_origin_x = 2
 let incoming_blocks_origin_y = smooth_factor
 
+let initial_move_key_repeat_delay = 10
+let move_key_repeat_delay = 3
+
 let unsmooth_y y =
   y / smooth_factor + (if y mod smooth_factor = 0 then 0 else 1)
 
@@ -170,6 +173,14 @@ type game = {
   offsets: int;
   fury: fury_state;
   gfx: Gfx.set;
+
+  (** Last presses:
+      If -1, key is currently released.
+      If 0, key was just downed and not taken into account.
+      If more, last time key was downed - not changed until released.
+      If negative, the absolute is to be taken, and last time was initial. *)
+  left_last_press: int;
+  right_last_press: int;
 }
 
 let garbage_protection game =
@@ -486,12 +497,52 @@ let fall game is speed =
     } in
     { game with state = Incoming is }
 
+let may_press now last =
+  if last = -1 then
+    None (* key is not pressed *)
+  else if last = 0 then
+    Some (-now) (* first press *)
+  else if last < 0 then
+    if now + last > initial_move_key_repeat_delay then
+      Some now
+    else
+      None
+  else
+    if now - last > move_key_repeat_delay then
+      Some now
+    else
+      None
+
+let move game is delta =
+  let new_x = is.inc_x + delta in
+  let real_y = unsmooth_y is.inc_y in
+  if Block.collision is.inc_block new_x real_y game.field then
+    None
+  else
+    Some { is with inc_x = new_x }
+
 let think_incoming game is =
   let speed =
     if is.inc_fast_fall then
       game.speed.sp_fall_fast
     else
       game.speed.sp_fall
+  in
+  let game, is =
+    match may_press game.now game.left_last_press with
+      | None -> game, is
+      | Some time ->
+          match move game is (-1) with
+            | None -> game, is
+            | Some is -> { game with left_last_press = time }, is
+  in
+  let game, is =
+    match may_press game.now game.right_last_press with
+      | None -> game, is
+      | Some time ->
+          match move game is 1 with
+            | None -> game, is
+            | Some is -> { game with right_last_press = time }, is
   in
   fall game is speed
 
@@ -703,15 +754,6 @@ let think_game_over game gos =
   else
     game
 
-let move game is delta =
-  let new_x = is.inc_x + delta in
-  let real_y = unsmooth_y is.inc_y in
-  if Block.collision is.inc_block new_x real_y game.field then
-    game
-  else
-    let is = { is with inc_x = new_x } in
-    { game with state = Incoming is }
-
 let rotate rotate_fun game is =
   try
     let b = is.inc_block and x = is.inc_x and y = is.inc_y in
@@ -772,8 +814,6 @@ let debug game =
   game
 
 let act_incoming game is = function
-  | MLeft -> move game is (-1)
-  | MRight -> move game is 1
   | MDown ->
       let is = { is with inc_fast_fall = true } in
       { game with state = Incoming is }
@@ -802,6 +842,14 @@ let act game input =
         { game with
             garbage_incoming = a @ b;
             garbage_ready = game.garbage_ready + g }
+    | MLeft ->
+        { game with left_last_press = 0 }
+    | MRight ->
+        { game with right_last_press = 0 }
+    | MLeftRelease ->
+        { game with left_last_press = -1 }
+    | MRightRelease ->
+        { game with right_last_press = -1 }
     | _ ->
         match game.state with
           | Starting _
@@ -913,6 +961,9 @@ let start ?(generator = Generator.nice) ?rand () =
     offsets = 0;
     fury = FNone;
     gfx = Gfx.empty;
+
+    left_last_press = -1;
+    right_last_press = -1;
   }
 
 let start_multiplayer ?generator rand =

@@ -34,6 +34,8 @@ type t =
   | Escape (** escape key (pause menu) *)
   | MLeft
   | MRight
+  | MLeftRelease
+  | MRightRelease
   | MDown
   | MDownRelease
   | RLeft
@@ -67,6 +69,8 @@ let encode buf v =
         w Bin.int 10;
         w Bin.int i
     | ViewOtherPlayer -> w Bin.int 11
+    | MLeftRelease -> w Bin.int 12
+    | MRightRelease -> w Bin.int 13
 
 let decode buf =
   let r x = Bin.read buf x in
@@ -86,6 +90,8 @@ let decode buf =
         SendGarbage (i, j)
     | 10 -> FinishGarbage (r Bin.int)
     | 11 -> ViewOtherPlayer
+    | 12 -> MLeftRelease
+    | 13 -> MRightRelease
     | _ -> failwith "Action.decode"
 
 let codec = Bin.custom encode decode
