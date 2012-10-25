@@ -129,6 +129,20 @@ let draw_incoming game is =
   let y = field_puyo_y 0 + cellh * is.inc_y / Game.smooth_factor in
   draw_block is.inc_block x y
 
+let draw_inserting game is =
+  let anim_pos =
+    float_of_int (is.ins_end - game.now)
+    /. float_of_int game.speed.sp_insert_delay
+  in
+  let shift =
+    int_of_float
+      (float_of_int cellh *. 0.5
+       *. anim_pos *. (anim_pos -. 1.) *. (anim_pos -. 5.))
+  in
+  let x = field_puyo_x is.ins_x in
+  let y = field_puyo_y is.ins_y + shift in
+  draw_block is.ins_block x y
+
 let draw_falling game fs =
   let draw_puyo p x y =
     draw_puyo p
@@ -256,6 +270,7 @@ let draw_game_at ?(name = "") game game_x game_y =
   let y_offset = ref 0 in
   begin match game.state with
     | Incoming is -> draw_incoming game is
+    | Inserting is -> draw_inserting game is
     | Falling fs -> draw_falling game fs
     | GameOver gos -> y_offset := gos.go_y
     | _ -> ()

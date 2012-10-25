@@ -89,7 +89,10 @@ let encode_game_state buf s =
         w Bin.bool s.inc_fast_fall
     | Inserting s ->
         w Bin.int 2;
-        w Bin.int s.ins_end
+        w Bin.int s.ins_end;
+        w Block.codec s.ins_block;
+        w Bin.int s.ins_x;
+        w Bin.int s.ins_y
     | Falling s ->
         w Bin.int 3;
         w (Bin.list (Bin.triple Bin.int Bin.int Puyo.codec)) s.f_puyos;
@@ -133,8 +136,14 @@ let decode_game_state buf =
         }
     | 2 ->
         let ins_end = r Bin.int in
+        let ins_block = r Block.codec in
+        let ins_x = r Bin.int in
+        let ins_y = r Bin.int in
         Inserting {
           ins_end = ins_end;
+          ins_block = ins_block;
+          ins_x = ins_x;
+          ins_y = ins_y;
         }
     | 3 ->
         let puyos = r (Bin.list (Bin.triple Bin.int Bin.int Puyo.codec)) in

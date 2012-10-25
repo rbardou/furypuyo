@@ -74,6 +74,9 @@ type incoming_state = {
 
 type inserting_state = {
   ins_end: int;
+  ins_block: Block.t;
+  ins_x: int; (** cells *)
+  ins_y: int; (** cells *)
 }
 
 type falling_state = {
@@ -386,13 +389,13 @@ let start_incoming game =
         garbage_finished = true }
 
 let start_inserting game block x y =
-  let new_field = Block.insert block x y game.field in
   let is = {
     ins_end = game.now + game.speed.sp_insert_delay;
+    ins_block = block;
+    ins_x = x;
+    ins_y = y;
   } in
-  { game with
-      state = Inserting is;
-      field = new_field }
+  { game with state = Inserting is }
 
 (** return puyos from top to bottom *)
 let extract_falling_puyos field =
@@ -622,8 +625,14 @@ let think_incoming game is =
   fall game is speed
 
 let think_inserting game is =
-  if game.now >= is.ins_end then check_and_start_chain game
-  else game
+  if game.now >= is.ins_end then
+    begin
+      let new_field = Block.insert is.ins_block is.ins_x is.ins_y game.field in
+      let game = { game with field = new_field } in
+      check_and_start_chain game
+    end
+  else
+    game
 
 let think_falling game fs =
   let rec fall_puyos field puyos = function
