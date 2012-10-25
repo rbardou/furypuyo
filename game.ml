@@ -560,7 +560,10 @@ let fall game is speed =
   let final_y, new_insert_time =
     if Block.collision is.inc_block is.inc_x real_new_y game.field then
       let final_y = smooth_y (real_new_y - 1) in
-      final_y, is.inc_insert_time - (new_y - final_y)
+      if game.fast_fall then
+        final_y, 0
+      else
+        final_y, is.inc_insert_time - (new_y - final_y)
     else
       new_y, is.inc_insert_time
   in
