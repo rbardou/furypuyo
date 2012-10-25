@@ -69,7 +69,6 @@ type incoming_state = {
   inc_x: int; (** cells *)
   inc_y: int; (** cells, multiplied by [smooth_factor] *)
   inc_insert_time: int;
-  inc_fast_fall: bool;
 }
 
 type inserting_state = {
@@ -186,6 +185,7 @@ type game = {
       and last time was initial. *)
   left_last_press: int;
   right_last_press: int;
+  fast_fall: bool;
 }
 
 let garbage_protection game =
@@ -377,7 +377,6 @@ let start_incoming game =
       inc_x = incoming_blocks_origin_x;
       inc_y = incoming_blocks_origin_y;
       inc_insert_time = game.speed.sp_fall_absorb;
-      inc_fast_fall = false;
     } in
     { game with
         chain = 1;
@@ -601,7 +600,7 @@ let move game is delta =
 
 let think_incoming game is =
   let speed =
-    if is.inc_fast_fall then
+    if game.fast_fall then
       game.speed.sp_fall_fast
     else
       game.speed.sp_fall
@@ -898,12 +897,6 @@ let debug game =
   game
 
 let act_incoming game is = function
-  | MDown ->
-      let is = { is with inc_fast_fall = true } in
-      { game with state = Incoming is }
-  | MDownRelease ->
-      let is = { is with inc_fast_fall = false } in
-      { game with state = Incoming is }
   | RLeft -> rotate Block.rotate_left game is
   | RRight -> rotate Block.rotate_right game is
   | InstaFall -> insta_fall game is
@@ -926,6 +919,10 @@ let act game input =
         { game with
             garbage_incoming = a @ b;
             garbage_ready = game.garbage_ready + g }
+    | MDown ->
+        { game with fast_fall = true }
+    | MDownRelease ->
+        { game with fast_fall = false }
     | MLeft ->
         { game with left_last_press = 0 }
     | MRight ->
@@ -1051,6 +1048,7 @@ let start ?(generator = Generator.nice) ?rand () =
 
     left_last_press = -1;
     right_last_press = -1;
+    fast_fall = false;
   }
 
 let start_multiplayer ?generator rand =

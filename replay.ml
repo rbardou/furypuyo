@@ -86,7 +86,6 @@ let encode_game_state buf s =
         w Bin.int s.inc_x;
         w Bin.int s.inc_y;
         w Bin.int s.inc_insert_time;
-        w Bin.bool s.inc_fast_fall
     | Inserting s ->
         w Bin.int 2;
         w Bin.int s.ins_end;
@@ -126,13 +125,11 @@ let decode_game_state buf =
         let x = r Bin.int in
         let y = r Bin.int in
         let insert_time = r Bin.int in
-        let fast_fall = r Bin.bool in
         Incoming {
           inc_block = block;
           inc_x = x;
           inc_y = y;
           inc_insert_time = insert_time;
-          inc_fast_fall = fast_fall;
         }
     | 2 ->
         let ins_end = r Bin.int in
@@ -282,7 +279,8 @@ let encode_game buf game =
   w Bin.int game.offsets;
   w codec_fury_state game.fury;
   w Bin.int game.left_last_press;
-  w Bin.int game.right_last_press
+  w Bin.int game.right_last_press;
+  w Bin.bool game.fast_fall
   (* do not save Gfx *)
 
 let decode_game buf =
@@ -304,6 +302,7 @@ let decode_game buf =
   let fury = r codec_fury_state in
   let left_last_press = r Bin.int in
   let right_last_press = r Bin.int in
+  let fast_fall = r Bin.bool in
   {
     now = now;
     field = field;
@@ -325,6 +324,7 @@ let decode_game buf =
     gfx = Gfx.empty;
     left_last_press = left_last_press;
     right_last_press = right_last_press;
+    fast_fall = fast_fall;
   }
 
 let codec_game =
