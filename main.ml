@@ -195,6 +195,7 @@ and main_menu (): unit =
       "PLAY ONLINE", `PlayOnline;
       "SANDBOX", `Sandbox;
       "HIGH SCORES", `HighScores;
+      "TOOGLE FULLSCREEN", `Fullscreen;
       "QUIT", `Quit;
     ]
   in
@@ -207,6 +208,9 @@ and main_menu (): unit =
         play_online ()
     | `HighScores ->
         show_high_scores ();
+        main_menu ()
+    | `Fullscreen ->
+        ignore (Sdlwm.toggle_fullscreen ());
         main_menu ()
     | `Quit ->
         quit ()
