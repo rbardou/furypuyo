@@ -991,6 +991,24 @@ let think_frame game actions =
   let game = List.fold_left act game actions in
   think game
 
+let normal_speed =
+  {
+    sp_fall_absorb = smooth_factor;
+    sp_fall = 10;
+    sp_fall_fast = 200;
+    sp_insert_delay = 20;
+    sp_gravity = 6;
+    sp_pop_delay = 80;
+    sp_fury_initial_delay = 200;
+    sp_fury_acceleration = 10;
+    sp_fury_minimum_delay = 50;
+    sp_fury_initial = 500;
+    sp_fury_gravity = 20;
+    sp_fury_pop_delay = 25;
+    sp_garbage_initial = 0;
+    sp_garbage_acceleration_delay = 0;
+  }
+
 let start ?(generator = Generator.nice) ?rand () =
   let rand =
     match rand with
@@ -1010,22 +1028,7 @@ let start ?(generator = Generator.nice) ?rand () =
     };
     score = 0;
     chain = 1;
-    speed = {
-      sp_fall_absorb = smooth_factor;
-      sp_fall = 20;
-      sp_fall_fast = 300;
-      sp_insert_delay = 20;
-      sp_gravity = 8;
-      sp_pop_delay = 60;
-      sp_fury_initial_delay = 200;
-      sp_fury_acceleration = 10;
-      sp_fury_minimum_delay = 50;
-      sp_fury_initial = 500;
-      sp_fury_gravity = 20;
-      sp_fury_pop_delay = 30;
-      sp_garbage_initial = 0;
-      sp_garbage_acceleration_delay = 0;
-    };
+    speed = normal_speed;
     next_blocks = [ block1; block2 ];
     garbage_incoming = [];
     garbage_ready = 0;
@@ -1048,9 +1051,9 @@ let start_multiplayer ?generator rand =
         game.speed with
           sp_garbage_initial = 6000; (* 1 minute *)
           sp_garbage_acceleration_delay = 60; (* +100% per minute *)
-	  sp_gravity = 7;
+(*	  sp_gravity = 7;
 	  sp_pop_delay = 70;
-	  sp_fury_pop_delay = 25;
+	  sp_fury_pop_delay = 25;*)
       }
   }
 
@@ -1061,19 +1064,19 @@ let start_sandbox ?generator speed () =
 	{
           game.speed with
             sp_fall = 0;
-            sp_fall_fast = 100;
+(*            sp_fall_fast = 100;*)
 	}
     | `VerySlow ->
 	{
           game.speed with
 	    sp_fall = game.speed.sp_fall / 5;
-            sp_fall_fast = 100;
+(*            sp_fall_fast = 100;*)
 	}
     | `Slow ->
 	{
           game.speed with
 	    sp_fall = game.speed.sp_fall / 2;
-            sp_fall_fast = 100;
+(*            sp_fall_fast = 100;*)
 	}
     | `Normal ->
 	game.speed
