@@ -304,8 +304,8 @@ let start_game_over game =
 
 let check_game_over game =
   let f = game.field in
-  not (Cell.is_empty (Matrix.get f 2 invisible_lines)
-       && Cell.is_empty (Matrix.get f 3 invisible_lines))
+  not (Cell.is_empty (Matrix.get f 2 invisible_lines))
+(*       && Cell.is_empty (Matrix.get f 3 invisible_lines))*)
 
 let start_falling game puyos =
   let fs = {
