@@ -54,7 +54,7 @@ let smooth_factor = 1024
 let incoming_blocks_origin_x = 2
 let incoming_blocks_origin_y = smooth_factor
 
-let initial_move_key_repeat_delay = 10
+let initial_move_key_repeat_delay = 12
 let move_key_repeat_delay = 3
 let score_per_garbage = 70 (* Puyo Tsu Rule. Old FuryPuyo value is 120. *)
 
