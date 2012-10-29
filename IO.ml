@@ -43,6 +43,7 @@ let () =
   Sdlttf.init ()
 
 let init w h =
+  Sdl.putenv "SDL_VIDEO_CENTERED" "center";
   Sdl.init [`TIMER; `VIDEO];
   enable_events
     (make_mask [
