@@ -134,6 +134,11 @@ let draw_inserting game is =
     float_of_int (is.ins_end - game.now)
     /. float_of_int game.speed.sp_insert_delay
   in
+(*  let anim_pos = 1. -. anim_pos in
+  let anim_pos = min 1. (3. *. anim_pos) in *)
+(*  let shift =
+    - int_of_float (float_of_int cellh *. 2. *. anim_pos *. (anim_pos -. 1.))
+  in *)
   let shift =
     int_of_float
       (float_of_int cellh *. 0.5
