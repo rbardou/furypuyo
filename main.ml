@@ -195,7 +195,7 @@ and main_menu (): unit =
       "PLAY ONLINE", `PlayOnline;
       "SANDBOX", `Sandbox;
       "HIGH SCORES", `HighScores;
-      "TOOGLE FULLSCREEN", `Fullscreen;
+      "TOGGLE FULLSCREEN", `Fullscreen;
       "QUIT", `Quit;
     ]
   in
