@@ -32,17 +32,29 @@ open Sdlvideo
 open Sdlevent
 open Sdlttf
 
+let real_screen = ref (fun () -> assert false)
 let screen = ref (fun () -> assert false)
 
 let width = ref 0
 let height = ref 0
 
+let real_width = ref 1280
+let real_height = ref 1024
+
 let last_tick = ref 0
+
+let zoom = ref false
 
 let () =
   Sdlttf.init ()
 
 let init w h =
+  if not !zoom then
+    begin
+      real_width := w;
+      real_height := h;
+    end;
+
   Sdl.putenv "SDL_VIDEO_CENTERED" "center";
   Sdl.init [`TIMER; `VIDEO];
   enable_events
@@ -54,8 +66,29 @@ let init w h =
      ]);
   width := w;
   height := h;
-  let the_screen = set_video_mode ~w ~h ~bpp: 32 [`HWSURFACE; `DOUBLEBUF] in
-  screen := (fun () -> the_screen);
+  let the_screen =
+    set_video_mode
+      ~w: !real_width
+      ~h: !real_height
+      ~bpp: 32
+      [`HWSURFACE; `DOUBLEBUF]
+  in
+  real_screen := (fun () -> the_screen);
+
+  if !zoom then
+    begin
+      let fake_screen =
+        create_RGB_surface_format
+          the_screen
+          [ `HWSURFACE ]
+          !real_width
+          !real_height
+      in
+      screen := (fun () -> fake_screen);
+    end
+  else
+    screen := (fun () -> the_screen);
+
   last_tick := Sdltimer.get_ticks ()
 
 let fdp = ref 0
@@ -85,8 +118,32 @@ let timer_start () = last_tick := 0
 
 let screen () = !screen ()
 
+let update_zoom () =
+  let zoom_x = float_of_int !real_width /. float_of_int !width in
+  let zoom_y = float_of_int !real_height /. float_of_int !height in
+  let zoomed =
+    Sdlgfx.zoomSurface
+      (screen ())
+      zoom_x
+      zoom_y
+      false
+  in
+  blit_surface
+    ~src: zoomed
+    ~dst: (!real_screen ())
+    ~dst_rect: {
+      r_x = 0;
+      r_y = 0;
+      r_w = 0;
+      r_h = 0;
+    } ();
+  flip (!real_screen ())
+
+let update_no_zoom () =
+  flip (!real_screen ())
+
 let update () =
-  flip (screen ())
+  if !zoom then update_zoom () else update_no_zoom ()
 
 let close () =
   if !fdc > 0 then
@@ -144,6 +201,9 @@ let print_format surf =
     (Int32.to_string bmask)
     (Int32.to_string amask)
 
+let make_opaque_surface w h =
+  create_RGB_surface_format (screen ()) [`HWSURFACE] ~w ~h
+
 let make_colorkey_surface w h =
   let pfi = surface_format (screen ()) in
   let bpp = pfi.bits_pp in
@@ -159,9 +219,6 @@ let make_colorkey_surface w h =
   in
   set_color_key surf 0l;
   surf
-
-let make_opaque_surface w h =
-  create_RGB_surface_format (screen ()) [`HWSURFACE] ~w ~h
 
 let make_surface transparency =
   match transparency with

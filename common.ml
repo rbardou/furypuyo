@@ -104,6 +104,15 @@ let player_dropset =
 let alpha =
   Config.bool config "ALPHA" "Enable sprite transparency" true
 
+let screen_height =
+  Config.int config "HEIGHT" "Window height" 600
+
+let screen_width =
+  Config.int config "WIDTH" "Window width" 780
+
+let screen_width = Config.get screen_width
+let screen_height = Config.get screen_height
+
 (*
 let default_color_generator =
   Config.custom

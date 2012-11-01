@@ -28,6 +28,7 @@
 (* OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.   *)
 (**************************************************************************)
 
+open Draw
 open Misc
 open Sprites
 open Common
@@ -58,8 +59,8 @@ let string_choices ?default choices =
   let choice = ref 0 in
   let count = Array.length choices in
   IO.timer_start ();
-  let choice_y i = (i + 1) * screen_height / (count + 1) in
-  let choice_x = screen_width / 2 in
+  let choice_y i = (i + 1) * game_height / (count + 1) in
+  let choice_x = game_width / 2 in
   let choice_radius =
     Array.init count
       (fun i ->
@@ -201,10 +202,10 @@ let input_string ?(default = "") ?passchar ?(escape = fun () -> ()) query =
   in
   update_resultstr ();
   let background = IO.Sprite.screenshot () in
-  let query_x = screen_width / 2 in
-  let query_y = screen_height / 2 - 50 in
-  let input_x = screen_width / 2 in
-  let input_y = screen_height / 2 + 50 in
+  let query_x = game_width / 2 in
+  let query_y = game_height / 2 - 50 in
+  let input_x = game_width / 2 in
+  let input_y = game_height / 2 + 50 in
   let input_align =
     IO.Custom (0.5, IO.Sprite.width sprite_puyo / 2, 0.5, 0) in
   let now = ref 0 in
@@ -276,13 +277,13 @@ let high_scores_player_page name scores =
   name, scores
 
 let draw_high_scores_page =
-  let title_x = screen_width / 2 in
+  let title_x = game_width / 2 in
   let title_y = 50 in
   let scores_x = 20 in
   let scores_y = 150 in
   let scores_d = 35 in
-  let nothing_x = screen_width / 2 in
-  let nothing_y = screen_height / 2 in
+  let nothing_x = game_width / 2 in
+  let nothing_y = game_height / 2 in
   fun (title, lines) ->
     let title = String.uppercase title in
     IO.Text.write font ~align: IO.Top title_x title_y title;
@@ -326,7 +327,7 @@ let show_high_scores pages =
   with Exit ->
     ()
 
-let split_lines ?(w = screen_width) ?(h = screen_height) ?(font = font) s =
+let split_lines ?(w = game_width) ?(h = game_height) ?(font = font) s =
   let space_width, _ = IO.Text.size font " " in
   let rec split_inside acc current_line current_width = function
     | [] ->
@@ -375,8 +376,8 @@ let waiting_string_gen ?(escape = [ Escape ]) msg test =
       lines
   in
   let background = IO.Sprite.screenshot () in
-  let text_x = screen_width / 2 in
-  let text_y = screen_height / 2 - total_height / 2 + dy / 2 in
+  let text_x = game_width / 2 in
+  let text_y = game_height / 2 - total_height / 2 + dy / 2 in
   MenuReader.reset ();
   let test_result = ref (test ()) in
   while !test_result = None do
@@ -422,7 +423,7 @@ let option_menu opts =
   let result = ref false in
   let opts = Array.of_list opts in
   let count = Array.length opts in
-  let choice_y i = (i + 1) * screen_height / (count + 1) in
+  let choice_y i = (i + 1) * game_height / (count + 1) in
   let choice_x = 50 in
   let pos = ref 0 in
   let puyo_x = 20 in

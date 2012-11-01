@@ -33,9 +33,6 @@
 open IO
 open Common
 
-let screen_width = 390 * 2
-let screen_height = 600
-
 let () = IO.init screen_width screen_height
 
 let load_alpha =

@@ -37,6 +37,7 @@ open IO
 open Puyo
 open Cell
 open Sprites
+open Common
 
 let cellw = 40
 let cellh = 40
@@ -77,10 +78,18 @@ let oy3 = offsets_y + offset_scale_y * 4
 let oy2 = offsets_y + offset_scale_y * 5
 let oy1 = offsets_y + offset_scale_y * 6
 
-let general_offset_x = ref 0
-let general_offset_y = ref 0
+let game_width = 390 * 2
+let game_height = 600
+let screen_offset_x = screen_width / 2 - game_width / 2
+let screen_offset_y = screen_height / 2 - game_height / 2
+let general_offset_x = ref screen_offset_x
+let general_offset_y = ref screen_offset_y
 let second_x = 390
 let second_y = 0
+
+let set_general_offset x y =
+  general_offset_x := x + screen_offset_x;
+  general_offset_y := y + screen_offset_y
 
 module Sprite = struct
   include Sprite
@@ -252,14 +261,12 @@ let draw_ready_set_go now =
     draw sprite_go
 
 let draw_empty_1 () =
-  general_offset_x := 0;
-  general_offset_y := 0;
+  set_general_offset 0 0;
   Sprite.draw background 0 0;
   Sprite.draw foreground 0 0
 
 let draw_empty_2 () =
-  general_offset_x := second_x;
-  general_offset_y := second_y;
+  set_general_offset second_x second_y;
   Sprite.draw background 0 0;
   Sprite.draw foreground 0 0
 
@@ -268,8 +275,7 @@ let draw_empty () =
   draw_empty_2 ()
 
 let draw_game_at ?(name = "") game game_x game_y =
-  general_offset_x := game_x;
-  general_offset_y := game_y;
+  set_general_offset game_x game_y;
   let blit = game.now / 2 mod 2 = 0 in
   Sprite.draw background 0 0;
   let y_offset = ref 0 in
