@@ -67,29 +67,29 @@ let two_player_game () =
       Draw.draw_multiplayer !game1 (Some ("", !game2));
 
     (* send garbage *)
+    if !game1.garbage_finished then
+      begin
+        game1 := { !game1 with garbage_finished = false };
+        actions2 := (Action.FinishGarbage 1) :: !actions2
+      end;
     let garbage_from1 = !game1.garbage_sent in
     if garbage_from1 > 0 then
       begin
         game1 := { !game1 with garbage_sent = 0 };
         actions2 := (Action.SendGarbage (1, garbage_from1)) :: !actions2
       end;
-    if !game1.garbage_finished then
-      begin
-        game1 := { !game1 with garbage_finished = false };
-        actions2 := (Action.FinishGarbage 1) :: !actions2
-      end;
 
     (* send garbage *)
+    if !game2.garbage_finished then
+      begin
+        game2 := { !game2 with garbage_finished = false };
+        actions1 := (Action.FinishGarbage 2) :: !actions1
+      end;
     let garbage_from2 = !game2.garbage_sent in
     if garbage_from2 > 0 then
       begin
         game2 := { !game2 with garbage_sent = 0 };
         actions1 := (Action.SendGarbage (2, garbage_from2)) :: !actions1
-      end;
-    if !game2.garbage_finished then
-      begin
-        game2 := { !game2 with garbage_finished = false };
-        actions1 := (Action.FinishGarbage 2) :: !actions1
       end;
 
     Replay.frame replay1 !actions1;

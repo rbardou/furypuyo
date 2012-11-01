@@ -909,12 +909,14 @@ let act_incoming game is = function
 let act game input =
   match input with
     | SendGarbage (pid, count) ->
+        Printf.printf "SendGarbage (%d, %d)\n%!" pid count;
         let a, (_, g), b =
           try split_when (fun (i, _) -> i = pid) game.garbage_incoming
           with Not_found -> [], (pid, 0), game.garbage_incoming
         in
         { game with garbage_incoming = a @ ((pid, g + count) :: b) }
     | FinishGarbage pid ->
+        Printf.printf "FinishGarbage %d\n%!" pid;
         let a, (_, g), b =
           try split_when (fun (i, _) -> i = pid) game.garbage_incoming
           with Not_found -> [], (pid, 0), game.garbage_incoming

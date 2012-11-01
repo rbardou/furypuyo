@@ -496,13 +496,13 @@ and multi_player_game cx login dropset rand players =
 
     (* send garbage *)
     let garbage = !game.garbage_sent in
-    if garbage > 0 then begin
-      game := { !game with garbage_sent = 0 };
-      Net.send cx (SendGarbage garbage)
-    end;
     if !game.garbage_finished then begin
       game := { !game with garbage_finished = false };
       Net.send cx FinishGarbage
+    end;
+    if garbage > 0 then begin
+      game := { !game with garbage_sent = 0 };
+      Net.send cx (SendGarbage garbage)
     end;
 
     (* TODO: pause menu *)
