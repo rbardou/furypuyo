@@ -146,6 +146,8 @@ type speed = {
     (** Is hard drop allowed? *)
   sp_enable_fury: bool;
     (** Is fury mode allowed? *)
+  sp_offset_delays_garbage: bool;
+    (** Offsetting delays garbage? *)
 }
 
 type fury_state =
@@ -459,7 +461,7 @@ let start_popping game puyos groups =
   { game with
       state = Popping ps;
       chain = game.chain + 1;
-      garbage_protection = true } (* TODO: what is that last line? *)
+      garbage_protection = true }
 *)
 
 (* Puyo Puyo Tsu rules. *)
@@ -530,7 +532,7 @@ let start_popping game puyos groups =
   { game with
       state = Popping ps;
       chain = game.chain + 1;
-      garbage_protection = true } (* TODO: what is that last line? *)
+      garbage_protection = game.speed.sp_offset_delays_garbage }
 
 let erase_no_puyo_lines f =
   List.fold_left
@@ -1028,6 +1030,7 @@ let normal_speed =
     sp_garbage_acceleration_delay = 0;
     sp_enable_hard_drop = true;
     sp_enable_fury = true;
+    sp_offset_delays_garbage = true;
   }
 
 let start ?(generator = Generator.nice) ?rand () =
@@ -1074,6 +1077,7 @@ let start_multiplayer ?generator rand =
           sp_garbage_initial = 6000; (* 1 minute *)
           sp_garbage_acceleration_delay = 60; (* +100% per minute *)
           sp_enable_hard_drop = false;
+          sp_offset_delays_garbage = false;
 (*	  sp_gravity = 7;
 	  sp_pop_delay = 70;
 	  sp_fury_pop_delay = 25;*)
