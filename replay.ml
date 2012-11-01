@@ -194,7 +194,9 @@ let encode_game_speed buf s =
   w Bin.int s.sp_fury_pop_delay;
   w Bin.int s.sp_garbage_initial;
   w Bin.int s.sp_garbage_acceleration_delay;
-  w Bin.bool s.sp_allow_insta_fall
+  w Bin.bool s.sp_enable_hard_drop;
+  w Bin.bool s.sp_enable_fury;
+  ()
 
 let decode_game_speed buf =
   let r x = Bin.read buf x in
@@ -212,7 +214,8 @@ let decode_game_speed buf =
   let sp_fury_pop_delay = r Bin.int in
   let sp_garbage_initial = r Bin.int in
   let sp_garbage_acceleration_delay = r Bin.int in
-  let sp_allow_insta_fall = r Bin.bool in
+  let sp_enable_hard_drop = r Bin.bool in
+  let sp_enable_fury = r Bin.bool in
   {
     sp_fall_absorb = sp_fall_absorb;
     sp_fall = sp_fall;
@@ -228,7 +231,8 @@ let decode_game_speed buf =
     sp_fury_pop_delay = sp_fury_pop_delay;
     sp_garbage_initial = sp_garbage_initial;
     sp_garbage_acceleration_delay = sp_garbage_acceleration_delay;
-    sp_allow_insta_fall = sp_allow_insta_fall;
+    sp_enable_hard_drop = sp_enable_hard_drop;
+    sp_enable_fury = sp_enable_fury;
   }
 
 let codec_game_speed =
