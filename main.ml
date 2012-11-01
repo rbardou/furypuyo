@@ -90,18 +90,29 @@ and sandbox_loop game: unit =
     sandbox_loop game
   end
 
-and replay_loop replay: unit =
+and replay_loop replay replay2: unit =
   let actions = Reader.read () in
   if List.mem Action.Escape actions then
-    replay_pause replay
+    replay_pause replay replay2
   else begin
     let game = Replay.next replay in
-    if game_finished game then
+    let game2 = opt_map Replay.next replay2 in
+    let game_finished_2 =
+      match game2 with
+        | None -> true
+        | Some game2 -> game_finished game2
+    in
+    if game_finished game && game_finished_2 then
       main_menu ()
     else begin
-      if !draw then Draw.draw game;
+      if !draw then
+        begin
+          match game2 with
+            | None -> Draw.draw game
+            | Some game2 -> Draw.draw_multiplayer game (Some ("", game2))
+        end;
       draw := IO.frame_delay 10;
-      replay_loop replay
+      replay_loop replay replay2
     end
   end
 
@@ -126,7 +137,7 @@ and pause game cpu replay: unit =
     | `Quit ->
         quit ()
 
-and replay_pause r: unit =
+and replay_pause r r2: unit =
   let choice =
     Menu.string_choices ~default: `Continue [
       "CONTINUE", `Continue;
@@ -138,9 +149,9 @@ and replay_pause r: unit =
   match choice with
     | `Continue ->
         IO.timer_start ();
-        replay_loop r
+        replay_loop r r2
     | `Restart ->
-        replay r
+        replay r r2
     | `MainMenu ->
         main_menu ()
     | `Quit ->
@@ -178,17 +189,25 @@ and sandbox_menu (): unit =
   end else
     main_menu ()
 
-and replay r: unit =
+and replay r r2: unit =
   Replay.play r;
+  opt_iter Replay.play r2;
   IO.timer_start ();
   Reader.reset ();
-  replay_loop r
+  replay_loop r r2
 
 and replay_file file: unit =
-  let ch = open_in file in
-  let r = Bin.read (Bin.from_channel ch) Replay.codec in
-  close_in ch;
-  replay r
+  let replays = load_replay file in
+  match replays with
+    | [] ->
+        Printf.eprintf "There is no player in this replay."
+    | [ a ] ->
+        replay a None
+    | [ a; b ] ->
+        replay a (Some b)
+    | a :: b :: _ ->
+        Printf.eprintf "There are more than two players in this replay.";
+        replay a (Some b)
 
 and main_menu (): unit =
   Draw.draw_empty ();

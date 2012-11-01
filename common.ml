@@ -153,8 +153,21 @@ let save_replay replay file =
   let file = new_file_name (Config.filename file) ".replay" in
   let ch = Config.open_out file in
   let buf = Bin.to_channel ch in
-  Bin.write buf Replay.codec replay;
+  Bin.write buf (Bin.list Replay.codec) [ replay ];
   close_out ch
+
+let save_two_player_replay replay1 replay2 file =
+  let file = new_file_name (Config.filename file) ".replay" in
+  let ch = Config.open_out file in
+  let buf = Bin.to_channel ch in
+  Bin.write buf (Bin.list Replay.codec) [ replay1; replay2 ];
+  close_out ch
+
+let load_replay file =
+  let ch = open_in file in
+  let r = Bin.read (Bin.from_channel ch) (Bin.list Replay.codec) in
+  close_in ch;
+  r
 
 let rec percent_of_handicap = function
   | 0 -> 100

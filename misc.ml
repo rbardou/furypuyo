@@ -141,6 +141,21 @@ let rec insert_in_sorted_list_nodup acc compare x = function
         insert_in_sorted_list_nodup (y :: acc) compare x rem
 let insert_in_sorted_list_nodup x = insert_in_sorted_list_nodup [] x
 
+let opt_map f x =
+  match x with
+    | None -> None
+    | Some x -> Some (f x)
+
+let opt_iter f x =
+  match x with
+    | None -> ()
+    | Some x -> f x
+
+let opt_fold f acc x =
+  match x with
+    | None -> acc
+    | Some x -> f acc x
+
 module type OrderedType = sig
   type t
   val compare: t -> t -> int

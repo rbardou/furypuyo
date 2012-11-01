@@ -54,6 +54,10 @@ let two_player_game () =
   MultiReader.reset ();
   let game_over = ref false in
   let quit = ref false in
+
+  let replay1 = Replay.record !game1 in
+  let replay2 = Replay.record !game2 in
+
   while not (!game_over || !quit) do
     let actions = MultiReader.read () in
     let actions1 = ref (filter_player_actions 1 actions) in
@@ -88,10 +92,15 @@ let two_player_game () =
         actions1 := (Action.FinishGarbage 2) :: !actions1
       end;
 
+    Replay.frame replay1 !actions1;
+    Replay.frame replay2 !actions2;
+
     game1 := Game.think_frame !game1 !actions1;
     game2 := Game.think_frame !game2 !actions2;
 
     (* TODO: pause menu *)
     if List.mem Action.Escape !actions1 then
       quit := true;
-  done
+  done;
+
+  save_two_player_replay replay1 replay2 "two_player"
