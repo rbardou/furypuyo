@@ -142,6 +142,8 @@ type speed = {
     (** delay between two accelerations of garbage sending speed
         (one percent of normal garbage count each time)
         (0 or less means no acceleration) *)
+  sp_allow_insta_fall: bool;
+    (** Is hard drop allowed? *)
 }
 
 type fury_state =
@@ -902,7 +904,11 @@ let debug game =
 let act_incoming game is = function
   | RLeft -> rotate Block.rotate_left game is
   | RRight -> rotate Block.rotate_right game is
-  | InstaFall -> insta_fall game is
+  | InstaFall ->
+      if game.speed.sp_allow_insta_fall then
+        insta_fall game is
+      else
+        game
   | Debug -> debug game
   | _ -> game
 
@@ -1018,6 +1024,7 @@ let normal_speed =
     sp_fury_pop_delay = 25;
     sp_garbage_initial = 0;
     sp_garbage_acceleration_delay = 0;
+    sp_allow_insta_fall = true;
   }
 
 let start ?(generator = Generator.nice) ?rand () =
@@ -1063,6 +1070,7 @@ let start_multiplayer ?generator rand =
         game.speed with
           sp_garbage_initial = 6000; (* 1 minute *)
           sp_garbage_acceleration_delay = 60; (* +100% per minute *)
+          sp_allow_insta_fall = false;
 (*	  sp_gravity = 7;
 	  sp_pop_delay = 70;
 	  sp_fury_pop_delay = 25;*)
