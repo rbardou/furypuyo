@@ -35,6 +35,8 @@ open Common
 
 let () =
   Sdlwm.set_caption ~title: "Fury Puyo" ~icon: "Fury Puyo";
+
+  (* Player 1 keys *)
   Reader.key_down Sdlkey.KEY_ESCAPE Action.Escape;
   Reader.key_down Sdlkey.KEY_LEFT Action.MLeft;
   Reader.key_down Sdlkey.KEY_RIGHT Action.MRight;
@@ -50,6 +52,7 @@ let () =
   Reader.key_down Sdlkey.KEY_DOWN Action.MDown;
   Reader.key_up Sdlkey.KEY_DOWN Action.MDownRelease;
   Reader.key_down Sdlkey.KEY_TAB Action.ViewOtherPlayer;
+
   IO.on_quit on_quit
 
 let high_scores_file = "single_player.scores"
@@ -192,6 +195,7 @@ and main_menu (): unit =
   let choice =
     Menu.string_choices [
       "SINGLE PLAYER", `Single;
+      "TWO PLAYERS", `TwoPlayers;
       "PLAY ONLINE", `PlayOnline;
       "SANDBOX", `Sandbox;
       "HIGH SCORES", `HighScores;
@@ -202,6 +206,9 @@ and main_menu (): unit =
   match choice with
     | `Single ->
         single_player_game ()
+    | `TwoPlayers ->
+        Multiplayer.two_player_game ();
+        main_menu ()
     | `Sandbox ->
         sandbox_menu ()
     | `PlayOnline ->
