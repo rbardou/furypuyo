@@ -1004,7 +1004,7 @@ let normal_speed =
   {
     sp_fall_absorb = smooth_factor;
     sp_fall = 10;
-    sp_fall_fast = 170;
+    sp_fall_fast = 200;
     sp_insert_delay = 40;
     sp_gravity = 6;
     sp_pop_delay = 80;
