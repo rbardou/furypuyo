@@ -52,13 +52,12 @@ let two_player_game () =
   in
   IO.timer_start ();
   MultiReader.reset ();
-  let game_over = ref false in
   let quit = ref false in
 
   let replay1 = Replay.record !game1 in
   let replay2 = Replay.record !game2 in
 
-  while not (!game_over || !quit) do
+  while not (game_over !game1 || game_over !game2 || !quit) do
     let actions = MultiReader.read () in
     let actions1 = ref (filter_player_actions 1 actions) in
     let actions2 = ref (filter_player_actions 2 actions) in

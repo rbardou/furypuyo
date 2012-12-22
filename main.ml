@@ -187,7 +187,7 @@ and sandbox_menu (): unit =
     Config.set player_dropset !dropset;
     sandbox !speed !dropset ()
   end else
-    main_menu ()
+    main_menu ~default: `Sandbox ()
 
 and replay r r2: unit =
   Replay.play r;
@@ -209,10 +209,10 @@ and replay_file file: unit =
         Printf.eprintf "There are more than two players in this replay.";
         replay a (Some b)
 
-and main_menu (): unit =
+and main_menu ?default (): unit =
   Draw.draw_empty ();
   let choice =
-    Menu.string_choices [
+    Menu.string_choices ?default [
       "SINGLE PLAYER", `Single;
       "TWO PLAYERS", `TwoPlayers;
       "PLAY ONLINE", `PlayOnline;
@@ -227,7 +227,7 @@ and main_menu (): unit =
         single_player_game ()
     | `TwoPlayers ->
         Multiplayer.two_player_game ();
-        main_menu ()
+        main_menu ~default: `TwoPlayers ()
     | `Sandbox ->
         sandbox_menu ()
     | `PlayOnline ->
@@ -237,7 +237,7 @@ and main_menu (): unit =
         main_menu ()
     | `Fullscreen ->
         ignore (Sdlwm.toggle_fullscreen ());
-        main_menu ()
+        main_menu ~default: `Fullscreen ()
     | `Quit ->
         quit ()
 

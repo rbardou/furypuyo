@@ -47,6 +47,8 @@ let () =
 
 let sprite_puyo = IO.Sprite.align sprite_puyo_red IO.Center
 
+exception ReturnInt of int
+
 let string_choices ?default choices =
   let choices = Array.of_list choices in
   MenuReader.reset ();
@@ -56,7 +58,20 @@ let string_choices ?default choices =
     raise Exit
   in
   let background = IO.Sprite.screenshot () in
-  let choice = ref 0 in
+  let default_choice =
+    match default with
+      | None ->
+          0
+      | Some value ->
+          try
+            list_iteri
+              (fun i (_, v) -> if v = value then raise (ReturnInt i))
+              (Array.to_list choices);
+            0
+          with ReturnInt i ->
+            i
+  in
+  let choice = ref default_choice in
   let count = Array.length choices in
   IO.timer_start ();
   let choice_y i = (i + 1) * game_height / (count + 1) in
