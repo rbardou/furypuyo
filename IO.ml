@@ -375,7 +375,7 @@ module MakeReader(A: ACTION) = struct
   let auto = ref KeyMap.empty
   let pressed_keys = ref KeyMap.empty
 
-  let action mapref key acc =
+  let action mapref key acc : A.t list =
     try KeyMap.find key !mapref :: acc
     with Not_found -> acc
 
